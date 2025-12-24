@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -17,6 +17,9 @@ export const BestSellersSection = () => {
   const slideRight = () => {
     setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   };
+
+  // Calculate card width based on container width to show exactly 4
+  const cardWidth = 'calc((100% - 72px) / 4)'; // 100% minus 3 gaps of 24px, divided by 4
 
   return (
     <section className="py-20 lg:py-32 bg-card">
@@ -40,11 +43,11 @@ export const BestSellersSection = () => {
           </p>
         </motion.div>
 
-        {/* Products Slider - Show 4 products at a time */}
+        {/* Products Slider - Show exactly 4 products */}
         <div className="relative overflow-hidden">
           <motion.div
             className="flex gap-6"
-            animate={{ x: -currentIndex * (280 + 24) }}
+            animate={{ x: `calc(-${currentIndex} * (25% + 6px))` }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {bestSellers.map((product, index) => (
@@ -54,7 +57,8 @@ export const BestSellersSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="flex-shrink-0 w-[280px]"
+                className="flex-shrink-0"
+                style={{ width: cardWidth }}
               >
                 <ProductCard product={product} />
               </motion.div>
