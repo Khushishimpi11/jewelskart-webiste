@@ -14,7 +14,7 @@ export const Footer = () => {
               <img
                 src={logo}
                 alt="Evimeria Jewellery"
-                className="h-14 w-auto brightness-0 invert"
+                className="h-20 w-auto brightness-0 invert"
               />
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">

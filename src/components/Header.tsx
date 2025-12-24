@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
+import { categories } from '@/data/products';
 import logo from '@/assets/logo.png';
 
 const navLinks = [
   { name: 'Home', path: '/' },
-  { name: 'Shop', path: '/shop' },
+  { name: 'Shop', path: '/shop', hasDropdown: true },
   { name: 'About', path: '/about' },
   { name: 'Contact Us', path: '/contact' },
 ];
@@ -18,7 +19,9 @@ export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showShopDropdown, setShowShopDropdown] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const cartItemCount = useCartStore((state) => state.getItemCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -58,30 +61,77 @@ export const Header = () => {
             <img
               src={logo}
               alt="Evimeria Jewellery"
-              className="h-12 lg:h-16 w-auto"
+              className="h-16 lg:h-20 w-auto"
             />
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname === link.path
-                    ? 'text-primary'
-                    : 'text-foreground/80 hover:text-primary'
-                }`}
-              >
-                {link.name}
-                {location.pathname === link.path && (
-                  <motion.span
-                    layoutId="activeNav"
-                    className="absolute -bottom-1 left-0 right-0 h-px bg-primary"
-                  />
-                )}
-              </Link>
+              link.hasDropdown ? (
+                <div
+                  key={link.path}
+                  className="relative"
+                  onMouseEnter={() => setShowShopDropdown(true)}
+                  onMouseLeave={() => setShowShopDropdown(false)}
+                >
+                  <button
+                    className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${
+                      location.pathname === link.path || location.pathname.startsWith('/shop')
+                        ? 'text-primary'
+                        : 'text-foreground/80 hover:text-primary'
+                    }`}
+                  >
+                    {link.name}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showShopDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showShopDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute left-0 top-full mt-2 w-48 bg-card border border-border/50 shadow-lg py-2 z-50"
+                      >
+                        <Link
+                          to="/shop"
+                          className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
+                        >
+                          All Products
+                        </Link>
+                        {categories.map((category) => (
+                          <Link
+                            key={category.id}
+                            to={`/shop?category=${category.id}`}
+                            className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors capitalize"
+                          >
+                            {category.name}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                    location.pathname === link.path
+                      ? 'text-primary'
+                      : 'text-foreground/80 hover:text-primary'
+                  }`}
+                >
+                  {link.name}
+                  {location.pathname === link.path && (
+                    <motion.span
+                      layoutId="activeNav"
+                      className="absolute -bottom-1 left-0 right-0 h-px bg-primary"
+                    />
+                  )}
+                </Link>
+              )
             ))}
           </nav>
 
