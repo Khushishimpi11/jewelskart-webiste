@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { heroSlides, products } from '@/data/products';
+import { heroSlides } from '@/data/products';
 import heroImage from '@/assets/hero-1.jpg';
 
 export const HeroSection = () => {
@@ -23,12 +23,9 @@ export const HeroSection = () => {
     setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
   };
 
-  // Get floating product images
-  const floatingImages = products.slice(0, 4);
-
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background Image - More Visible */}
+      {/* Background Image - Clearly Visible */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence mode="wait">
           <motion.img
@@ -42,7 +39,7 @@ export const HeroSection = () => {
             transition={{ duration: 1 }}
           />
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
@@ -105,19 +102,18 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Floating Product Images - Right Side (Smaller, More Elegant) */}
-          <div className="hidden lg:block relative h-[500px]">
-            {/* Main floating image */}
+          {/* Single Square Product Image - Right Side */}
+          <div className="hidden lg:flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSlide}
-                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 z-20"
+                className="w-48 h-48"
               >
-                <div className="relative w-full h-full rounded-sm overflow-hidden border-2 border-primary/40 shadow-[0_10px_40px_rgba(201,162,77,0.3)]">
+                <div className="relative w-full h-full rounded-sm overflow-hidden border-2 border-primary/50 shadow-[0_15px_50px_rgba(201,162,77,0.4)]">
                   <img
                     src={heroSlides[currentSlide].image}
                     alt="Featured Product"
@@ -126,67 +122,6 @@ export const HeroSection = () => {
                 </div>
               </motion.div>
             </AnimatePresence>
-
-            {/* Floating smaller images */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="absolute top-12 left-8 w-20 h-20 z-10"
-            >
-              <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
-                <img
-                  src={floatingImages[0]?.image}
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="absolute top-8 right-12 w-24 h-24 z-10"
-            >
-              <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
-                <img
-                  src={floatingImages[1]?.image}
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="absolute bottom-20 left-12 w-18 h-18 z-10"
-            >
-              <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
-                <img
-                  src={floatingImages[2]?.image}
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="absolute bottom-12 right-8 w-20 h-20 z-10"
-            >
-              <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
-                <img
-                  src={floatingImages[3]?.image}
-                  alt="Product"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </motion.div>
           </div>
         </div>
       </div>

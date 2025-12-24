@@ -17,6 +17,9 @@ export const SpecialProducts = () => {
     setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   };
 
+  // Calculate card width based on container width to show exactly 4
+  const cardWidth = 'calc((100% - 72px) / 4)'; // 100% minus 3 gaps of 24px, divided by 4
+
   return (
     <section className="py-20 lg:py-32 bg-card">
       <div className="container mx-auto px-4 lg:px-8">
@@ -39,11 +42,11 @@ export const SpecialProducts = () => {
           </p>
         </motion.div>
 
-        {/* Products Slider - Show 4 products at a time */}
+        {/* Products Slider - Show exactly 4 products */}
         <div className="relative overflow-hidden">
           <motion.div
             className="flex gap-6"
-            animate={{ x: -currentIndex * (300 + 24) }}
+            animate={{ x: `calc(-${currentIndex} * (25% + 6px))` }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {specialProducts.map((product, index) => (
@@ -53,7 +56,8 @@ export const SpecialProducts = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15 }}
-                className="flex-shrink-0 w-[300px] relative"
+                className="flex-shrink-0 relative"
+                style={{ width: cardWidth }}
               >
                 {/* Special Badge */}
                 <div className="absolute top-4 right-4 z-10">

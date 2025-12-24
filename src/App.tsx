@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import TrackOrder from "./pages/TrackOrder";
 import Profile from "./pages/Profile";
 import OrderSummary from "./pages/OrderSummary";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +37,7 @@ const App = () => (
           <Route path="/track-order" element={<TrackOrder />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/order-summary" element={<OrderSummary />} />
-          <Route path="/about" element={<Index />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
