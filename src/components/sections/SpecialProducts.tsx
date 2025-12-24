@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { products } from '@/data/products';
@@ -6,20 +6,15 @@ import { ProductCard } from '@/components/ProductCard';
 
 export const SpecialProducts = () => {
   const specialProducts = products.filter((p) => p.isSpecial);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const maxIndex = Math.max(0, specialProducts.length - 4);
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 320;
-      const newScrollLeft =
-        direction === 'left'
-          ? scrollContainerRef.current.scrollLeft - scrollAmount
-          : scrollContainerRef.current.scrollLeft + scrollAmount;
-      scrollContainerRef.current.scrollTo({
-        left: newScrollLeft,
-        behavior: 'smooth',
-      });
-    }
+  const slideLeft = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const slideRight = () => {
+    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   };
 
   return (
@@ -44,12 +39,12 @@ export const SpecialProducts = () => {
           </p>
         </motion.div>
 
-        {/* Products Slider */}
-        <div className="relative">
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        {/* Products Slider - Show 4 products at a time */}
+        <div className="relative overflow-hidden">
+          <motion.div
+            className="flex gap-6"
+            animate={{ x: -currentIndex * (300 + 24) }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {specialProducts.map((product, index) => (
               <motion.div
@@ -58,7 +53,7 @@ export const SpecialProducts = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15 }}
-                className="flex-shrink-0 w-[300px] relative snap-start"
+                className="flex-shrink-0 w-[300px] relative"
               >
                 {/* Special Badge */}
                 <div className="absolute top-4 right-4 z-10">
@@ -69,7 +64,7 @@ export const SpecialProducts = () => {
                 <ProductCard product={product} />
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
         {/* Navigation Arrows at Bottom Center */}
@@ -80,14 +75,16 @@ export const SpecialProducts = () => {
           className="flex items-center justify-center gap-4 mt-12"
         >
           <button
-            onClick={() => scroll('left')}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+            onClick={slideLeft}
+            disabled={currentIndex === 0}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={() => scroll('right')}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+            onClick={slideRight}
+            disabled={currentIndex === maxIndex}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

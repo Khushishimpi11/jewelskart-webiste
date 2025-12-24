@@ -105,7 +105,7 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Floating Product Images - Right Side (Smaller, Elegant) */}
+          {/* Floating Product Images - Right Side (Smaller, More Elegant) */}
           <div className="hidden lg:block relative h-[500px]">
             {/* Main floating image */}
             <AnimatePresence mode="wait">
@@ -115,7 +115,7 @@ export const HeroSection = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 z-20"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-36 h-36 z-20"
               >
                 <div className="relative w-full h-full rounded-sm overflow-hidden border-2 border-primary/40 shadow-[0_10px_40px_rgba(201,162,77,0.3)]">
                   <img
@@ -132,7 +132,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="absolute top-8 left-0 w-28 h-28 z-10"
+              className="absolute top-12 left-8 w-20 h-20 z-10"
             >
               <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
                 <img
@@ -147,7 +147,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
-              className="absolute top-4 right-8 w-32 h-32 z-10"
+              className="absolute top-8 right-12 w-24 h-24 z-10"
             >
               <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
                 <img
@@ -162,7 +162,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="absolute bottom-16 left-8 w-24 h-24 z-10"
+              className="absolute bottom-20 left-12 w-18 h-18 z-10"
             >
               <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
                 <img
@@ -177,7 +177,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="absolute bottom-8 right-4 w-28 h-28 z-10"
+              className="absolute bottom-12 right-8 w-20 h-20 z-10"
             >
               <div className="relative w-full h-full rounded-sm overflow-hidden border border-primary/30 shadow-lg">
                 <img

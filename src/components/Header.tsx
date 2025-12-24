@@ -10,8 +10,8 @@ import logo from '@/assets/logo.png';
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'Shop', path: '/shop' },
-  { name: 'Collections', path: '/shop?collection=new' },
   { name: 'About', path: '/about' },
+  { name: 'Contact Us', path: '/contact' },
 ];
 
 export const Header = () => {

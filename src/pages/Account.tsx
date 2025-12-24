@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ const Account = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
+  const navigate = useNavigate();
   const { login, register, isAuthenticated, user, logout } = useAuthStore();
 
   const handleLogin = (e: React.FormEvent) => {
@@ -27,6 +29,7 @@ const Account = () => {
     const success = login(loginEmail, loginPassword);
     if (success) {
       toast.success('Welcome back!');
+      navigate('/');
     } else {
       toast.error('Account not found. Please register first.');
     }
@@ -45,6 +48,7 @@ const Account = () => {
     const success = register(registerEmail, registerPassword, firstName, lastName);
     if (success) {
       toast.success('Account created successfully!');
+      navigate('/');
     } else {
       toast.error('This email is already registered');
     }
@@ -55,9 +59,25 @@ const Account = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-24 lg:pt-32">
-          <div className="container mx-auto px-4 lg:px-8 py-8">
-            <h1 className="font-display text-3xl text-foreground mb-8 text-center">Account Settings</h1>
-            
+          {/* Banner */}
+          <section className="py-16 bg-card border-b border-border/30">
+            <div className="container mx-auto px-4 lg:px-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <span className="text-primary font-body text-sm tracking-luxury uppercase">
+                  My Account
+                </span>
+                <h1 className="font-display text-4xl md:text-5xl text-foreground mt-4">
+                  Account Settings
+                </h1>
+                <div className="section-divider mt-6" />
+              </motion.div>
+            </div>
+          </section>
+
+          <div className="container mx-auto px-4 lg:px-8 py-16">
             <div className="max-w-md mx-auto bg-card p-8 border border-border/30">
               <div className="text-center mb-8">
                 <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-3xl mx-auto mb-4">
@@ -100,9 +120,25 @@ const Account = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 lg:pt-32">
-        <div className="container mx-auto px-4 lg:px-8 py-8">
-          <h1 className="font-display text-3xl text-foreground mb-8 text-center">My Account</h1>
-          
+        {/* Banner */}
+        <section className="py-16 bg-card border-b border-border/30">
+          <div className="container mx-auto px-4 lg:px-8 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <span className="text-primary font-body text-sm tracking-luxury uppercase">
+                Welcome
+              </span>
+              <h1 className="font-display text-4xl md:text-5xl text-foreground mt-4">
+                My Account
+              </h1>
+              <div className="section-divider mt-6" />
+            </motion.div>
+          </div>
+        </section>
+
+        <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="max-w-md mx-auto">
             <div className="flex mb-6">
               {['login', 'register'].map((tab) => (
