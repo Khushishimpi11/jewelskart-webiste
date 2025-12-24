@@ -10,6 +10,10 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Wishlist from "./pages/Wishlist";
 import Account from "./pages/Account";
+import Contact from "./pages/Contact";
+import TrackOrder from "./pages/TrackOrder";
+import Profile from "./pages/Profile";
+import OrderSummary from "./pages/OrderSummary";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +32,10 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/track-order" element={<TrackOrder />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/order-summary" element={<OrderSummary />} />
           <Route path="/about" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

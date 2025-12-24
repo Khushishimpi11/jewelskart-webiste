@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,20 +7,15 @@ import { ProductCard } from '@/components/ProductCard';
 
 export const BestSellersSection = () => {
   const bestSellers = products.filter((p) => p.isBestSeller);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const maxIndex = Math.max(0, bestSellers.length - 4);
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 320;
-      const newScrollLeft =
-        direction === 'left'
-          ? scrollContainerRef.current.scrollLeft - scrollAmount
-          : scrollContainerRef.current.scrollLeft + scrollAmount;
-      scrollContainerRef.current.scrollTo({
-        left: newScrollLeft,
-        behavior: 'smooth',
-      });
-    }
+  const slideLeft = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const slideRight = () => {
+    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   };
 
   return (
@@ -45,12 +40,12 @@ export const BestSellersSection = () => {
           </p>
         </motion.div>
 
-        {/* Products Slider */}
-        <div className="relative">
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        {/* Products Slider - Show 4 products at a time */}
+        <div className="relative overflow-hidden">
+          <motion.div
+            className="flex gap-6"
+            animate={{ x: -currentIndex * (280 + 24) }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             {bestSellers.map((product, index) => (
               <motion.div
@@ -59,12 +54,12 @@ export const BestSellersSection = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="flex-shrink-0 w-[280px] snap-start"
+                className="flex-shrink-0 w-[280px]"
               >
                 <ProductCard product={product} />
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
         {/* View All with Arrows */}
@@ -75,8 +70,9 @@ export const BestSellersSection = () => {
           className="flex items-center justify-center gap-6 mt-12"
         >
           <button
-            onClick={() => scroll('left')}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+            onClick={slideLeft}
+            disabled={currentIndex === 0}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
@@ -89,8 +85,9 @@ export const BestSellersSection = () => {
           </Link>
           
           <button
-            onClick={() => scroll('right')}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+            onClick={slideRight}
+            disabled={currentIndex === maxIndex}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
