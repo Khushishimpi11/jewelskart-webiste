@@ -2,16 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, ShoppingBag, Eye } from 'lucide-react';
-import { Product, ringSizes } from '@/data/products';
+import { Product } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -19,7 +12,6 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const [selectedSize, setSelectedSize] = useState<string>('');
   const [isHovered, setIsHovered] = useState(false);
   const addToCart = useCartStore((state) => state.addItem);
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } =
@@ -28,11 +20,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   const inWishlist = isInWishlist(product.id);
 
   const handleAddToCart = () => {
-    if (product.isRing && !selectedSize) {
-      toast.error('Please select a size');
-      return;
-    }
-    addToCart(product, selectedSize || undefined);
+    addToCart(product, undefined);
     toast.success(`${product.name} added to cart`);
   };
 
@@ -122,30 +110,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
 
-        {/* Size Selector for Rings */}
-        {product.isRing ? (
-          <div className="pt-2">
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
-              <SelectTrigger className="w-full bg-card border-border/50 text-foreground">
-                <SelectValue placeholder="Select Size" />
-              </SelectTrigger>
-              <SelectContent>
-                {ringSizes.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    Size {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : (
-          <button
-            onClick={handleAddToCart}
-            className="w-full mt-2 btn-gold-outline py-2 text-xs"
-          >
-            Add to Cart
-          </button>
-        )}
+        {/* Buy Now Button */}
+        <button
+          onClick={handleAddToCart}
+          className="w-full mt-2 btn-gold-outline py-2 text-xs"
+        >
+          Buy Now
+        </button>
       </div>
     </motion.div>
   );
