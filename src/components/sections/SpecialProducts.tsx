@@ -1,9 +1,26 @@
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { products } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
 
 export const SpecialProducts = () => {
   const specialProducts = products.filter((p) => p.isSpecial);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 320;
+      const newScrollLeft =
+        direction === 'left'
+          ? scrollContainerRef.current.scrollLeft - scrollAmount
+          : scrollContainerRef.current.scrollLeft + scrollAmount;
+      scrollContainerRef.current.scrollTo({
+        left: newScrollLeft,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   return (
     <section className="py-20 lg:py-32 bg-card">
@@ -27,27 +44,54 @@ export const SpecialProducts = () => {
           </p>
         </motion.div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {specialProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.15 }}
-              className="relative"
-            >
-              {/* Special Badge */}
-              <div className="absolute top-4 right-4 z-10">
-                <span className="bg-primary text-primary-foreground text-xs font-body tracking-wider px-3 py-1">
-                  EXCLUSIVE
-                </span>
-              </div>
-              <ProductCard product={product} />
-            </motion.div>
-          ))}
+        {/* Products Slider */}
+        <div className="relative">
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {specialProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+                className="flex-shrink-0 w-[300px] relative snap-start"
+              >
+                {/* Special Badge */}
+                <div className="absolute top-4 right-4 z-10">
+                  <span className="bg-primary text-primary-foreground text-xs font-body tracking-wider px-3 py-1">
+                    EXCLUSIVE
+                  </span>
+                </div>
+                <ProductCard product={product} />
+              </motion.div>
+            ))}
+          </div>
         </div>
+
+        {/* Navigation Arrows at Bottom Center */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="flex items-center justify-center gap-4 mt-12"
+        >
+          <button
+            onClick={() => scroll('left')}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </motion.div>
       </div>
     </section>
   );

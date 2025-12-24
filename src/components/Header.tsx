@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingBag, Heart, User, Search } from 'lucide-react';
+import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useAuthStore } from '@/store/authStore';
 import logo from '@/assets/logo.png';
 
 const navLinks = [
@@ -16,17 +17,31 @@ const navLinks = [
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
   const cartItemCount = useCartStore((state) => state.getItemCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);
+  const { user, isAuthenticated, logout } = useAuthStore();
 
-  useState(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  });
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    setShowDropdown(false);
+  };
+
+  const getInitial = () => {
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
 
   return (
     <header
@@ -43,7 +58,7 @@ export const Header = () => {
             <img
               src={logo}
               alt="Evimeria Jewellery"
-              className="h-12 lg:h-16 w-auto brightness-0 invert"
+              className="h-12 lg:h-16 w-auto"
             />
           </Link>
 
@@ -97,12 +112,76 @@ export const Header = () => {
                 </span>
               )}
             </Link>
-            <Link
-              to="/account"
-              className="text-foreground/80 hover:text-primary transition-colors"
-            >
-              <User className="w-5 h-5" />
-            </Link>
+            
+            {/* Auth Section */}
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-lg hover:bg-primary/90 transition-colors"
+                >
+                  {getInitial()}
+                </button>
+                
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-card border border-border/50 shadow-lg py-2"
+                    >
+                      <Link
+                        to="/track-order"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Package className="w-4 h-4" />
+                        Track Order
+                      </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/order-summary"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        Order Summary
+                      </Link>
+                      <Link
+                        to="/account"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Account
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors w-full"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                to="/account"
+                className="text-foreground/80 hover:text-primary transition-colors"
+              >
+                <User className="w-5 h-5" />
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
