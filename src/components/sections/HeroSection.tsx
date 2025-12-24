@@ -3,7 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { heroSlides } from '@/data/products';
-import heroImage from '@/assets/hero-1.jpg';
+
+// Import multiple hero background images
+import heroImage1 from '@/assets/hero-1.jpg';
+import productRing from '@/assets/product-ring.jpg';
+import productNecklace from '@/assets/product-necklace.jpg';
+import productEarrings from '@/assets/product-earrings.jpg';
+
+const heroBackgrounds = [heroImage1, productNecklace, productEarrings];
 
 export const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -25,12 +32,12 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background Image - Clearly Visible */}
+      {/* Background Image - Changes with slide */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence mode="wait">
           <motion.img
             key={currentSlide}
-            src={heroImage}
+            src={heroBackgrounds[currentSlide % heroBackgrounds.length]}
             alt="Luxury Jewellery"
             className="w-full h-full object-cover"
             initial={{ opacity: 0, scale: 1.1 }}
@@ -102,7 +109,7 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Single Square Product Image - Right Side */}
+          {/* Single Square Product Image - Right Side (Larger) */}
           <div className="hidden lg:flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
@@ -111,7 +118,7 @@ export const HeroSection = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -20 }}
                 transition={{ duration: 0.5 }}
-                className="w-48 h-48"
+                className="w-72 h-72"
               >
                 <div className="relative w-full h-full rounded-sm overflow-hidden border-2 border-primary/50 shadow-[0_15px_50px_rgba(201,162,77,0.4)]">
                   <img
