@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { InnerPageBanner } from '@/components/InnerPageBanner';
 import aboutBanner from '@/assets/about-banner.jpg';
 
 const CounterItem = ({ end, label, suffix = '' }: { end: number; label: string; suffix?: string }) => {
@@ -17,7 +18,6 @@ const CounterItem = ({ end, label, suffix = '' }: { end: number; label: string; 
           let start = 0;
           const duration = 2000;
           const increment = end / (duration / 16);
-          
           const timer = setInterval(() => {
             start += increment;
             if (start >= end) {
@@ -31,22 +31,14 @@ const CounterItem = ({ end, label, suffix = '' }: { end: number; label: string; 
       },
       { threshold: 0.5 }
     );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
+    if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [end, hasAnimated]);
 
   return (
     <div ref={ref} className="text-center">
-      <div className="font-display text-4xl md:text-5xl text-primary mb-2">
-        {count}{suffix}
-      </div>
-      <div className="text-muted-foreground font-body text-sm uppercase tracking-wider">
-        {label}
-      </div>
+      <div className="font-display text-4xl md:text-5xl text-primary mb-2">{count}{suffix}</div>
+      <div className="text-muted-foreground font-body text-sm uppercase tracking-wider">{label}</div>
     </div>
   );
 };
@@ -55,31 +47,12 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 lg:pt-32">
-        {/* Hero Banner */}
-        <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
-          <img
-            src={aboutBanner}
-            alt="About Evimeria"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-background/60" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center"
-            >
-              <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                Our Story
-              </span>
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl text-foreground mt-4">
-                About Evimeria
-              </h1>
-              <div className="section-divider mt-6" />
-            </motion.div>
-          </div>
-        </section>
+      <main className="pt-20 lg:pt-24">
+        <InnerPageBanner
+          title="About Evimeria"
+          subtitle="Our Story"
+          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'About Us' }]}
+        />
 
         {/* Brand Story */}
         <section className="py-20 lg:py-32">
@@ -91,12 +64,8 @@ const About = () => {
                 viewport={{ once: true }}
                 className="space-y-6"
               >
-                <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                  Our Heritage
-                </span>
-                <h2 className="font-display text-3xl md:text-4xl text-foreground">
-                  Crafting Timeless Beauty Since 1995
-                </h2>
+                <span className="text-primary font-body text-sm tracking-luxury uppercase">Our Heritage</span>
+                <h2 className="font-display text-3xl md:text-4xl text-foreground">Crafting Timeless Beauty Since 1995</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Evimeria Jewellery was founded with a singular vision: to create pieces that transcend time and trends. Our journey began in a small workshop, where master artisans dedicated themselves to the art of fine jewellery making.
                 </p>
@@ -114,11 +83,7 @@ const About = () => {
                 viewport={{ once: true }}
                 className="relative aspect-[4/5] overflow-hidden"
               >
-                <img
-                  src={aboutBanner}
-                  alt="Evimeria Craftsmanship"
-                  className="w-full h-full object-cover"
-                />
+                <img src={aboutBanner} alt="Evimeria Craftsmanship" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 border-2 border-primary/30 m-6" />
               </motion.div>
             </div>
@@ -146,29 +111,16 @@ const About = () => {
               viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                What We Believe
-              </span>
-              <h2 className="font-display text-3xl md:text-4xl text-foreground mt-4 mb-4">
-                Our Values
-              </h2>
+              <span className="text-primary font-body text-sm tracking-luxury uppercase">What We Believe</span>
+              <h2 className="font-display text-3xl md:text-4xl text-foreground mt-4 mb-4">Our Values</h2>
               <div className="section-divider" />
             </motion.div>
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                {
-                  title: 'Excellence',
-                  description: 'We never compromise on quality. From sourcing to crafting, excellence is our standard.',
-                },
-                {
-                  title: 'Artistry',
-                  description: 'Every piece is a canvas for our artisans to express their creativity and skill.',
-                },
-                {
-                  title: 'Legacy',
-                  description: 'We create jewellery meant to be passed down through generations, carrying stories and memories.',
-                },
+                { title: 'Excellence', description: 'We never compromise on quality. From sourcing to crafting, excellence is our standard.' },
+                { title: 'Artistry', description: 'Every piece is a canvas for our artisans to express their creativity and skill.' },
+                { title: 'Legacy', description: 'We create jewellery meant to be passed down through generations, carrying stories and memories.' },
               ].map((value, index) => (
                 <motion.div
                   key={value.title}

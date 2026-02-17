@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
@@ -58,25 +59,12 @@ const Account = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 lg:pt-32">
-          {/* Banner */}
-          <section className="py-16 bg-card border-b border-border/30">
-            <div className="container mx-auto px-4 lg:px-8 text-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                  My Account
-                </span>
-                <h1 className="font-display text-4xl md:text-5xl text-foreground mt-4">
-                  Account Settings
-                </h1>
-                <div className="section-divider mt-6" />
-              </motion.div>
-            </div>
-          </section>
-
+        <main className="pt-20 lg:pt-24">
+          <InnerPageBanner
+            title="Account Settings"
+            subtitle="My Account"
+            breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Account' }]}
+          />
           <div className="container mx-auto px-4 lg:px-8 py-16">
             <div className="max-w-md mx-auto bg-card p-8 border border-border/30">
               <div className="text-center mb-8">
@@ -86,25 +74,10 @@ const Account = () => {
                 <h2 className="font-display text-xl text-foreground">{user.firstName} {user.lastName}</h2>
                 <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
-
               <div className="space-y-4">
-                <Input
-                  placeholder="First Name"
-                  defaultValue={user.firstName}
-                  className="bg-background"
-                />
-                <Input
-                  placeholder="Last Name"
-                  defaultValue={user.lastName}
-                  className="bg-background"
-                />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  defaultValue={user.email}
-                  className="bg-background"
-                  disabled
-                />
+                <Input placeholder="First Name" defaultValue={user.firstName} className="bg-background" />
+                <Input placeholder="Last Name" defaultValue={user.lastName} className="bg-background" />
+                <Input type="email" placeholder="Email" defaultValue={user.email} className="bg-background" disabled />
                 <button className="w-full btn-gold">Save Changes</button>
                 <button onClick={logout} className="w-full btn-gold-outline">Logout</button>
               </div>
@@ -119,24 +92,12 @@ const Account = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 lg:pt-32">
-        {/* Banner */}
-        <section className="py-16 bg-card border-b border-border/30">
-          <div className="container mx-auto px-4 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                Welcome
-              </span>
-              <h1 className="font-display text-4xl md:text-5xl text-foreground mt-4">
-                My Account
-              </h1>
-              <div className="section-divider mt-6" />
-            </motion.div>
-          </div>
-        </section>
+      <main className="pt-20 lg:pt-24">
+        <InnerPageBanner
+          title="My Account"
+          subtitle="Welcome"
+          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Account' }]}
+        />
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="max-w-md mx-auto">
@@ -155,71 +116,21 @@ const Account = () => {
             </div>
 
             {activeTab === 'login' ? (
-              <motion.form
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onSubmit={handleLogin}
-                className="space-y-4 bg-card p-6 border border-border/30"
-              >
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  className="bg-background"
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="bg-background"
-                />
+              <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleLogin} className="space-y-4 bg-card p-6 border border-border/30">
+                <Input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="bg-background" />
+                <Input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="bg-background" />
                 <button type="submit" className="w-full btn-gold">Sign In</button>
                 <p className="text-center text-muted-foreground text-sm">Forgot password?</p>
               </motion.form>
             ) : (
-              <motion.form
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onSubmit={handleRegister}
-                className="space-y-4 bg-card p-6 border border-border/30"
-              >
+              <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleRegister} className="space-y-4 bg-card p-6 border border-border/30">
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    placeholder="First Name *"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="bg-background"
-                  />
-                  <Input
-                    placeholder="Last Name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="bg-background"
-                  />
+                  <Input placeholder="First Name *" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-background" />
+                  <Input placeholder="Last Name" value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-background" />
                 </div>
-                <Input
-                  type="email"
-                  placeholder="Email *"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
-                  className="bg-background"
-                />
-                <Input
-                  type="password"
-                  placeholder="Password *"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  className="bg-background"
-                />
-                <Input
-                  type="password"
-                  placeholder="Confirm Password *"
-                  value={registerConfirmPassword}
-                  onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                  className="bg-background"
-                />
+                <Input type="email" placeholder="Email *" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} className="bg-background" />
+                <Input type="password" placeholder="Password *" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} className="bg-background" />
+                <Input type="password" placeholder="Confirm Password *" value={registerConfirmPassword} onChange={(e) => setRegisterConfirmPassword(e.target.value)} className="bg-background" />
                 <button type="submit" className="w-full btn-gold">Create Account</button>
               </motion.form>
             )}
