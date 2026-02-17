@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, Mail, Phone } from 'lucide-react';
@@ -29,24 +30,12 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 lg:pt-32">
-        {/* Banner */}
-        <section className="py-16 bg-card border-b border-border/30">
-          <div className="container mx-auto px-4 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                Get In Touch
-              </span>
-              <h1 className="font-display text-4xl md:text-5xl text-foreground mt-4">
-                Contact Us
-              </h1>
-              <div className="section-divider mt-6" />
-            </motion.div>
-          </div>
-        </section>
+      <main className="pt-20 lg:pt-24">
+        <InnerPageBanner
+          title="Contact Us"
+          subtitle="Get In Touch"
+          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Contact Us' }]}
+        />
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="grid lg:grid-cols-2 gap-12">
@@ -59,35 +48,12 @@ const Contact = () => {
               <h2 className="font-display text-2xl text-foreground mb-6">Send Us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Input
-                    placeholder="Your Name *"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="bg-card"
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Your Email *"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="bg-card"
-                  />
+                  <Input placeholder="Your Name *" value={name} onChange={(e) => setName(e.target.value)} className="bg-card" />
+                  <Input type="email" placeholder="Your Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
                 </div>
-                <Input
-                  placeholder="Subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="bg-card"
-                />
-                <Textarea
-                  placeholder="Your Message *"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="bg-card min-h-[150px]"
-                />
-                <button type="submit" className="btn-gold w-full sm:w-auto">
-                  Send Message
-                </button>
+                <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-card" />
+                <Textarea placeholder="Your Message *" value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
+                <button type="submit" className="btn-gold w-full sm:w-auto">Send Message</button>
               </form>
             </motion.div>
 
@@ -108,8 +74,8 @@ const Contact = () => {
                   <div>
                     <h3 className="font-display text-lg text-foreground mb-1">Our Store</h3>
                     <p className="text-muted-foreground">
-                      123 Luxury Avenue, Diamond District<br />
-                      New York, NY 10001, USA
+                      42, MG Road, Connaught Place<br />
+                      New Delhi, Delhi 110001, India
                     </p>
                   </div>
                 </div>
@@ -134,22 +100,28 @@ const Contact = () => {
                   <div>
                     <h3 className="font-display text-lg text-foreground mb-1">Call Us</h3>
                     <p className="text-muted-foreground">
-                      +1 (555) 123-4567<br />
-                      +1 (555) 987-6543
+                      +91 98765 43210<br />
+                      +91 11 2345 6789
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Map Placeholder */}
-              <div className="w-full h-[250px] bg-card border border-border/30 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="w-12 h-12 mx-auto mb-2 text-primary/50" />
-                  <p className="text-sm">Google Map Integration</p>
-                </div>
-              </div>
             </motion.div>
           </div>
+        </div>
+
+        {/* Full Width Google Map */}
+        <div className="w-full h-[400px] border-t border-border/30">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3501.7629442404167!2d77.21659731508!3d28.632751982418!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd37b741d057%3A0xcdee88e47393c3f1!2sConnaught%20Place%2C%20New%20Delhi%2C%20Delhi%20110001!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+            width="100%"
+            height="100%"
+            style={{ border: 0, filter: 'grayscale(80%) contrast(1.1)' }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Evimeria Store Location"
+          />
         </div>
       </main>
       <Footer />

@@ -6,6 +6,7 @@ import { Product } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   product: Product;
@@ -14,17 +15,20 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const addToCart = useCartStore((state) => state.addItem);
+  const navigate = useNavigate();
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } =
     useWishlistStore();
 
   const inWishlist = isInWishlist(product.id);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
     addToCart(product, undefined);
     toast.success(`${product.name} added to cart`);
   };
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (inWishlist) {
       removeFromWishlist(product.id);
       toast.success('Removed from wishlist');
@@ -34,19 +38,24 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     }
   };
 
+  const handleCardClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 0,
     }).format(price);
   };
 
   return (
     <motion.div
-      className="group product-card relative"
+      className="group product-card relative cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -54,13 +63,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     >
       {/* Image Container */}
       <div className="relative aspect-product overflow-hidden bg-card rounded-sm">
-        <Link to={`/product/${product.id}`}>
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        </Link>
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
 
         {/* Sale Badge */}
         {product.originalPrice && (
@@ -85,7 +92,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           <button onClick={handleAddToCart} className="icon-btn">
             <ShoppingBag className="w-4 h-4" />
           </button>
-          <Link to={`/product/${product.id}`} className="icon-btn">
+          <Link to={`/product/${product.id}`} className="icon-btn" onClick={(e) => e.stopPropagation()}>
             <Eye className="w-4 h-4" />
           </Link>
         </motion.div>
@@ -93,11 +100,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
       {/* Product Info */}
       <div className="pt-4 space-y-2">
-        <Link to={`/product/${product.id}`}>
-          <h3 className="font-display text-lg text-foreground group-hover:text-primary transition-colors">
-            {product.name}
-          </h3>
-        </Link>
+        <h3 className="font-display text-lg text-foreground group-hover:text-primary transition-colors">
+          {product.name}
+        </h3>
 
         <div className="flex items-center gap-2">
           <span className="font-body text-primary font-medium">
