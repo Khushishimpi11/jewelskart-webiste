@@ -61,7 +61,7 @@ export const Header = () => {
             <img
               src={logo}
               alt="Evimeria Jewellery"
-              className="h-16 lg:h-20 w-auto"
+              className="h-12 lg:h-14 w-auto"
             />
           </Link>
 
