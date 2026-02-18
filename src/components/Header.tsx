@@ -49,10 +49,11 @@ export const Header = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled
-          ? 'bg-background/95 backdrop-blur-md border-b border-border/50'
-          : 'bg-transparent'
-      }`}
+  isScrolled
+    ? 'bg-[#6A0D3B]/95 backdrop-blur-md border-b border-[#C6A75E]/30'
+    : 'bg-transparent'
+}`}
+
     >
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-20 lg:h-24">
@@ -61,7 +62,9 @@ export const Header = () => {
             <img
               src={logo}
               alt="Evimeria Jewellery"
-              className="h-12 lg:h-14 w-auto"
+      className="h-40 lg:h-56 w-auto"
+
+
             />
           </Link>
 
