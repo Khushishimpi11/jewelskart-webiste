@@ -28,6 +28,11 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        burgundy: {
+          DEFAULT: "hsl(var(--burgundy))",
+          light: "hsl(var(--burgundy-light))",
+          dark: "hsl(var(--burgundy-dark))",
+        },
         gold: {
           DEFAULT: "hsl(var(--gold))",
           light: "hsl(var(--gold-light))",
@@ -41,6 +46,9 @@ export default {
           DEFAULT: "hsl(var(--ivory))",
           dark: "hsl(var(--ivory-dark))",
         },
+        wishlist: "hsl(var(--wishlist))",
+        "cart-success": "hsl(var(--cart-success))",
+        "view-action": "hsl(var(--view-action))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -127,8 +135,8 @@ export default {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         glow: {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(43, 52%, 54%, 0.3)" },
-          "50%": { boxShadow: "0 0 40px hsl(43, 52%, 54%, 0.6)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(332, 87%, 18%, 0.25)" },
+          "50%": { boxShadow: "0 0 40px hsl(332, 87%, 18%, 0.50)" },
         },
       },
       animation: {

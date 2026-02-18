@@ -8,90 +8,101 @@
 
 @layer base {
   :root {
-    /* Core Colors - Dark Luxury Theme */
-    --background: 0 0% 7%;
-    --foreground: 45 20% 95%;
+    /* ── Core: White/Light background theme ── */
+    --background: 0 0% 100%;          /* #FFFFFF */
+    --foreground: 0 0% 11%;           /* #1C1C1C Dark Charcoal */
 
-    --card: 0 0% 9%;
-    --card-foreground: 45 20% 95%;
+    --card: 0 0% 96%;                 /* #F5F5F5 Light Grey cards */
+    --card-foreground: 0 0% 11%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 45 20% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 11%;
 
-    /* Champagne Gold Primary */
-    --primary: 43 52% 54%;
-    --primary-foreground: 0 0% 7%;
+    /* ── Primary: Burgundy/Wine #570630 ── */
+    --primary: 332 87% 18%;           /* #570630 */
+    --primary-foreground: 0 0% 100%;  /* White text on burgundy */
 
-    /* Soft Ivory Secondary */
-    --secondary: 40 33% 95%;
-    --secondary-foreground: 0 0% 10%;
+    /* ── Secondary: Light Grey sections ── */
+    --secondary: 0 0% 96%;            /* #F5F5F5 */
+    --secondary-foreground: 0 0% 11%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 96%;                /* #F5F5F5 */
+    --muted-foreground: 0 0% 50%;     /* #7F7F7F Medium Grey */
 
-    /* Gold Accent */
-    --accent: 45 80% 55%;
-    --accent-foreground: 0 0% 7%;
+    /* ── Accent: Muted Gold #D4AF37 ── */
+    --accent: 46 67% 52%;             /* #D4AF37 */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62% 50%;
+    --destructive: 6 78% 47%;         /* #C0392B Deep Red (wishlist) */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 15%;
-    --ring: 43 52% 54%;
+    --border: 0 0% 88%;               /* Light border */
+    --input: 0 0% 92%;
+    --ring: 332 87% 18%;              /* Burgundy focus ring */
 
     --radius: 0.25rem;
 
-    /* Custom Luxury Variables */
-    --gold: 43 52% 54%;
-    --gold-light: 45 60% 65%;
-    --gold-dark: 40 50% 40%;
-    --charcoal: 0 0% 10%;
+    /* ── Custom Brand Variables ── */
+    --burgundy: 332 87% 18%;          /* #570630 */
+    --burgundy-light: 332 60% 30%;    /* Lighter burgundy */
+    --burgundy-dark: 332 90% 12%;     /* Darker burgundy */
+
+    --gold: 46 67% 52%;               /* #D4AF37 */
+    --gold-light: 46 80% 65%;
+    --gold-dark: 46 60% 38%;
+
+    --charcoal: 0 0% 11%;             /* #1C1C1C */
     --charcoal-dark: 0 0% 7%;
-    --ivory: 40 33% 96%;
-    --ivory-dark: 40 20% 90%;
 
-    /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(43, 52%, 54%) 0%, hsl(45, 80%, 65%) 50%, hsl(40, 50%, 45%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(0, 0%, 10%) 0%, hsl(0, 0%, 5%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 4%) 100%);
+    --ivory: 0 0% 100%;               /* White */
+    --ivory-dark: 0 0% 96%;           /* Light grey */
 
-    /* Shadows */
-    --shadow-gold: 0 4px 30px hsl(43, 52%, 54%, 0.15);
-    --shadow-luxury: 0 20px 60px hsl(0, 0%, 0%, 0.4);
-    --shadow-card: 0 8px 32px hsl(0, 0%, 0%, 0.3);
+    /* Action Colors */
+    --wishlist: 6 78% 47%;            /* #C0392B Deep Red */
+    --cart-success: 145 63% 42%;      /* #27AE60 Emerald */
+    --view-action: 204 65% 45%;       /* #2980B9 Royal Blue */
+
+    /* ── Gradients ── */
+    --gradient-gold: linear-gradient(135deg, hsl(46, 67%, 52%) 0%, hsl(46, 80%, 68%) 50%, hsl(46, 60%, 42%) 100%);
+    --gradient-burgundy: linear-gradient(135deg, hsl(332, 90%, 12%) 0%, hsl(332, 87%, 18%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(332, 90%, 12%) 0%, hsl(332, 87%, 22%) 100%);
+
+    /* ── Shadows ── */
+    --shadow-gold: 0 4px 30px hsl(46, 67%, 52%, 0.20);
+    --shadow-luxury: 0 20px 60px hsl(332, 87%, 18%, 0.15);
+    --shadow-card: 0 4px 20px hsl(0, 0%, 0%, 0.06);
 
     /* Sidebar */
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 45 20% 95%;
-    --sidebar-primary: 43 52% 54%;
-    --sidebar-primary-foreground: 0 0% 7%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 45 20% 95%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 43 52% 54%;
+    --sidebar-background: 332 87% 18%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 46 67% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 332 60% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 332 60% 25%;
+    --sidebar-ring: 46 67% 52%;
   }
 
   .dark {
-    --background: 0 0% 7%;
-    --foreground: 45 20% 95%;
-    --card: 0 0% 9%;
-    --card-foreground: 45 20% 95%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 45 20% 95%;
-    --primary: 43 52% 54%;
-    --primary-foreground: 0 0% 7%;
-    --secondary: 40 33% 95%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 45 80% 55%;
-    --accent-foreground: 0 0% 7%;
-    --destructive: 0 62% 50%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 11%;
+    --card: 0 0% 96%;
+    --card-foreground: 0 0% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 11%;
+    --primary: 332 87% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 11%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 50%;
+    --accent: 46 67% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 6 78% 47%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 15%;
-    --ring: 43 52% 54%;
+    --border: 0 0% 88%;
+    --input: 0 0% 92%;
+    --ring: 332 87% 18%;
   }
 }
 
@@ -116,33 +127,38 @@
 @layer components {
   /* Gold Text Gradient */
   .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(43, 52%, 54%) 0%, hsl(45, 80%, 70%) 50%, hsl(43, 52%, 54%) 100%);
+    background: linear-gradient(135deg, hsl(46, 67%, 42%) 0%, hsl(46, 80%, 55%) 50%, hsl(46, 67%, 42%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
+  /* Burgundy Text */
+  .text-burgundy {
+    color: hsl(332, 87%, 18%);
+  }
+
   /* Gold Border Glow */
   .border-gold-glow {
-    border: 1px solid hsl(43, 52%, 54%);
-    box-shadow: 0 0 20px hsl(43, 52%, 54%, 0.2), inset 0 0 20px hsl(43, 52%, 54%, 0.05);
+    border: 1px solid hsl(46, 67%, 52%);
+    box-shadow: 0 0 20px hsl(46, 67%, 52%, 0.15), inset 0 0 20px hsl(46, 67%, 52%, 0.05);
   }
 
   /* Luxury Card */
   .luxury-card {
-    @apply bg-card border border-border/50 transition-all duration-500;
+    @apply bg-card border border-border transition-all duration-500;
     box-shadow: var(--shadow-card);
   }
 
   .luxury-card:hover {
-    @apply border-primary/30;
-    box-shadow: var(--shadow-gold);
+    @apply border-primary/20;
+    box-shadow: var(--shadow-luxury);
     transform: translateY(-4px);
   }
 
   /* Gold Button Styling */
   .btn-gold {
-    @apply relative overflow-hidden bg-primary text-primary-foreground font-medium tracking-wider uppercase text-sm px-8 py-3;
+    @apply relative overflow-hidden bg-accent text-white font-medium tracking-wider uppercase text-sm px-8 py-3;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -158,19 +174,31 @@
   }
 
   .btn-gold:hover {
-    box-shadow: 0 0 30px hsl(43, 52%, 54%, 0.4);
+    box-shadow: 0 0 30px hsl(46, 67%, 52%, 0.35);
     transform: translateY(-2px);
   }
 
-  /* Outline Gold Button */
+  /* Primary Burgundy Button */
+  .btn-primary {
+    @apply relative overflow-hidden bg-primary text-white font-medium tracking-wider uppercase text-sm px-8 py-3;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 30px hsl(332, 87%, 18%, 0.30);
+    transform: translateY(-2px);
+    background: hsl(332, 87%, 23%);
+  }
+
+  /* Outline Button */
   .btn-gold-outline {
     @apply relative border border-primary text-primary bg-transparent font-medium tracking-wider uppercase text-sm px-8 py-3;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .btn-gold-outline:hover {
-    @apply bg-primary text-primary-foreground;
-    box-shadow: 0 0 30px hsl(43, 52%, 54%, 0.3);
+    @apply bg-primary text-white;
+    box-shadow: 0 0 30px hsl(332, 87%, 18%, 0.20);
   }
 
   /* Marquee Animation */
@@ -183,12 +211,8 @@
   }
 
   @keyframes marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 
   /* Image Hover Effect */
@@ -221,12 +245,18 @@
   /* Section Divider */
   .section-divider {
     @apply w-20 h-px mx-auto;
-    background: linear-gradient(90deg, transparent 0%, hsl(43, 52%, 54%) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, hsl(332, 87%, 18%) 50%, transparent 100%);
+  }
+
+  /* Gold Section Divider */
+  .section-divider-gold {
+    @apply w-20 h-px mx-auto;
+    background: linear-gradient(90deg, transparent 0%, hsl(46, 67%, 52%) 50%, transparent 100%);
   }
 
   /* Product Card Overlay */
   .product-overlay {
-    @apply absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 flex items-center justify-center gap-4;
+    @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-300 flex items-center justify-center gap-4;
   }
 
   .product-card:hover .product-overlay {
@@ -235,11 +265,30 @@
 
   /* Icon Button */
   .icon-btn {
-    @apply w-10 h-10 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center text-foreground transition-all duration-300;
+    @apply w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-foreground transition-all duration-300;
+    box-shadow: 0 2px 8px hsl(0,0%,0%,0.12);
   }
 
   .icon-btn:hover {
-    @apply bg-primary text-primary-foreground scale-110;
+    @apply bg-primary text-white scale-110;
+  }
+
+  /* Wishlist icon specific */
+  .icon-btn-wishlist:hover {
+    background: hsl(6, 78%, 47%);
+    @apply text-white scale-110;
+  }
+
+  /* Cart icon specific */
+  .icon-btn-cart:hover {
+    background: hsl(145, 63%, 42%);
+    @apply text-white scale-110;
+  }
+
+  /* View icon specific */
+  .icon-btn-view:hover {
+    background: hsl(204, 65%, 45%);
+    @apply text-white scale-110;
   }
 
   /* Fade In Animation */
@@ -248,14 +297,8 @@
   }
 
   @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   /* Shimmer Effect */
@@ -271,41 +314,38 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, hsl(43, 52%, 54%, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, hsl(46, 67%, 52%, 0.08), transparent);
     animation: shimmer 3s infinite;
   }
 
   @keyframes shimmer {
-    100% {
-      left: 100%;
-    }
+    100% { left: 100%; }
   }
 
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-background;
+    background: hsl(0, 0%, 96%);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full;
+    background: hsl(332, 87%, 18%, 0.3);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-primary/50;
+    background: hsl(332, 87%, 18%, 0.6);
   }
 }
 
 @layer utilities {
-  /* Text Balance */
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Aspect Ratios */
   .aspect-product {
     aspect-ratio: 3/4;
   }
@@ -314,9 +354,14 @@
     aspect-ratio: 16/9;
   }
 
+  /* Burgundy Glow */
+  .glow-primary {
+    filter: drop-shadow(0 0 16px hsl(332, 87%, 18%, 0.30));
+  }
+
   /* Gold Glow */
   .glow-gold {
-    filter: drop-shadow(0 0 20px hsl(43, 52%, 54%, 0.4));
+    filter: drop-shadow(0 0 16px hsl(46, 67%, 52%, 0.35));
   }
 
   /* Letter Spacing */
