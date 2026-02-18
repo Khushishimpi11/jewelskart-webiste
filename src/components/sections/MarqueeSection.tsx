@@ -29,7 +29,7 @@ export const MarqueeSection = () => {
           {[...marqueeItems, ...marqueeItems].map((item, index) => (
             <span
               key={index}
-              className="font-display text-xl md:text-2xl text-primary-foreground"
+              className={`font-display text-xl md:text-2xl ${item === '✦' ? 'text-gold' : 'text-white'}`}
             >
               {item}
             </span>
