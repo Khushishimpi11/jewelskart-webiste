@@ -85,14 +85,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         >
           <button
             onClick={handleWishlistToggle}
-            className={`icon-btn ${inWishlist ? 'bg-primary text-primary-foreground' : ''}`}
+            className={`icon-btn icon-btn-wishlist ${inWishlist ? 'bg-wishlist text-white' : ''}`}
           >
             <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
           </button>
-          <button onClick={handleAddToCart} className="icon-btn">
+          <button onClick={handleAddToCart} className="icon-btn icon-btn-cart">
             <ShoppingBag className="w-4 h-4" />
           </button>
-          <Link to={`/product/${product.id}`} className="icon-btn" onClick={(e) => e.stopPropagation()}>
+          <Link to={`/product/${product.id}`} className="icon-btn icon-btn-view" onClick={(e) => e.stopPropagation()}>
             <Eye className="w-4 h-4" />
           </Link>
         </motion.div>

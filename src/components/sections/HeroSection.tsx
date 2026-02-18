@@ -46,7 +46,7 @@ export const HeroSection = () => {
             transition={{ duration: 1 }}
           />
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
@@ -63,7 +63,7 @@ export const HeroSection = () => {
                 className="space-y-6"
               >
                 <motion.span
-                  className="inline-block text-primary font-body text-sm tracking-luxury uppercase"
+                  className="inline-block text-gold font-body text-sm tracking-luxury uppercase"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
@@ -71,11 +71,11 @@ export const HeroSection = () => {
                   Evimeria Collection
                 </motion.span>
 
-                <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-foreground leading-tight">
+                <h1 className="font-display text-5xl md:text-6xl lg:text-7xl text-white leading-tight">
                   {heroSlides[currentSlide].heading}
                 </h1>
 
-                <p className="text-muted-foreground text-lg max-w-lg leading-relaxed">
+                <p className="text-white/70 text-lg max-w-lg leading-relaxed">
                   {heroSlides[currentSlide].subheading}
                 </p>
 
@@ -101,8 +101,8 @@ export const HeroSection = () => {
                   onClick={() => setCurrentSlide(index)}
                   className={`h-1 transition-all duration-500 ${
                     index === currentSlide
-                      ? 'w-12 bg-primary'
-                      : 'w-6 bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                      ? 'w-12 bg-gold'
+                      : 'w-6 bg-white/30 hover:bg-white/50'
                   }`}
                 />
               ))}
@@ -137,13 +137,13 @@ export const HeroSection = () => {
       <div className="absolute bottom-8 right-8 flex items-center gap-2 z-20">
         <button
           onClick={prevSlide}
-          className="w-12 h-12 border border-border/50 flex items-center justify-center text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300"
+          className="w-12 h-12 border border-white/30 flex items-center justify-center text-white hover:bg-burgundy hover:border-burgundy transition-all duration-300"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={nextSlide}
-          className="w-12 h-12 border border-border/50 flex items-center justify-center text-foreground hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all duration-300"
+          className="w-12 h-12 border border-white/30 flex items-center justify-center text-white hover:bg-burgundy hover:border-burgundy transition-all duration-300"
         >
           <ChevronRight className="w-5 h-5" />
         </button>

@@ -43,15 +43,15 @@ export const CategorySection = () => {
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3 className="font-display text-2xl text-foreground mb-1">
+                    <h3 className="font-display text-2xl text-white mb-1">
                       {category.name}
                     </h3>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-white/60 text-sm">
                       {category.productCount} pieces
                     </p>
-                    <span className="inline-block mt-3 text-primary text-sm font-body tracking-wider uppercase link-underline">
+                    <span className="inline-block mt-3 text-gold text-sm font-body tracking-wider uppercase link-underline">
                       Explore Collection
                     </span>
                   </div>
