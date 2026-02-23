@@ -67,18 +67,19 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          loading="lazy"
         />
 
         {/* Sale Badge */}
         {product.originalPrice && (
-          <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-body tracking-wider px-3 py-1">
+          <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-primary text-primary-foreground text-[10px] sm:text-xs font-body tracking-wider px-2 sm:px-3 py-0.5 sm:py-1">
             SALE
           </span>
         )}
 
         {/* Hover Overlay */}
         <motion.div
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center gap-3"
+          className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.3 }}
@@ -99,17 +100,17 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       </div>
 
       {/* Product Info */}
-      <div className="pt-4 space-y-2">
-        <h3 className="font-display text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+      <div className="pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
+        <h3 className="font-display text-base sm:text-xl font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {product.name}
         </h3>
 
         <div className="flex items-center gap-2">
-          <span className="font-body text-primary font-medium">
+          <span className="font-body text-sm sm:text-base text-primary font-medium">
             {formatPrice(product.price)}
           </span>
           {product.originalPrice && (
-            <span className="font-body text-muted-foreground line-through text-sm">
+            <span className="font-body text-muted-foreground line-through text-xs sm:text-sm">
               {formatPrice(product.originalPrice)}
             </span>
           )}
@@ -118,7 +119,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         {/* Buy Now Button */}
         <button
           onClick={handleAddToCart}
-          className="w-full mt-2 btn-gold-outline py-2 text-xs"
+          className="w-full mt-1 sm:mt-2 btn-gold-outline py-2.5 sm:py-2 text-xs min-h-[44px]"
         >
           Buy Now
         </button>

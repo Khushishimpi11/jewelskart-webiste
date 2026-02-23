@@ -19,34 +19,47 @@ export const BestSellersSection = () => {
     setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
   };
 
-  // Calculate card width based on container width to show exactly 4
-  const cardWidth = 'calc((100% - 72px) / 4)'; // 100% minus 3 gaps of 24px, divided by 4
-
   return (
-    <section className="py-16 lg:py-24 bg-card">
+    <section className="py-10 sm:py-16 lg:py-24 bg-card">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10"
+          className="text-center mb-8 sm:mb-10"
         >
-          <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
-            <img src={exploreIcon} alt="Explore" className="w-6 h-6 mr-2" />
+          <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
             Most Loved
           </span>
-          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-2">
+          <h2 className="font-display text-2xl sm:text-4xl md:text-5xl text-foreground mt-3 sm:mt-4 mb-2">
             Best Sellers
           </h2>
-          <p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-3">
+          <p className="text-foreground/60 text-sm sm:text-lg max-w-2xl mx-auto mb-3">
             Discover our most cherished pieces, beloved by jewellery enthusiasts around the world.
           </p>
           <div className="section-divider" />
         </motion.div>
 
-        {/* Products Slider - Show exactly 4 products */}
-        <div className="relative overflow-hidden">
+        {/* Products - Mobile: grid, Desktop: slider */}
+        {/* Mobile Grid */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 sm:hidden">
+          {bestSellers.slice(0, 4).map((product, index) => (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <ProductCard product={product} />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Desktop Slider */}
+        <div className="hidden sm:block relative overflow-hidden">
           <motion.div
             className="flex gap-6"
             animate={{ x: `calc(-${currentIndex} * (25% + 6px))` }}
@@ -60,7 +73,7 @@ export const BestSellersSection = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 className="flex-shrink-0"
-                style={{ width: cardWidth }}
+                style={{ width: 'calc((100% - 72px) / 4)' }}
               >
                 <ProductCard product={product} />
               </motion.div>
@@ -73,19 +86,19 @@ export const BestSellersSection = () => {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="flex items-center justify-center gap-6 mt-10"
+          className="flex items-center justify-center gap-4 sm:gap-6 mt-8 sm:mt-10"
         >
           <button
             onClick={slideLeft}
             disabled={currentIndex === 0}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 min-h-[44px] min-w-[44px] border border-primary/50 items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           
           <Link
             to="/shop"
-            className="text-primary font-body text-sm tracking-wider uppercase hover:text-primary/80 transition-colors"
+            className="text-primary font-body text-xs sm:text-sm tracking-wider uppercase hover:text-primary/80 transition-colors min-h-[44px] inline-flex items-center"
           >
             View All Products
           </Link>
@@ -93,7 +106,7 @@ export const BestSellersSection = () => {
           <button
             onClick={slideRight}
             disabled={currentIndex === maxIndex}
-            className="w-12 h-12 border border-primary/50 flex items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 min-h-[44px] min-w-[44px] border border-primary/50 items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

@@ -6,15 +6,15 @@ import exploreIcon from '../../assets/logoicon.png';
 
 export const PromoBanner = () => {
   return (
-    <section className="relative py-24 lg:py-32 overflow-hidden">
-      {/* Background Image */}
+    <section className="relative py-16 sm:py-24 lg:py-32 overflow-hidden">
       <div className="absolute inset-0 z-0">
         <img
           src={promoBanner}
           alt="Winter Collection"
           className="w-full h-full object-cover"
+          loading="lazy"
         />
-    <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
@@ -24,20 +24,20 @@ export const PromoBanner = () => {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto text-center"
         >
-        <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
-            <img src={exploreIcon} alt="Explore" className="w-6 h-6 mr-2" />
+          <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
             Exclusive Offer
           </span>
           
-          <h2 className="font-display text-4xl md:text-5xl lg:text-7xl text-white mt-4 leading-tight">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-7xl text-white mt-3 sm:mt-4 leading-tight">
             Winter Collection
           </h2>
           
-          <p className="text-white/80 text-lg mb-8 max-w-lg mx-auto">
+          <p className="text-white/80 text-sm sm:text-lg mb-6 sm:mb-8 max-w-lg mx-auto">
             Up to 30% off on select pieces. Discover timeless elegance.
           </p>
           
-          <Link to="/shop" className="btn-primary inline-flex items-center gap-2">
+          <Link to="/shop" className="btn-primary inline-flex items-center gap-2 min-h-[44px]">
             <Sparkles className="w-4 h-4" />
             Shop the Sale
           </Link>

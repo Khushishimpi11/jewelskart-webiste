@@ -15,7 +15,7 @@ const marqueeItems = [
 
 export const MarqueeSection = () => {
   return (
-    <section className="py-6 bg-primary overflow-hidden">
+    <section className="py-4 sm:py-6 bg-primary overflow-hidden">
       <div className="flex">
         <motion.div
           animate={{ x: ['0%', '-50%'] }}
@@ -24,12 +24,12 @@ export const MarqueeSection = () => {
             repeat: Infinity,
             ease: 'linear',
           }}
-          className="flex items-center gap-8 whitespace-nowrap"
+          className="flex items-center gap-4 sm:gap-8 whitespace-nowrap"
         >
           {[...marqueeItems, ...marqueeItems].map((item, index) => (
             <span
               key={index}
-              className="font-display text-xxl md:text-2xl text-white"
+              className="font-display text-base sm:text-xl md:text-2xl text-white"
             >
               {item}
             </span>
