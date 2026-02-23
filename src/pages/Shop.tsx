@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -43,21 +43,14 @@ const Shop = () => {
     });
   }, [categoryFromUrl, selectedCategories, priceRange, selectedTags]);
 
-  // Sort products
   const sortedProducts = useMemo(() => {
     const productsToSort = [...filteredProducts];
-    
     switch (sortBy) {
-      case 'price-low-high':
-        return productsToSort.sort((a, b) => a.price - b.price);
-      case 'price-high-low':
-        return productsToSort.sort((a, b) => b.price - a.price);
-      case 'name-a-z':
-        return productsToSort.sort((a, b) => a.name.localeCompare(b.name));
-      case 'name-z-a':
-        return productsToSort.sort((a, b) => b.name.localeCompare(a.name));
-      default:
-        return productsToSort;
+      case 'price-low-high': return productsToSort.sort((a, b) => a.price - b.price);
+      case 'price-high-low': return productsToSort.sort((a, b) => b.price - a.price);
+      case 'name-a-z': return productsToSort.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name-z-a': return productsToSort.sort((a, b) => b.name.localeCompare(a.name));
+      default: return productsToSort;
     }
   }, [filteredProducts, sortBy]);
 
@@ -100,7 +93,7 @@ const Shop = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="pt-20 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title={categoryFromUrl
             ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
@@ -114,131 +107,134 @@ const Shop = () => {
           ]}
         />
 
-        <div className="container mx-auto px-4 lg:px-8 py-12">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-8 lg:py-12">
           <div className="lg:grid lg:grid-cols-4 lg:gap-8">
             {/* Mobile Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center gap-2 mb-6 text-foreground"
+              className="lg:hidden flex items-center gap-2 mb-4 text-foreground min-h-[44px] w-full justify-between bg-card px-4 py-3 border border-border/30 rounded-sm"
             >
-              <SlidersHorizontal className="w-5 h-5" />
-              <span>Filters</span>
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5" />
+                <span className="text-sm font-medium">Filters</span>
+              </div>
               <ChevronDown
                 className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
               />
             </button>
 
             {/* Filters Sidebar */}
-            <motion.aside
-              initial={false}
-              animate={{ height: showFilters ? 'auto' : 0 }}
-              className={`lg:col-span-1 overflow-hidden lg:overflow-visible lg:h-auto ${
-                showFilters ? 'mb-8' : ''
-              }`}
-            >
-              <div className="bg-card p-6 rounded-sm border border-border/30 sticky top-28">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-display text-lg text-foreground">Filters</h3>
-                  <button
-                    onClick={clearFilters}
-                    className="text-primary text-sm hover:underline"
-                  >
-                    Clear All
-                  </button>
-                </div>
-
-                {/* Categories */}
-                <div className="mb-8">
-                  <h4 className="font-body text-sm text-foreground mb-4 uppercase tracking-wider">
-                    Categories
-                  </h4>
-                  <div className="space-y-3">
-                    {categories.map((category) => (
-                      <label
-                        key={category.id}
-                        className="flex items-center gap-3 cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={selectedCategories.includes(category.id)}
-                          onCheckedChange={() => toggleCategory(category.id)}
-                        />
-                        <span className="text-muted-foreground text-sm">
-                          {category.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Price Range */}
-                <div className="mb-8">
-                  <h4 className="font-body text-sm text-foreground mb-4 uppercase tracking-wider">
-                    Price Range
-                  </h4>
-                  <Slider
-                    value={priceRange}
-                    onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }}
-                    min={0}
-                    max={100000}
-                    step={500}
-                    className="mb-4"
-                  />
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{formatPrice(priceRange[0])}</span>
-                    <span>{formatPrice(priceRange[1])}</span>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div>
-                  <h4 className="font-body text-sm text-foreground mb-4 uppercase tracking-wider">
-                    Tags
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {allTags.map((tag) => (
+            <AnimatePresence>
+              {(showFilters || typeof window !== 'undefined') && (
+                <motion.aside
+                  initial={false}
+                  animate={{ height: showFilters ? 'auto' : 0 }}
+                  className={`lg:col-span-1 overflow-hidden lg:overflow-visible lg:!h-auto ${
+                    showFilters ? 'mb-6' : ''
+                  }`}
+                >
+                  <div className="bg-card p-4 sm:p-6 rounded-sm border border-border/30 sticky top-28">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-display text-base lg:text-lg text-foreground">Filters</h3>
                       <button
-                        key={tag}
-                        onClick={() => toggleTag(tag)}
-                        className={`px-3 py-1 text-xs border transition-colors ${
-                          selectedTags.includes(tag)
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
-                        }`}
+                        onClick={clearFilters}
+                        className="text-primary text-sm hover:underline min-h-[44px] flex items-center"
                       >
-                        {tag}
+                        Clear All
                       </button>
-                    ))}
+                    </div>
+
+                    {/* Categories */}
+                    <div className="mb-6 lg:mb-8">
+                      <h4 className="font-body text-xs sm:text-sm text-foreground mb-3 sm:mb-4 uppercase tracking-wider">
+                        Categories
+                      </h4>
+                      <div className="space-y-2 sm:space-y-3">
+                        {categories.map((category) => (
+                          <label
+                            key={category.id}
+                            className="flex items-center gap-3 cursor-pointer min-h-[36px]"
+                          >
+                            <Checkbox
+                              checked={selectedCategories.includes(category.id)}
+                              onCheckedChange={() => toggleCategory(category.id)}
+                            />
+                            <span className="text-muted-foreground text-sm">
+                              {category.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Price Range */}
+                    <div className="mb-6 lg:mb-8">
+                      <h4 className="font-body text-xs sm:text-sm text-foreground mb-3 sm:mb-4 uppercase tracking-wider">
+                        Price Range
+                      </h4>
+                      <Slider
+                        value={priceRange}
+                        onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }}
+                        min={0}
+                        max={100000}
+                        step={500}
+                        className="mb-4"
+                      />
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                        <span>{formatPrice(priceRange[0])}</span>
+                        <span>{formatPrice(priceRange[1])}</span>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <h4 className="font-body text-xs sm:text-sm text-foreground mb-3 sm:mb-4 uppercase tracking-wider">
+                        Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {allTags.map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => toggleTag(tag)}
+                            className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${
+                              selectedTags.includes(tag)
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </motion.aside>
+                </motion.aside>
+              )}
+            </AnimatePresence>
 
             {/* Products Grid */}
-            <div className="lg:col-span-3 flex flex-col min-h-[900px]">
+            <div className="lg:col-span-3 flex flex-col min-h-[700px] lg:min-h-[900px]">
               {/* Results Count and Sort */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-                <p className="text-muted-foreground text-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   Showing {paginatedProducts.length} of {sortedProducts.length} products
                 </p>
                 
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                  {/* Sort Dropdown */}
-                  <select
-                    value={sortBy}
-                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
-                    className="bg-background border border-border/50 px-3 py-2 text-sm text-foreground rounded-sm focus:outline-none focus:border-primary w-full sm:w-auto"
-                  >
-                    <option value="default">Default sorting</option>
-                    <option value="price-low-high">Price: Low to High</option>
-                    <option value="price-high-low">Price: High to Low</option>
-                    <option value="name-a-z">Name: A to Z</option>
-                    <option value="name-z-a">Name: Z to A</option>
-                  </select>
-                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                  className="bg-background border border-border/50 px-3 py-2 text-sm text-foreground rounded-sm focus:outline-none focus:border-primary w-full sm:w-auto min-h-[44px]"
+                >
+                  <option value="default">Default sorting</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                  <option value="name-a-z">Name: A to Z</option>
+                  <option value="name-z-a">Name: Z to A</option>
+                </select>
               </div>
 
-              {/* Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
+              {/* Grid - 1 col for small, 2 col for larger mobile, 3 col desktop */}
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr">
                 {paginatedProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
@@ -252,13 +248,13 @@ const Shop = () => {
               </div>
 
               {sortedProducts.length === 0 && (
-                <div className="text-center py-20">
-                  <p className="text-muted-foreground text-lg">
+                <div className="text-center py-12 lg:py-20">
+                  <p className="text-muted-foreground text-base lg:text-lg">
                     No products found matching your criteria.
                   </p>
                   <button
                     onClick={clearFilters}
-                    className="mt-4 btn-gold-outline"
+                    className="mt-4 btn-gold-outline min-h-[44px]"
                   >
                     Clear Filters
                   </button>
@@ -267,11 +263,11 @@ const Shop = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-12">
+                <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 sm:mt-12">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="w-10 h-10 border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -279,7 +275,7 @@ const Shop = () => {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 border flex items-center justify-center text-sm transition-colors ${
+                      className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors ${
                         currentPage === page
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
@@ -291,7 +287,7 @@ const Shop = () => {
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="w-10 h-10 border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>

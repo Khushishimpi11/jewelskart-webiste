@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Star, Shield, Truck, RefreshCw } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Shield, Truck, RefreshCw } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
@@ -17,9 +17,8 @@ const Cart = () => {
     }).format(price);
   };
 
-  // Calculate savings (example: 10% off original price)
   const calculateSavings = (price: number, quantity: number) => {
-    const originalPrice = price * 1.1; // Assuming 10% higher original price
+    const originalPrice = price * 1.1;
     return (originalPrice - price) * quantity;
   };
 
@@ -31,14 +30,14 @@ const Cart = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="pt-20 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title="Shopping Cart"
           breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Cart' }]}
         />
 
-        <div className="container mx-auto px-4 lg:px-8 py-8">
-          <p className="text-muted-foreground mb-6">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
+          <p className="text-muted-foreground mb-4 lg:mb-6 text-sm">
             {items.length} {items.length === 1 ? 'item' : 'items'} in your cart
           </p>
 
@@ -46,29 +45,29 @@ const Cart = () => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-20"
+              className="text-center py-12 lg:py-20"
             >
-              <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
-              <h2 className="font-display text-2xl text-foreground mb-4">Your cart is empty</h2>
-              <p className="text-muted-foreground mb-8">Discover our exquisite collection and find your perfect piece.</p>
+              <ShoppingBag className="w-12 h-12 lg:w-16 lg:h-16 text-muted-foreground mx-auto mb-4 lg:mb-6" />
+              <h2 className="font-display text-xl lg:text-2xl text-foreground mb-3 lg:mb-4">Your cart is empty</h2>
+              <p className="text-muted-foreground mb-6 lg:mb-8 text-sm lg:text-base">Discover our exquisite collection and find your perfect piece.</p>
               <Link
                 to="/shop"
-                className="bg-primary text-white px-6 py-3 rounded-md inline-block transition-all duration-300 hover:bg-primary/90"
+                className="bg-primary text-white px-6 py-3 min-h-[44px] rounded-md inline-flex items-center justify-center transition-all duration-300 hover:bg-primary/90"
               >
                 Continue Shopping
               </Link>
             </motion.div>
           ) : (
-            <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
-              {/* Cart Items - Left Column */}
-              <div className="lg:col-span-2 space-y-4">
+            <div className="grid lg:grid-cols-3 gap-6 lg:gap-12">
+              {/* Cart Items */}
+              <div className="lg:col-span-2 space-y-3 lg:space-y-4">
                 {items.map((item, index) => (
                   <motion.div
                     key={`${item.product.id}-${item.size}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex gap-6 p-6 bg-card border border-border/30 rounded-sm hover:shadow-md transition-shadow"
+                    className="flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border border-border/30 rounded-sm hover:shadow-md transition-shadow"
                   >
                     {/* Product Image */}
                     <Link to={`/product/${item.product.id}`} className="flex-shrink-0 group">
@@ -76,119 +75,78 @@ const Cart = () => {
                         <img 
                           src={item.product.image} 
                           alt={item.product.name} 
-                          className="w-24 h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
+                          loading="lazy"
                         />
-                        {item.product.stock && item.product.stock < 5 && (
-                          <span className="absolute top-1 left-1 bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded-sm">
-                            Only {item.product.stock} left
-                          </span>
-                        )}
                       </div>
                     </Link>
 
                     {/* Product Details */}
-                    <div className="flex-1 flex flex-col">
-                      {/* Title and Category */}
-                      <div className="flex justify-between items-start">
-                        <div>
+                    <div className="flex-1 flex flex-col min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
                           <Link 
                             to={`/product/${item.product.id}`} 
-                            className="font-display text-lg text-foreground hover:text-primary transition-colors"
+                            className="font-display text-sm sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
                           >
                             {item.product.name}
                           </Link>
                           {item.product.category && (
-                            <p className="text-muted-foreground text-xs uppercase tracking-wider mt-1">
+                            <p className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider mt-0.5 sm:mt-1">
                               {item.product.category}
                             </p>
                           )}
                         </div>
                         
-                        {/* Price per item */}
-                        <div className="text-right">
-                          <span className="font-display text-lg text-primary">
+                        <div className="text-right flex-shrink-0">
+                          <span className="font-display text-sm sm:text-lg text-primary">
                             {formatPrice(item.product.price * item.quantity)}
                           </span>
-                          <p className="text-xs text-muted-foreground">
-                            ₹{formatPrice(item.product.price)} each
+                          <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
+                            {formatPrice(item.product.price)} each
                           </p>
                         </div>
                       </div>
 
-                      {/* Product Specifications */}
-                      <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                      {/* Specs */}
+                      <div className="grid grid-cols-2 gap-1 sm:gap-2 mt-2 sm:mt-3 text-xs sm:text-sm">
                         {item.product.material && (
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-xs">Material:</span>
-                            <span className="text-foreground font-medium">{item.product.material}</span>
-                          </div>
-                        )}
-                        {item.product.weight && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-xs">Weight:</span>
-                            <span className="text-foreground font-medium">{item.product.weight}g</span>
+                            <span className="text-[10px] sm:text-xs">Material:</span>
+                            <span className="text-foreground font-medium truncate">{item.product.material}</span>
                           </div>
                         )}
                         {item.size && (
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-xs">Size:</span>
+                            <span className="text-[10px] sm:text-xs">Size:</span>
                             <span className="text-foreground font-medium">{item.size}</span>
-                          </div>
-                        )}
-                        {item.product.purity && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-xs">Purity:</span>
-                            <span className="text-foreground font-medium">{item.product.purity}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Rating if available */}
-                      {item.product.rating && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-3 h-3 ${
-                                  i < Math.floor(item.product.rating)
-                                    ? 'text-yellow-400 fill-yellow-400'
-                                    : 'text-muted-foreground'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            ({item.product.reviews || 0} reviews)
-                          </span>
-                        </div>
-                      )}
-
                       {/* Quantity and Actions */}
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/20">
-                        <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border/20">
+                        <div className="flex items-center gap-2 sm:gap-4">
                           <div className="flex items-center border border-border/50 rounded-sm">
                             <button 
                               onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.size)} 
-                              className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                              className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                               disabled={item.quantity <= 1}
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
-                            <span className="w-10 text-center text-foreground text-sm font-medium">
+                            <span className="w-8 sm:w-10 text-center text-foreground text-xs sm:text-sm font-medium">
                               {item.quantity}
                             </span>
                             <button 
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.size)} 
-                              className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
-                              disabled={item.product.stock ? item.quantity >= item.product.stock : false}
+                              className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
                           
-                          {/* Delivery Estimate */}
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                             <Truck className="w-3 h-3" />
                             <span>Delivery by {new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                           </div>
@@ -196,10 +154,10 @@ const Cart = () => {
 
                         <button 
                           onClick={() => removeItem(item.product.id, item.size)} 
-                          className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-sm"
+                          className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-xs sm:text-sm min-h-[44px] px-2"
                         >
                           <Trash2 className="w-4 h-4" />
-                          <span className="hidden lg:inline">Remove</span>
+                          <span className="hidden sm:inline">Remove</span>
                         </button>
                       </div>
                     </div>
@@ -210,7 +168,7 @@ const Cart = () => {
                 <div className="flex items-center justify-between pt-4">
                   <button 
                     onClick={clearCart} 
-                    className="flex items-center gap-2 text-muted-foreground text-sm hover:text-destructive transition-colors"
+                    className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm hover:text-destructive transition-colors min-h-[44px]"
                   >
                     <Trash2 className="w-4 h-4" />
                     Clear Cart
@@ -218,7 +176,7 @@ const Cart = () => {
                   
                   <Link 
                     to="/shop" 
-                    className="flex items-center gap-2 text-primary text-sm hover:underline"
+                    className="flex items-center gap-2 text-primary text-xs sm:text-sm hover:underline min-h-[44px]"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Continue Shopping
@@ -226,16 +184,15 @@ const Cart = () => {
                 </div>
               </div>
 
-              {/* Order Summary - Right Column */}
+              {/* Order Summary */}
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="lg:col-span-1"
               >
-                <div className="bg-card p-6 lg:p-8 border border-border/30 rounded-sm sticky top-28">
-                  <h2 className="font-display text-xl text-foreground mb-6">Order Summary</h2>
+                <div className="bg-card p-4 sm:p-6 lg:p-8 border border-border/30 rounded-sm sticky top-28">
+                  <h2 className="font-display text-lg lg:text-xl text-foreground mb-4 lg:mb-6">Order Summary</h2>
                   
-                  {/* Price Breakdown */}
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
@@ -275,12 +232,11 @@ const Cart = () => {
                     </div>
                   </div>
 
-                  {/* Total */}
                   <div className="border-t border-border/30 pt-4 mb-6">
                     <div className="flex items-center justify-between">
-                      <span className="font-display text-lg text-foreground">Total</span>
+                      <span className="font-display text-base lg:text-lg text-foreground">Total</span>
                       <div className="text-right">
-                        <span className="font-display text-2xl text-primary">
+                        <span className="font-display text-xl lg:text-2xl text-primary">
                           {formatPrice(getTotal() + (getTotal() >= 5000 ? 0 : 250))}
                         </span>
                         <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
@@ -288,31 +244,28 @@ const Cart = () => {
                     </div>
                   </div>
 
-                  {/* Checkout Button */}
                   <Link
                     to="/checkout"
-                    className="w-full bg-primary text-white py-3 rounded-md flex items-center justify-center gap-2 transition-all duration-300 hover:bg-primary/90 group"
+                    className="w-full bg-primary text-white py-3 min-h-[44px] rounded-md flex items-center justify-center gap-2 transition-all duration-300 hover:bg-primary/90 group text-sm lg:text-base"
                   >
                     Proceed to Checkout
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
 
-                  {/* Secure Checkout Info */}
-                  <div className="mt-6 space-y-3">
+                  <div className="mt-4 lg:mt-6 space-y-2 lg:space-y-3">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Shield className="w-4 h-4 text-green-600" />
+                      <Shield className="w-4 h-4 text-green-600 flex-shrink-0" />
                       <span>Secure payment · 100% buyer protection</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <RefreshCw className="w-4 h-4 text-green-600" />
+                      <RefreshCw className="w-4 h-4 text-green-600 flex-shrink-0" />
                       <span>Free returns within 15 days</span>
                     </div>
                   </div>
 
-                  {/* Payment Methods */}
-                  <div className="mt-8 pt-6 border-t border-border/30">
+                  <div className="mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-border/30">
                     <p className="text-muted-foreground text-xs mb-3 text-center">We accept</p>
-                    <div className="flex items-center justify-center gap-4 flex-wrap">
+                    <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
                       {['Visa', 'Mastercard', 'UPI', 'RazorPay', 'Paytm'].map((method) => (
                         <span key={method} className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
                           {method}
@@ -321,7 +274,6 @@ const Cart = () => {
                     </div>
                   </div>
 
-                  {/* Need Help */}
                   <div className="mt-4 text-center">
                     <p className="text-xs text-muted-foreground">
                       Need help? <Link to="/contact" className="text-primary hover:underline">Contact us</Link>

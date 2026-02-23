@@ -16,11 +16,11 @@ interface InnerPageBannerProps {
 
 export const InnerPageBanner = ({ title, subtitle, breadcrumbs }: InnerPageBannerProps) => {
   return (
-    <section className="relative py-20 lg:py-28 overflow-hidden">
+    <section className="relative py-12 sm:py-16 lg:py-28 overflow-hidden">
       {/* Background Image with Dark Overlay */}
       <div className="absolute inset-0">
-        <img src={bannerImg} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay for better text visibility */}
+        <img src={bannerImg} alt="" className="w-full h-full object-cover" loading="lazy" />
+        <div className="absolute inset-0 bg-black/50" />
       </div>
       
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
@@ -29,20 +29,15 @@ export const InnerPageBanner = ({ title, subtitle, breadcrumbs }: InnerPageBanne
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          {/* {subtitle && (
-            <span className="text-white font-body text-sm tracking-luxury uppercase">
-              {subtitle}
-            </span>
-          )} */}
-          <h1 className="font-display text-4xl md:text-5xl text-white mt-2"> {/* Changed to white text */}
+          <h1 className="font-display text-2xl sm:text-3xl md:text-5xl text-white mt-2">
             {title}
           </h1>
-          <div className="section-divider mt-4 bg-white" /> {/* Adjusted divider color */}
+          <div className="section-divider mt-3 sm:mt-4 bg-white" />
 
           {/* Breadcrumb below title */}
-          <nav className="flex items-center justify-center gap-2 mt-5 text-s">
+          <nav className="flex items-center justify-center gap-1.5 sm:gap-2 mt-3 sm:mt-5 text-xs sm:text-sm">
             {breadcrumbs.map((crumb, index) => (
-              <span key={index} className="flex items-center gap-2">
+              <span key={index} className="flex items-center gap-1.5 sm:gap-2">
                 {index > 0 && <ChevronRight className="w-3 h-3 text-white/60" />}
                 {crumb.path ? (
                   <Link
