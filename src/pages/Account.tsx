@@ -78,7 +78,9 @@ const Account = () => {
                 <Input placeholder="First Name" defaultValue={user.firstName} className="bg-background" />
                 <Input placeholder="Last Name" defaultValue={user.lastName} className="bg-background" />
                 <Input type="email" placeholder="Email" defaultValue={user.email} className="bg-background" disabled />
-                <button className="w-full btn-gold">Save Changes</button>
+                <button className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90">
+  Save Changes
+</button>
                 <button onClick={logout} className="w-full btn-gold-outline">Logout</button>
               </div>
             </div>
@@ -119,7 +121,12 @@ const Account = () => {
               <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleLogin} className="space-y-4 bg-card p-6 border border-border/30">
                 <Input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="bg-background" />
                 <Input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="bg-background" />
-                <button type="submit" className="w-full btn-gold">Sign In</button>
+              <button
+  type="submit"
+  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Sign In
+</button>
                 <p className="text-center text-muted-foreground text-sm">Forgot password?</p>
               </motion.form>
             ) : (
@@ -131,7 +138,12 @@ const Account = () => {
                 <Input type="email" placeholder="Email *" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} className="bg-background" />
                 <Input type="password" placeholder="Password *" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} className="bg-background" />
                 <Input type="password" placeholder="Confirm Password *" value={registerConfirmPassword} onChange={(e) => setRegisterConfirmPassword(e.target.value)} className="bg-background" />
-                <button type="submit" className="w-full btn-gold">Create Account</button>
+               <button
+  type="submit"
+  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Create Account
+</button>
               </motion.form>
             )}
           </div>

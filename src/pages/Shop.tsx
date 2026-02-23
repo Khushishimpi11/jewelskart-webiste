@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const PRODUCTS_PER_PAGE = 6;
 
+type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
+
 const Shop = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
@@ -19,6 +21,7 @@ const Shop = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
 
   const categoryFromUrl = searchParams.get('category');
 
@@ -40,8 +43,26 @@ const Shop = () => {
     });
   }, [categoryFromUrl, selectedCategories, priceRange, selectedTags]);
 
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
+  // Sort products
+  const sortedProducts = useMemo(() => {
+    const productsToSort = [...filteredProducts];
+    
+    switch (sortBy) {
+      case 'price-low-high':
+        return productsToSort.sort((a, b) => a.price - b.price);
+      case 'price-high-low':
+        return productsToSort.sort((a, b) => b.price - a.price);
+      case 'name-a-z':
+        return productsToSort.sort((a, b) => a.name.localeCompare(b.name));
+      case 'name-z-a':
+        return productsToSort.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return productsToSort;
+    }
+  }, [filteredProducts, sortBy]);
+
+  const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * PRODUCTS_PER_PAGE,
     currentPage * PRODUCTS_PER_PAGE
   );
@@ -64,6 +85,12 @@ const Shop = () => {
     setSelectedCategories([]);
     setSelectedTags([]);
     setPriceRange([0, 100000]);
+    setSortBy('default');
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option);
     setCurrentPage(1);
   };
 
@@ -187,28 +214,31 @@ const Shop = () => {
             </motion.aside>
 
             {/* Products Grid */}
-            <div className="lg:col-span-3 flex flex-col"  style={{ minHeight: '700px' }}>
-              {/* Results Count */}
-              <div className="flex items-center justify-between mb-8">
+            <div className="lg:col-span-3 flex flex-col min-h-[900px]">
+              {/* Results Count and Sort */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <p className="text-muted-foreground text-sm">
-                  Showing {paginatedProducts.length} of {filteredProducts.length} products
+                  Showing {paginatedProducts.length} of {sortedProducts.length} products
                 </p>
-                {(selectedCategories.length > 0 ||
-                  selectedTags.length > 0 ||
-                  priceRange[0] > 0 ||
-                  priceRange[1] < 100000) && (
-                  <button
-                    onClick={clearFilters}
-                    className="flex items-center gap-1 text-primary text-sm"
+                
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  {/* Sort Dropdown */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value as SortOption)}
+                    className="bg-background border border-border/50 px-3 py-2 text-sm text-foreground rounded-sm focus:outline-none focus:border-primary w-full sm:w-auto"
                   >
-                    <X className="w-4 h-4" />
-                    Clear filters
-                  </button>
-                )}
+                    <option value="default">Default sorting</option>
+                    <option value="price-low-high">Price: Low to High</option>
+                    <option value="price-high-low">Price: High to Low</option>
+                    <option value="name-a-z">Name: A to Z</option>
+                    <option value="name-z-a">Name: Z to A</option>
+                  </select>
+                </div>
               </div>
 
               {/* Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
                 {paginatedProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
@@ -221,7 +251,7 @@ const Shop = () => {
                 ))}
               </div>
 
-              {filteredProducts.length === 0 && (
+              {sortedProducts.length === 0 && (
                 <div className="text-center py-20">
                   <p className="text-muted-foreground text-lg">
                     No products found matching your criteria.

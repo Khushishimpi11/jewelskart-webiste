@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import productImage from '@/assets/product-necklace.jpg';
+import exploreIcon from '../../assets/logoicon.png';
+import { Link } from 'react-router-dom';
 
 interface CounterProps {
   end: number;
@@ -49,13 +51,6 @@ export const AboutSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
-  const stats = [
-    { value: 29, suffix: '+', label: 'Years of Craftsmanship' },
-    { value: 50, suffix: 'K+', label: 'Happy Customers' },
-    { value: 100, suffix: '+', label: 'Collections' },
-    { value: 25, suffix: '+', label: 'Countries Served' },
-  ];
-
   return (
     <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
       {/* Decorative Elements */}
@@ -71,7 +66,7 @@ export const AboutSection = () => {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="aspect-[4/5] overflow-hidden border border-border/30">
+            <div className="aspect-[4/4] overflow-hidden border border-border/30">
               <img
                 src={productImage}
                 alt="Evimeria Craftsmanship"
@@ -79,7 +74,7 @@ export const AboutSection = () => {
               />
             </div>
             {/* Decorative Frame */}
-            <div className="absolute -bottom-4 -right-4 w-full h-full border border-primary/30 -z-10" />
+            <div className="absolute -bottom-4 -right-4 w-full h-full border border-primary -z-10" />
           </motion.div>
 
           {/* Content Side */}
@@ -89,13 +84,14 @@ export const AboutSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <span className="text-primary font-body text-sm tracking-luxury uppercase">
-                Our Story
+              <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
+                <img src={exploreIcon} alt="Our Story" className="w-6 h-6 mr-2" />
+                Our Legacy
               </span>
               <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-8">
-                About Evimeria
+                A Heritage of Craftsmanship
               </h2>
-              <div className="section-divider mb-8" />
+              {/* <div className="section-divider mb-8" /> */}
             </motion.div>
 
             <motion.div
@@ -105,37 +101,46 @@ export const AboutSection = () => {
               transition={{ delay: 0.2 }}
               className="space-y-6 text-muted-foreground text-lg leading-relaxed"
             >
-              <p>
-                Founded in 1995, Evimeria Jewellery has been at the forefront of luxury craftsmanship
-                for nearly three decades. Our journey began with a simple belief: that every piece of
-                jewellery should be a masterpiece, telling its own unique story.
+              <p className="font-medium text-foreground/90 italic">
+                Our brand was born in 1990, but its roots run far deeper.
               </p>
+              
               <p>
-                Each creation in our collection is meticulously handcrafted by master artisans who
-                bring generations of expertise to their craft. We source only the finest ethically
-                mined gemstones and precious metals, ensuring that our jewellery is as responsible
-                as it is radiant.
+                Jewellery has always been more than a business for our family — it is a legacy passed down through generations. Our founder's grandfather laid the foundation with a deep passion for jewellery and fine craftsmanship, which was proudly carried forward by his father through years of dedication, honesty, and hard work.
+              </p>
+              
+              <p>
+                Growing up surrounded by gemstones, gold, silver, and diamonds, the founder naturally developed an eye for quality and a respect for tradition. In 1990, he officially established the brand with a vision to preserve the family's values of trust, purity, and excellence while bringing a modern approach to design, customer experience, and innovation.
               </p>
             </motion.div>
 
-            {/* Animated Stats */}
+            {/* Know More Button */}
             <motion.div
-              ref={ref}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12 pt-12 border-t border-border/30"
+              transition={{ delay: 0.3 }}
+              className="mt-8"
             >
-              {stats.map((stat) => (
-                <AnimatedCounter
-                  key={stat.label}
-                  end={stat.value}
-                  suffix={stat.suffix}
-                  label={stat.label}
-                  inView={isInView}
-                />
-              ))}
+              <Link
+                to="/about"
+                className="inline-flex items-center justify-center px-8 py-3 bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors duration-300 group"
+              >
+                Know More
+                <svg
+                  className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </Link>
             </motion.div>
           </div>
         </div>

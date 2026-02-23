@@ -100,7 +100,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
       {/* Product Info */}
       <div className="pt-4 space-y-2">
-        <h3 className="font-display text-lg text-foreground group-hover:text-primary transition-colors">
+        <h3 className="font-display text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
           {product.name}
         </h3>
 

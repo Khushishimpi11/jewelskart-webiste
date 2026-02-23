@@ -1,24 +1,30 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { categories } from '@/data/products';
+import exploreIcon from '../../assets/logoicon.png';
 
 export const CategorySection = () => {
   return (
-    <section className="py-20 lg:py-32 bg-background overflow-hidden">
+    <section className="py-16 lg:py-24 bg-background overflow-hidden">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
-          <span className="text-primary font-body text-sm tracking-luxury uppercase">
+          <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Explore" className="w-6 h-6 mr-2" />
             Explore
           </span>
-          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-4">
+          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-3">
             Our Collections
           </h2>
+          <p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-4">
+            Discover our curated selection of premium timepieces, each telling its own unique story 
+            of craftsmanship and elegance.
+          </p>
           <div className="section-divider" />
         </motion.div>
 
@@ -43,18 +49,19 @@ export const CategorySection = () => {
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3 className="font-display text-2xl text-white mb-1">
-                      {category.name}
-                    </h3>
-                    <p className="text-white/60 text-sm">
-                      {category.productCount} pieces
-                    </p>
-                    <span className="inline-block mt-3 text-gold text-sm font-body tracking-wider uppercase link-underline">
-                      Explore Collection
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                 <div className="absolute bottom-0 left-0 right-0 p-6">
+              <h3 className="font-display text-3xl text-white mb-1">
+              {category.name}
+                </h3>
+              <p className="text-white/80 text-sm mb-3">
+                 {category.productCount} pieces
+                </p>
+                  <span className="inline-flex items-center bg-primary text-white text-sm font-body tracking-wider uppercase px-3 py-1 rounded-full backdrop-blur-sm">
+                  Explore Collection
                     </span>
-                  </div>
+               </div>
+
                 </motion.div>
               </Link>
             ))}

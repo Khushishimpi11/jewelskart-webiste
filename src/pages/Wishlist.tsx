@@ -36,7 +36,12 @@ const Wishlist = () => {
           {items.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-muted-foreground mb-4">Your wishlist is empty</p>
-              <Link to="/shop" className="btn-gold">Discover Products</Link>
+              <Link
+  to="/shop"
+  className="bg-primary text-white px-6 py-3 rounded-md inline-block transition-all duration-300 hover:bg-primary/90"
+>
+  Discover Products
+</Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -8,6 +8,7 @@ import { FeaturedSection } from '@/components/sections/FeaturedSection';
 import { SpecialProducts } from '@/components/sections/SpecialProducts';
 import { AboutSection } from '@/components/sections/AboutSection';
 import { MarqueeSection } from '@/components/sections/MarqueeSection';
+import GlamorousLifeMarquee from '@/components/sections/GlamorousLifeMarquee';
 
 const Index = () => {
   return (
@@ -15,7 +16,7 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        <MarqueeSection />
+      <GlamorousLifeMarquee/>
         <CategorySection />
         <BestSellersSection />
         <PromoBanner />

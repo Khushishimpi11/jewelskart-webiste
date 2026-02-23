@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { products } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
+import exploreIcon from '../../assets/logoicon.png';
 
 export const SpecialProducts = () => {
   const specialProducts = products.filter((p) => p.isSpecial);
@@ -30,16 +31,18 @@ export const SpecialProducts = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <span className="text-primary font-body text-sm tracking-luxury uppercase">
-            Limited Edition
-          </span>
-          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-4">
-            Special Pieces
-          </h2>
-          <div className="section-divider" />
-          <p className="text-muted-foreground mt-6 max-w-xl mx-auto">
-            Exclusive designs crafted in limited quantities. Each piece is a unique work of art.
-          </p>
+          <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
+  <img src={exploreIcon} alt="Limited Edition" className="w-6 h-6 mr-2" />
+  Limited Edition
+</span>
+
+<h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-2">
+  Special Pieces
+</h2>
+
+<p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-3">
+  Exclusive designs crafted in limited quantities. Each piece is a unique work of art.
+</p>
         </motion.div>
 
         {/* Products Slider - Show exactly 4 products */}

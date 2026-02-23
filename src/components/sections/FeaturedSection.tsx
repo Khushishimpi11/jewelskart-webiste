@@ -6,6 +6,7 @@ import { products } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { toast } from 'sonner';
+import exploreIcon from '../../assets/logoicon.png';
 
 export const FeaturedSection = () => {
   const featuredProducts = products.slice(0, 6);
@@ -59,12 +60,19 @@ export const FeaturedSection = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <span className="text-primary font-body text-sm tracking-luxury uppercase">
-            Handcrafted Excellence
-          </span>
-          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-4">
-            Every Gem Tells a Story
-          </h2>
+        <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
+  <img src={exploreIcon} alt="Handcrafted" className="w-6 h-6 mr-2" />
+  Handcrafted Excellence
+</span>
+
+<h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-2">
+  Every Gem Tells a Story
+</h2>
+
+<p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-3">
+  Each creation is thoughtfully designed and meticulously handcrafted, 
+  bringing timeless elegance and meaning to every piece you wear.
+</p>
           <div className="section-divider" />
         </motion.div>
 
@@ -103,7 +111,7 @@ export const FeaturedSection = () => {
               className="max-w-lg"
             >
               {/* Title */}
-              <h3 className="font-display text-3xl lg:text-4xl text-foreground mb-4">
+              <h3 className="font-display text-3xl lg:text-5xl text-foreground mb-4">
                 Every Gem Tells A Story
               </h3>
               <p className="text-muted-foreground mb-10 leading-relaxed">
@@ -144,10 +152,10 @@ export const FeaturedSection = () => {
                       <p className="text-muted-foreground text-xs uppercase tracking-wider mb-1">
                         {selectedProduct.category}
                       </p>
-                      <h4 className="font-display text-xl text-foreground mb-2">
+                      <h4 className="font-semibold text-xl text-foreground mb-2">
                         {selectedProduct.name}
                       </h4>
-                      <p className="text-primary font-display text-lg mb-4">
+                      <p className="text-primary font-semibold text-lg mb-2">
                         {formatPrice(selectedProduct.price)}
                       </p>
                       

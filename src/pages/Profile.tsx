@@ -102,7 +102,12 @@ const Profile = () => {
                 </div>
                 <div><label className="block text-sm text-muted-foreground mb-2">Email Address</label><Input type="email" value={user.email} disabled className="bg-background opacity-60" /></div>
                 <div><label className="block text-sm text-muted-foreground mb-2">Phone Number</label><Input type="tel" placeholder="Enter phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-background" /></div>
-                <button type="submit" className="btn-gold w-full">Save Changes</button>
+                <button
+  type="submit"
+  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Save Changes
+</button>
               </motion.form>
             )}
 
@@ -119,7 +124,12 @@ const Profile = () => {
                   <div><label className="block text-sm text-muted-foreground mb-2">Pincode</label><Input placeholder="Pincode" value={pincode} onChange={(e) => setPincode(e.target.value)} className="bg-background" /></div>
                   <div><label className="block text-sm text-muted-foreground mb-2">Country</label><Input placeholder="Country" value={country} disabled className="bg-background opacity-60" /></div>
                 </div>
-                <button type="submit" className="btn-gold w-full">Save Address</button>
+              <button
+  type="submit"
+  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Save Address
+</button>
               </motion.form>
             )}
 
@@ -139,7 +149,12 @@ const Profile = () => {
                   <h4 className="font-body text-sm text-foreground mb-4 uppercase tracking-wider">Or Add UPI</h4>
                   <div><label className="block text-sm text-muted-foreground mb-2">UPI ID</label><Input placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="bg-background" /></div>
                 </div>
-                <button type="submit" className="btn-gold w-full">Save Bank Details</button>
+             <button
+  type="submit"
+  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Save Bank Details
+</button>
               </motion.form>
             )}
           </div>

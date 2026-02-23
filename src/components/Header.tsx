@@ -46,14 +46,18 @@ export const Header = () => {
     return 'U';
   };
 
+  // Determine text color based on scroll state
+  const textColor = isScrolled ? 'text-primary-foreground' : 'text-white';
+  const textMutedColor = isScrolled ? 'text-primary-foreground/80' : 'text-white/80';
+  const hoverColor = isScrolled ? 'hover:text-primary-foreground' : 'hover:text-white';
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? 'bg-white/95 backdrop-blur-md border-b border-border shadow-sm'
-          : 'bg-transparent'
+          ? 'bg-primary shadow-lg'
+          : 'bg-primary'
       }`}
-
     >
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-20 lg:h-24">
@@ -62,7 +66,7 @@ export const Header = () => {
             <img
               src={logo}
               alt="Evimeria Jewellery"
-              className="h-12 lg:h-14 w-auto object-contain"
+              className="h-40 lg:h-56 w-auto"
             />
           </Link>
 
@@ -79,8 +83,8 @@ export const Header = () => {
                   <button
                     className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${
                       location.pathname === link.path || location.pathname.startsWith('/shop')
-                        ? 'text-primary'
-                        : 'text-foreground/80 hover:text-primary'
+                        ? textColor
+                        : `${textMutedColor} ${hoverColor}`
                     }`}
                   >
                     {link.name}
@@ -120,15 +124,17 @@ export const Header = () => {
                   to={link.path}
                   className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
                     location.pathname === link.path
-                      ? 'text-primary'
-                      : 'text-foreground/80 hover:text-primary'
+                      ? textColor
+                      : `${textMutedColor} ${hoverColor}`
                   }`}
                 >
                   {link.name}
                   {location.pathname === link.path && (
                     <motion.span
                       layoutId="activeNav"
-                      className="absolute -bottom-1 left-0 right-0 h-px bg-primary"
+                      className={`absolute -bottom-1 left-0 right-0 h-px ${
+                        isScrolled ? 'bg-primary-foreground' : 'bg-white'
+                      }`}
                     />
                   )}
                 </Link>
@@ -138,27 +144,27 @@ export const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center gap-6">
-            <button className="text-foreground/80 hover:text-primary transition-colors">
+            <button className={`${textMutedColor} ${hoverColor} transition-colors`}>
               <Search className="w-5 h-5" />
             </button>
             <Link
               to="/wishlist"
-              className="relative text-foreground/80 hover:text-primary transition-colors"
+              className={`relative ${textMutedColor} ${hoverColor} transition-colors`}
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-primary text-primary-foreground text-xs flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">
                   {wishlistCount}
                 </span>
               )}
             </Link>
             <Link
               to="/cart"
-              className="relative text-foreground/80 hover:text-primary transition-colors"
+              className={`relative ${textMutedColor} ${hoverColor} transition-colors`}
             >
               <ShoppingBag className="w-5 h-5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-primary text-primary-foreground text-xs flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">
                   {cartItemCount}
                 </span>
               )}
@@ -169,7 +175,11 @@ export const Header = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-lg hover:bg-primary/90 transition-colors"
+                  className={`w-10 h-10 rounded-full ${
+                    isScrolled 
+                      ? 'bg-primary-foreground text-primary' 
+                      : 'bg-white text-primary'
+                  } flex items-center justify-center font-display text-lg hover:opacity-90 transition-colors`}
                 >
                   {getInitial()}
                 </button>
@@ -228,7 +238,7 @@ export const Header = () => {
             ) : (
               <Link
                 to="/account"
-                className="text-foreground/80 hover:text-primary transition-colors"
+                className={`${textMutedColor} ${hoverColor} transition-colors`}
               >
                 <User className="w-5 h-5" />
               </Link>
@@ -237,17 +247,17 @@ export const Header = () => {
 
           {/* Mobile Menu Button */}
           <div className="flex lg:hidden items-center gap-4">
-            <Link to="/cart" className="relative text-foreground/80">
+            <Link to="/cart" className={`relative ${textMutedColor}`}>
               <ShoppingBag className="w-5 h-5" />
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-primary text-primary-foreground text-xs flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">
                   {cartItemCount}
                 </span>
               )}
             </Link>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-foreground"
+              className={textColor}
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -262,7 +272,7 @@ export const Header = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-background border-t border-border/50"
+            className="lg:hidden bg-background"
           >
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
@@ -279,7 +289,7 @@ export const Header = () => {
                   {link.name}
                 </Link>
               ))}
-              <div className="flex items-center gap-6 pt-4 border-t border-border/50">
+              <div className="flex items-center gap-6 pt-4">
                 <Link
                   to="/wishlist"
                   onClick={() => setIsMenuOpen(false)}

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { products } from '@/data/products';
 import { ProductCard } from '@/components/ProductCard';
+import exploreIcon from '../../assets/logoicon.png';
 
 export const BestSellersSection = () => {
   const bestSellers = products.filter((p) => p.isBestSeller);
@@ -22,25 +23,26 @@ export const BestSellersSection = () => {
   const cardWidth = 'calc((100% - 72px) / 4)'; // 100% minus 3 gaps of 24px, divided by 4
 
   return (
-    <section className="py-20 lg:py-32 bg-card">
+    <section className="py-16 lg:py-24 bg-card">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-10"
         >
-          <span className="text-primary font-body text-sm tracking-luxury uppercase">
+          <span className="inline-flex items-center bg-primary text-white px-4 py-1 font-body text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Explore" className="w-6 h-6 mr-2" />
             Most Loved
           </span>
-          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-4">
+          <h2 className="font-display text-4xl md:text-5xl text-foreground mt-4 mb-2">
             Best Sellers
           </h2>
-          <div className="section-divider" />
-          <p className="text-muted-foreground mt-6 max-w-xl mx-auto">
+          <p className="text-foreground/60 text-lg max-w-2xl mx-auto mb-3">
             Discover our most cherished pieces, beloved by jewellery enthusiasts around the world.
           </p>
+          <div className="section-divider" />
         </motion.div>
 
         {/* Products Slider - Show exactly 4 products */}
@@ -71,7 +73,7 @@ export const BestSellersSection = () => {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="flex items-center justify-center gap-6 mt-12"
+          className="flex items-center justify-center gap-6 mt-10"
         >
           <button
             onClick={slideLeft}

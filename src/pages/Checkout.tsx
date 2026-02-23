@@ -216,7 +216,7 @@ const Checkout = () => {
                   <form onSubmit={handleLogin} className="bg-card p-6 border border-border/30 space-y-4">
                     <Input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="bg-background" />
                     <Input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="bg-background" />
-                    <button type="submit" className="w-full btn-gold">Sign In & Continue</button>
+                    <button type="submit" className="w-full btn-primary">Sign In & Continue</button>
                   </form>
                 )}
 
@@ -228,14 +228,14 @@ const Checkout = () => {
                     </div>
                     <Input type="email" placeholder="Email *" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} className="bg-background" />
                     <Input type="password" placeholder="Password *" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} className="bg-background" />
-                    <button type="submit" className="w-full btn-gold">Create Account & Continue</button>
+                    <button type="submit" className="w-full btn-primary">Create Account & Continue</button>
                   </form>
                 )}
 
                 {authTab === 'guest' && (
                   <div className="bg-card p-6 border border-border/30 text-center space-y-4">
                     <p className="text-muted-foreground">Continue without creating an account. You can create one later to track your order.</p>
-                    <button onClick={handleContinueAsGuest} className="w-full btn-gold">
+                    <button onClick={handleContinueAsGuest} className="w-full btn-primary">
                       Continue as Guest
                     </button>
                   </div>
@@ -278,9 +278,12 @@ const Checkout = () => {
                         <ChevronLeft className="w-4 h-4" /> Back
                       </button>
                     )}
-                    <button type="submit" className="flex-1 btn-gold">
-                      Continue to Summary
-                    </button>
+                  <button
+  type="submit"
+  className="flex-1 bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Continue to Summary
+</button>
                   </div>
                 </form>
               </motion.div>
@@ -342,9 +345,12 @@ const Checkout = () => {
                   >
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
-                  <button onClick={handlePlaceOrder} className="flex-1 btn-gold">
-                    Proceed to Payment
-                  </button>
+                <button
+  onClick={handlePlaceOrder}
+  className="flex-1 bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Proceed to Payment
+</button>
                 </div>
               </motion.div>
             )}
@@ -413,9 +419,12 @@ const Checkout = () => {
                   >
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
-                  <button onClick={handlePayment} className="flex-1 btn-gold">
-                    Complete Order • {formatPrice(total)}
-                  </button>
+                <button
+  onClick={handlePayment}
+  className="flex-1 bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Complete Order • {formatPrice(total)}
+</button>
                 </div>
 
                 <p className="text-muted-foreground text-xs text-center">
@@ -447,9 +456,12 @@ const Checkout = () => {
                   <Link to="/order-summary" className="btn-gold-outline">
                     View Orders
                   </Link>
-                  <Link to="/shop" className="btn-gold">
-                    Continue Shopping
-                  </Link>
+                 <Link
+  to="/shop"
+  className="bg-primary text-white px-6 py-3 rounded-md inline-block transition-all duration-300 hover:bg-primary/90"
+>
+  Continue Shopping
+</Link>
                 </div>
               </motion.div>
             )}

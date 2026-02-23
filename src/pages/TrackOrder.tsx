@@ -83,7 +83,12 @@ const TrackOrder = () => {
                 onChange={(e) => setOrderId(e.target.value)}
                 className="bg-card flex-1"
               />
-              <button type="submit" className="btn-gold">Track Order</button>
+            <button
+  type="submit"
+  className="bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Track Order
+</button>
             </motion.form>
 
             {orderStatus && (

@@ -45,7 +45,7 @@ const Contact = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="font-display text-2xl text-foreground mb-6">Send Us a Message</h2>
+              <h2 className="font-bold text-4xl text-foreground mb-6">Send Us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Input placeholder="Your Name *" value={name} onChange={(e) => setName(e.target.value)} className="bg-card" />
@@ -53,8 +53,12 @@ const Contact = () => {
                 </div>
                 <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-card" />
                 <Textarea placeholder="Your Message *" value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
-                <button type="submit" className="btn-gold w-full sm:w-auto">Send Message</button>
-              </form>
+<button
+  type="submit"
+  className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+>
+  Send Message
+</button>              </form>
             </motion.div>
 
             {/* Contact Info */}
@@ -64,7 +68,7 @@ const Contact = () => {
               transition={{ delay: 0.3 }}
               className="space-y-8"
             >
-              <h2 className="font-display text-2xl text-foreground mb-6">Contact Information</h2>
+              <h2 className="font-bold text-4xl text-foreground mb-6">Contact Information</h2>
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
@@ -72,7 +76,7 @@ const Contact = () => {
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-display text-lg text-foreground mb-1">Our Store</h3>
+                    <h3 className="font-semibold text-2xl text-foreground mb-1">Our Store</h3>
                     <p className="text-muted-foreground">
                       42, MG Road, Connaught Place<br />
                       New Delhi, Delhi 110001, India
@@ -85,7 +89,7 @@ const Contact = () => {
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-display text-lg text-foreground mb-1">Email Us</h3>
+                    <h3 className="font-semibold text-2xl text-foreground mb-1">Email Us</h3>
                     <p className="text-muted-foreground">
                       info@evimeria.com<br />
                       support@evimeria.com
@@ -98,7 +102,7 @@ const Contact = () => {
                     <Phone className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-display text-lg text-foreground mb-1">Call Us</h3>
+                    <h3 className="font-semibold text-2xl text-foreground mb-1">Call Us</h3>
                     <p className="text-muted-foreground">
                       +91 98765 43210<br />
                       +91 11 2345 6789
