@@ -24,8 +24,8 @@ const Index = () => {
         <PromoBanner />
         <FeaturedSection />
         <MarqueeSection />
-        <TrendingBrandsSection />
         <PremiumBrandsGrid />
+        <TrendingBrandsSection />
         <SpecialProducts />
         <AboutSection />
       </main>

@@ -24,7 +24,7 @@ const PremiumBrandsGrid = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
             onClick={() => navigate(`/shop?brand=${featured.slug}`)}
-            className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-[3/4] md:aspect-auto md:row-span-1"
+            className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-[4/5] md:aspect-auto md:row-span-1"
           >
             <img
               src={featured.image}

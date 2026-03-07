@@ -1255,18 +1255,25 @@ export const pendantProducts: Product[] = [
 // Combine all products
 // ======================
 
+// Assign all products to Jewelskart brand
+const assignBrand = (arr: Product[]) => arr.map(p => ({ ...p, brand: p.brand || 'jewelskart' }));
+
 export const products: Product[] = [];
 
+const brandedRings = assignBrand(ringProducts);
+const brandedPendants = assignBrand(pendantProducts);
+const brandedChains = assignBrand(chainProducts);
+
 const maxLength = Math.max(
-  ringProducts.length,
-  pendantProducts.length,
-  chainProducts.length
+  brandedRings.length,
+  brandedPendants.length,
+  brandedChains.length
 );
 
 for (let i = 0; i < maxLength; i++) {
-  if (ringProducts[i]) products.push(ringProducts[i]);
-  if (pendantProducts[i]) products.push(pendantProducts[i]);
-  if (chainProducts[i]) products.push(chainProducts[i]);
+  if (brandedRings[i]) products.push(brandedRings[i]);
+  if (brandedPendants[i]) products.push(brandedPendants[i]);
+  if (brandedChains[i]) products.push(brandedChains[i]);
 }
 
 // ======================
