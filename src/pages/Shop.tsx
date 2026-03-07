@@ -24,6 +24,7 @@ const Shop = () => {
   const [sortBy, setSortBy] = useState<SortOption>('default');
 
   const categoryFromUrl = searchParams.get('category');
+  const brandFromUrl = searchParams.get('brand');
 
   // Scroll to top function
   const scrollToTop = () => {
