@@ -17,15 +17,6 @@ const categoryLinks = [
   { name: 'Necklaces', path: '/shop?category=necklaces' },
 ];
 
-const navLinks = [
-  { name: 'Home', path: '/' },
-  { name: 'Shop', path: '/shop' },
-  { name: 'Brands', path: '#', hasBrandsDropdown: true },
-  ...categoryLinks,
-  { name: 'About', path: '/about' },
-  { name: 'Contact Us', path: '/contact' },
-];
-
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
