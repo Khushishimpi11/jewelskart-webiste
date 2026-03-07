@@ -9,6 +9,8 @@ import { SpecialProducts } from '@/components/sections/SpecialProducts';
 import { AboutSection } from '@/components/sections/AboutSection';
 import { MarqueeSection } from '@/components/sections/MarqueeSection';
 import GlamorousLifeMarquee from '@/components/sections/GlamorousLifeMarquee';
+import TrendingBrandsSection from '@/components/sections/TrendingBrandsSection';
+import PremiumBrandsGrid from '@/components/sections/PremiumBrandsGrid';
 
 const Index = () => {
   return (
