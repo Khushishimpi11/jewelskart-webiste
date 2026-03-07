@@ -53,7 +53,7 @@ export const Header = () => {
   const hoverColor = 'hover:text-primary-foreground';
 
   // Check if a nav link is a category link (starts with /shop?category=)
-  const isCategoryLink = (path: string) => path.startsWith('/shop?category=');
+  
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-primary shadow-lg transition-all duration-500">
