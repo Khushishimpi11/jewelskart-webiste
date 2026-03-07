@@ -37,7 +37,7 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-[100vh] sm:min-h-[110vh] bg-primary overflow-hidden flex items-center pt-16 sm:pt-24">
+    <section className="relative min-h-[105vh] sm:min-h-[115vh] bg-primary overflow-hidden flex items-center pt-20 sm:pt-28">
       <div className="container mx-auto px-4 sm:px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 items-center gap-8 lg:gap-16">
 
