@@ -1,28 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
 import { brands } from '@/data/brands';
 import logo from '@/assets/logo.png';
 
-const categoryLinks = [
-  { name: 'Rings', path: '/shop?category=rings' },
-  { name: 'Chains', path: '/shop?category=chains' },
-  { name: 'Pendants', path: '/shop?category=pendants' },
-  { name: 'Bracelets', path: '/shop?category=bracelets' },
-  { name: 'Earrings', path: '/shop?category=earrings' },
-  { name: 'Necklaces', path: '/shop?category=necklaces' },
-];
+const shopCategories = ['Rings', 'Chains', 'Pendants'];
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showBrandsDropdown, setShowBrandsDropdown] = useState(false);
-  const [showMobileBrandsDropdown, setShowMobileBrandsDropdown] = useState(false);
+  const [showShopMega, setShowShopMega] = useState(false);
+  const [mobileShopOpen, setMobileShopOpen] = useState(false);
+  const [mobileBrandOpen, setMobileBrandOpen] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const cartItemCount = useCartStore((state) => state.getItemCount());
@@ -37,7 +31,8 @@ export const Header = () => {
 
   useEffect(() => {
     setIsMenuOpen(false);
-    setShowMobileBrandsDropdown(false);
+    setMobileShopOpen(false);
+    setMobileBrandOpen(null);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
@@ -52,9 +47,6 @@ export const Header = () => {
   const textMutedColor = 'text-primary-foreground/80';
   const hoverColor = 'hover:text-primary-foreground';
 
-  // Check if a nav link is a category link (starts with /shop?category=)
-  
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-primary shadow-lg transition-all duration-500">
       <div className="container mx-auto px-3 sm:px-4 lg:px-8">
@@ -66,55 +58,75 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            {[
-              { name: 'Home', path: '/' },
-              { name: 'Shop', path: '/shop' },
-            ].map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  (link.path === '/' ? location.pathname === '/' : location.pathname === link.path)
-                    ? textColor : `${textMutedColor} ${hoverColor}`
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            <Link
+              to="/"
+              className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                location.pathname === '/' ? textColor : `${textMutedColor} ${hoverColor}`
+              }`}
+            >
+              Home
+            </Link>
 
-            {/* Brands dropdown */}
+            {/* Shop Mega Menu */}
             <div
               className="relative"
-              onMouseEnter={() => setShowBrandsDropdown(true)}
-              onMouseLeave={() => setShowBrandsDropdown(false)}
+              onMouseEnter={() => setShowShopMega(true)}
+              onMouseLeave={() => setShowShopMega(false)}
             >
-              <button className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${textMutedColor} ${hoverColor}`}>
-                Brands
-                <ChevronDown className={`w-4 h-4 transition-transform ${showBrandsDropdown ? 'rotate-180' : ''}`} />
-              </button>
+              <Link
+                to="/shop"
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${
+                  location.pathname === '/shop' ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                Shop
+                <ChevronDown className={`w-4 h-4 transition-transform ${showShopMega ? 'rotate-180' : ''}`} />
+              </Link>
               <AnimatePresence>
-                {showBrandsDropdown && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-full mt-2 w-52 bg-card border border-border/50 shadow-lg py-2 z-50">
-                    {brands.map((brand) => (
-                      <Link key={brand.id} to={`/shop?brand=${brand.slug}`} className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors">{brand.name}</Link>
-                    ))}
+                {showShopMega && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-card border border-border/50 shadow-2xl z-50 w-[680px] p-6"
+                  >
+                    {/* Top row: All */}
+                    <Link
+                      to="/shop"
+                      className="block text-sm font-semibold text-primary mb-4 hover:underline uppercase tracking-wider"
+                    >
+                      All Products
+                    </Link>
+                    <div className="border-t border-border/30 pt-4">
+                      <div className="grid grid-cols-5 gap-6">
+                        {brands.map((brand) => (
+                          <div key={brand.id}>
+                            <Link
+                              to={`/shop?brand=${brand.slug}`}
+                              className="block font-display text-sm font-bold text-foreground hover:text-primary transition-colors mb-3"
+                            >
+                              {brand.name}
+                            </Link>
+                            <div className="space-y-2">
+                              {shopCategories.map((cat) => (
+                                <Link
+                                  key={cat}
+                                  to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
+                                  className="block text-xs text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                  {cat}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-
-            {/* Category links */}
-            {categoryLinks.map((cat) => (
-              <Link
-                key={cat.name}
-                to={cat.path}
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname + location.search === cat.path ? textColor : `${textMutedColor} ${hoverColor}`
-                }`}
-              >
-                {cat.name}
-              </Link>
-            ))}
 
             {[
               { name: 'About', path: '/about' },
@@ -203,34 +215,51 @@ export const Header = () => {
           >
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-1">
               <Link to="/" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">Home</Link>
-              <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">Shop</Link>
 
-              {/* Brands dropdown */}
+              {/* Mobile Shop Accordion */}
               <button
-                onClick={() => setShowMobileBrandsDropdown(!showMobileBrandsDropdown)}
+                onClick={() => setMobileShopOpen(!mobileShopOpen)}
                 className="w-full flex items-center justify-between py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80"
               >
-                Brands
-                <ChevronDown className={`w-5 h-5 transition-transform ${showMobileBrandsDropdown ? 'rotate-180' : ''}`} />
+                Shop
+                <ChevronDown className={`w-5 h-5 transition-transform ${mobileShopOpen ? 'rotate-180' : ''}`} />
               </button>
               <AnimatePresence>
-                {showMobileBrandsDropdown && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-muted/30">
+                {mobileShopOpen && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-muted/20">
+                    <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="block py-2 px-4 text-sm font-semibold text-primary">
+                      All Products
+                    </Link>
                     {brands.map((brand) => (
-                      <Link key={brand.id} to={`/shop?brand=${brand.slug}`} onClick={() => setIsMenuOpen(false)} className="block py-2 px-6 text-sm text-foreground/70 hover:text-primary">
-                        {brand.name}
-                      </Link>
+                      <div key={brand.id}>
+                        <button
+                          onClick={() => setMobileBrandOpen(mobileBrandOpen === brand.id ? null : brand.id)}
+                          className="w-full flex items-center justify-between py-2 px-4 text-sm text-foreground/80"
+                        >
+                          {brand.name}
+                          <ChevronRight className={`w-4 h-4 transition-transform ${mobileBrandOpen === brand.id ? 'rotate-90' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {mobileBrandOpen === brand.id && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                              {shopCategories.map((cat) => (
+                                <Link
+                                  key={cat}
+                                  to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
+                                  onClick={() => setIsMenuOpen(false)}
+                                  className="block py-2 px-8 text-xs text-muted-foreground hover:text-primary"
+                                >
+                                  {cat}
+                                </Link>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     ))}
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Category links */}
-              {categoryLinks.map((cat) => (
-                <Link key={cat.name} to={cat.path} onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">
-                  {cat.name}
-                </Link>
-              ))}
 
               <Link to="/about" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">About</Link>
               <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">Contact Us</Link>

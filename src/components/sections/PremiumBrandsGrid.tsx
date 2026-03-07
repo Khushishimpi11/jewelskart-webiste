@@ -9,7 +9,7 @@ const PremiumBrandsGrid = () => {
   const gridBrands = brands.slice(1, 5); // 4 smaller cards
 
   return (
-    <section className="py-10 md:py-16 px-4 md:px-8 lg:px-16 bg-secondary">
+    <section className="py-8 md:py-12 px-4 md:px-8 lg:px-16 bg-secondary">
       <div className="max-w-7xl mx-auto">
         <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-8">
           Premium Brands
@@ -24,7 +24,7 @@ const PremiumBrandsGrid = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
             onClick={() => navigate(`/shop?brand=${featured.slug}`)}
-            className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-[3/4] md:aspect-auto md:row-span-1"
+            className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-[4/5] md:aspect-auto md:row-span-1"
           >
             <img
               src={featured.image}

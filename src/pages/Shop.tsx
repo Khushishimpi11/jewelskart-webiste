@@ -1,16 +1,18 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { ProductCard } from '@/components/ProductCard';
 import { products, categories } from '@/data/products';
+import { brands } from '@/data/brands';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const PRODUCTS_PER_PAGE = 9; // Changed from 6 to 9
+const PRODUCTS_PER_PAGE = 9;
+const shopCategories = ['rings', 'chains', 'pendants'];
 
 type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
 
@@ -22,19 +24,15 @@ const Shop = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
 
   const categoryFromUrl = searchParams.get('category');
   const brandFromUrl = searchParams.get('brand');
 
-  // Scroll to top function
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Handle page change with scroll to top
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     scrollToTop();
@@ -81,7 +79,7 @@ const Shop = () => {
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
     setCurrentPage(1);
-    scrollToTop(); // Scroll to top when filters change
+    scrollToTop();
   };
 
   const toggleTag = (tag: string) => {
@@ -89,7 +87,7 @@ const Shop = () => {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
     setCurrentPage(1);
-    scrollToTop(); // Scroll to top when filters change
+    scrollToTop();
   };
 
   const clearFilters = () => {
@@ -98,16 +96,28 @@ const Shop = () => {
     setPriceRange([0, 100000]);
     setSortBy('default');
     setCurrentPage(1);
-    scrollToTop(); // Scroll to top when clearing filters
+    scrollToTop();
   };
 
   const handleSortChange = (option: SortOption) => {
     setSortBy(option);
     setCurrentPage(1);
-    scrollToTop(); // Scroll to top when sorting changes
+    scrollToTop();
+  };
+
+  const toggleBrandExpand = (brandId: string) => {
+    setExpandedBrands(prev =>
+      prev.includes(brandId) ? prev.filter(b => b !== brandId) : [...prev, brandId]
+    );
   };
 
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
+
+  const pageTitle = brandFromUrl
+    ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
+    : categoryFromUrl
+      ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
+      : 'Shop All';
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,21 +125,11 @@ const Shop = () => {
 
       <main className="pt-16 lg:pt-24">
         <InnerPageBanner
-          title={
-            brandFromUrl
-              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
-              : categoryFromUrl
-                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-                : 'Shop All'
-          }
+          title={pageTitle}
           subtitle="Our Collection"
           breadcrumbs={[
             { label: 'Home', path: '/' },
-            { label: brandFromUrl
-              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
-              : categoryFromUrl
-                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-                : 'Shop' },
+            { label: pageTitle },
           ]}
         />
 
@@ -144,9 +144,7 @@ const Shop = () => {
                 <SlidersHorizontal className="w-5 h-5" />
                 <span className="text-sm font-medium">Filters</span>
               </div>
-              <ChevronDown
-                className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
-              />
+              <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Filters Sidebar */}
@@ -155,40 +153,64 @@ const Shop = () => {
                 <motion.aside
                   initial={false}
                   animate={{ height: showFilters ? 'auto' : 0 }}
-                  className={`lg:col-span-1 overflow-hidden lg:overflow-visible lg:!h-auto ${
-                    showFilters ? 'mb-6' : ''
-                  }`}
+                  className={`lg:col-span-1 overflow-hidden lg:overflow-visible lg:!h-auto ${showFilters ? 'mb-6' : ''}`}
                 >
                   <div className="bg-card p-4 sm:p-6 rounded-sm border border-border/30 sticky top-28">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-display text-base lg:text-lg text-foreground">Filters</h3>
-                      <button
-                        onClick={clearFilters}
-                        className="text-primary text-sm hover:underline min-h-[44px] flex items-center"
-                      >
+                      <button onClick={clearFilters} className="text-primary text-sm hover:underline min-h-[44px] flex items-center">
                         Clear All
                       </button>
                     </div>
 
-                    {/* Categories */}
+                    {/* Brand → Category Hierarchy */}
                     <div className="mb-6 lg:mb-8">
                       <h4 className="font-body text-xs sm:text-sm text-foreground mb-3 sm:mb-4 uppercase tracking-wider">
                         Categories
                       </h4>
-                      <div className="space-y-2 sm:space-y-3">
-                        {categories.map((category) => (
-                          <label
-                            key={category.id}
-                            className="flex items-center gap-3 cursor-pointer min-h-[36px]"
-                          >
-                            <Checkbox
-                              checked={selectedCategories.includes(category.id)}
-                              onCheckedChange={() => toggleCategory(category.id)}
-                            />
-                            <span className="text-muted-foreground text-sm">
-                              {category.name}
-                            </span>
-                          </label>
+                      <div className="space-y-1">
+                        {/* Top-level: All */}
+                        <a
+                          href="/shop"
+                          className="block py-2 text-sm font-semibold text-primary hover:underline"
+                        >
+                          All
+                        </a>
+
+                        {brands.map((brand) => (
+                          <div key={brand.id}>
+                            <button
+                              onClick={() => toggleBrandExpand(brand.id)}
+                              className="w-full flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition-colors"
+                            >
+                              <span className="font-medium">{brand.name}</span>
+                              <ChevronDown className={`w-4 h-4 transition-transform ${expandedBrands.includes(brand.id) ? 'rotate-180' : ''}`} />
+                            </button>
+                            <AnimatePresence>
+                              {expandedBrands.includes(brand.id) && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  {shopCategories.map((cat) => (
+                                    <a
+                                      key={cat}
+                                      href={`/shop?brand=${brand.slug}&category=${cat}`}
+                                      className={`block py-1.5 pl-4 text-xs transition-colors ${
+                                        brandFromUrl === brand.slug && categoryFromUrl === cat
+                                          ? 'text-primary font-semibold'
+                                          : 'text-muted-foreground hover:text-primary'
+                                      }`}
+                                    >
+                                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                    </a>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -200,10 +222,10 @@ const Shop = () => {
                       </h4>
                       <Slider
                         value={priceRange}
-                        onValueChange={(val) => { 
-                          setPriceRange(val); 
-                          setCurrentPage(1); 
-                          scrollToTop(); // Scroll to top when price range changes
+                        onValueChange={(val) => {
+                          setPriceRange(val);
+                          setCurrentPage(1);
+                          scrollToTop();
                         }}
                         min={0}
                         max={100000}
@@ -249,7 +271,7 @@ const Shop = () => {
                 <p className="text-muted-foreground text-xs sm:text-sm">
                   Showing {paginatedProducts.length} of {sortedProducts.length} products
                 </p>
-                
+
                 <select
                   value={sortBy}
                   onChange={(e) => handleSortChange(e.target.value as SortOption)}
@@ -263,65 +285,70 @@ const Shop = () => {
                 </select>
               </div>
 
-              {/* Grid - 1 col for small, 2 col for larger mobile, 3 col desktop */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr">
-                {paginatedProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))}
-              </div>
-
-              {sortedProducts.length === 0 && (
-                <div className="text-center py-12 lg:py-20">
-                  <p className="text-muted-foreground text-base lg:text-lg">
-                    No products found matching your criteria.
+              {/* Product Not Found message */}
+              {sortedProducts.length === 0 ? (
+                <div className="text-center py-12 lg:py-20 flex-1 flex flex-col items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <ShoppingBag className="w-10 h-10 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-display text-xl text-foreground mb-2">Product Not Found</h3>
+                  <p className="text-muted-foreground text-sm max-w-md">
+                    {brandFromUrl && brandFromUrl !== 'jewelskart'
+                      ? `Products for ${brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)} are coming soon. Stay tuned!`
+                      : 'No products found matching your criteria.'}
                   </p>
-                  <button
-                    onClick={clearFilters}
-                    className="mt-4 btn-gold-outline min-h-[44px]"
-                  >
-                    Clear Filters
-                  </button>
+                  <a href="/shop" className="mt-6 px-6 py-3 bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center">
+                    Browse All Products
+                  </a>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr">
+                    {paginatedProducts.map((product, index) => (
+                      <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <ProductCard product={product} />
+                      </motion.div>
+                    ))}
+                  </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 sm:mt-12">
-                  <button
-                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors ${
-                        currentPage === page
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                    className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 sm:mt-12">
+                      <button
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors ${
+                            currentPage === page
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                        className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
