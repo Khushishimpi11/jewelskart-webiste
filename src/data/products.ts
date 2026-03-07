@@ -141,16 +141,19 @@ export interface Product {
   name: string;
   price: number;
   originalPrice?: number;
-  image: string; // main thumbnail image
-  images?: string[]; // all images (for detail page)
+  image: string;
+  images?: string[];
   category: 'rings' | 'chains' | 'pendants';
   isRing: boolean;
   sizes?: string[];
   description: string;
   material: string;
+  brand?: string;
+  discount?: number;
+  rating?: number;
   specifications?: {
-    goldWeight?: string; // in grams
-    diamondWeight?: string; // in carats
+    goldWeight?: string;
+    diamondWeight?: string;
     goldPurity?: string;
     diamondQuality?: string;
     diamondCount?: number;
