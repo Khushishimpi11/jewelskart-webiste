@@ -1,16 +1,39 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { brands } from '@/data/brands';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Navigation } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/swiper-bundle.css';
 
 const TrendingBrandsSection = () => {
   const navigate = useNavigate();
   const swiperRef = useRef<SwiperType | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  // Double the brands array for seamless infinite loop
+  const loopBrands = [...brands, ...brands, ...brands];
+
+  const handleSlideChange = useCallback((swiper: SwiperType) => {
+    setActiveIndex(swiper.realIndex);
+  }, []);
+
+  // Autoplay video on leftmost visible card
+  useEffect(() => {
+    videoRefs.current.forEach((video, i) => {
+      if (!video) return;
+      // realIndex maps to the first visible slide
+      const brandIndex = i % brands.length;
+      if (brandIndex === activeIndex) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    });
+  }, [activeIndex]);
 
   return (
     <section className="py-10 md:py-16 px-4 md:px-8 lg:px-16 bg-background">
@@ -19,38 +42,66 @@ const TrendingBrandsSection = () => {
           #Trending at <span className="text-primary">Jewelskart</span>
         </h2>
 
-        <div className="relative group">
-          <Swiper
-            modules={[Autoplay, Navigation]}
-            spaceBetween={16}
-            slidesPerView={1.3}
-            breakpoints={{
-              375: { slidesPerView: 1.5, spaceBetween: 16 },
-              480: { slidesPerView: 2, spaceBetween: 16 },
-              768: { slidesPerView: 2.5, spaceBetween: 20 },
-              1024: { slidesPerView: 3.5, spaceBetween: 24 },
-              1280: { slidesPerView: 4, spaceBetween: 24 },
-            }}
-            autoplay={{ delay: 3500, disableOnInteraction: false }}
-            onSwiper={(swiper) => { swiperRef.current = swiper; }}
-            className="!overflow-visible"
-          >
-            {brands.map((brand, index) => (
-              <SwiperSlide key={brand.id}>
+        <Swiper
+          modules={[Autoplay]}
+          spaceBetween={16}
+          slidesPerView={1.3}
+          loop
+          speed={800}
+          breakpoints={{
+            375: { slidesPerView: 1.5, spaceBetween: 16 },
+            480: { slidesPerView: 2, spaceBetween: 16 },
+            768: { slidesPerView: 2.5, spaceBetween: 20 },
+            1024: { slidesPerView: 3.5, spaceBetween: 24 },
+            1280: { slidesPerView: 4, spaceBetween: 24 },
+          }}
+          autoplay={{ delay: 2500, disableOnInteraction: false }}
+          onSwiper={(swiper) => { swiperRef.current = swiper; }}
+          onSlideChange={handleSlideChange}
+        >
+          {loopBrands.map((brand, index) => {
+            const brandIdx = index % brands.length;
+            return (
+              <SwiperSlide key={`${brand.id}-${index}`}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                  transition={{ delay: Math.min(index, 4) * 0.1, duration: 0.5 }}
                   viewport={{ once: true }}
-                  onClick={() => navigate(`/brand/${brand.slug}`)}
+                  onClick={() => navigate(`/shop?brand=${brand.slug}`)}
                   className="relative rounded-2xl overflow-hidden cursor-pointer group/card aspect-[3/4] min-h-[280px] md:min-h-[360px]"
                 >
-                  <img
-                    src={brand.image}
-                    alt={brand.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-                  />
+                  {/* Video for active leftmost card, image for others */}
+                  {brand.video ? (
+                    <>
+                      <video
+                        ref={(el) => { videoRefs.current[index] = el; }}
+                        src={brand.video}
+                        muted
+                        loop
+                        playsInline
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                          brandIdx === activeIndex ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                      <img
+                        src={brand.image}
+                        alt={brand.name}
+                        loading="lazy"
+                        className={`w-full h-full object-cover transition-all duration-700 group-hover/card:scale-110 ${
+                          brandIdx === activeIndex ? 'opacity-0' : 'opacity-100'
+                        }`}
+                      />
+                    </>
+                  ) : (
+                    <img
+                      src={brand.image}
+                      alt={brand.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+                    />
+                  )}
+
                   {/* Dark gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
@@ -60,29 +111,15 @@ const TrendingBrandsSection = () => {
                       {brand.name}
                     </h3>
                     <p className="text-white/70 text-xs md:text-sm mb-3">{brand.tagline}</p>
-                    <span className="inline-flex items-center text-white text-sm font-medium gap-1 group-hover/card:gap-2 transition-all">
-                      Shop Now <ChevronRight className="w-4 h-4" />
+                    <span className="inline-flex items-center gap-1 text-white text-sm font-medium bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full group-hover/card:bg-white/20 transition-all">
+                      Shop Now
                     </span>
                   </div>
                 </motion.div>
               </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {/* Nav buttons */}
-          <button
-            onClick={() => swiperRef.current?.slidePrev()}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10 hidden md:flex w-10 h-10 rounded-full bg-background shadow-lg items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => swiperRef.current?.slideNext()}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10 hidden md:flex w-10 h-10 rounded-full bg-background shadow-lg items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+            );
+          })}
+        </Swiper>
       </div>
     </section>
   );

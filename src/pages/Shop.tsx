@@ -115,15 +115,21 @@ const Shop = () => {
 
       <main className="pt-16 lg:pt-24">
         <InnerPageBanner
-          title={categoryFromUrl
-            ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-            : 'Shop All'}
+          title={
+            brandFromUrl
+              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
+              : categoryFromUrl
+                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
+                : 'Shop All'
+          }
           subtitle="Our Collection"
           breadcrumbs={[
             { label: 'Home', path: '/' },
-            { label: categoryFromUrl
-              ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-              : 'Shop' },
+            { label: brandFromUrl
+              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
+              : categoryFromUrl
+                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
+                : 'Shop' },
           ]}
         />
 

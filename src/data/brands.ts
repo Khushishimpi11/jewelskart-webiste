@@ -10,6 +10,7 @@ export interface Brand {
   slug: string;
   tagline: string;
   image: string;
+  video?: string;
   isFeatured?: boolean;
 }
 
