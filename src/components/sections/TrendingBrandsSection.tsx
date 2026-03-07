@@ -6,7 +6,7 @@ import { brands } from '@/data/brands';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
-import 'swiper/css';
+import 'swiper/swiper-bundle.css';
 
 const TrendingBrandsSection = () => {
   const navigate = useNavigate();

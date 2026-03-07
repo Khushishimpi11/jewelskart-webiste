@@ -30,8 +30,8 @@ const BrandPage = () => {
       <InnerPageBanner
         title={brandName}
         breadcrumbs={[
-          { label: 'Home', href: '/' },
-          { label: 'Brands', href: '/' },
+          { label: 'Home', path: '/' },
+          { label: 'Brands', path: '/' },
           { label: brandName },
         ]}
       />
