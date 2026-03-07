@@ -49,6 +49,7 @@ const Shop = () => {
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (categoryFromUrl && product.category !== categoryFromUrl) return false;
+      if (brandFromUrl && (!product.brand || product.brand.toLowerCase().replace(/[^a-z0-9]/g, '') !== brandFromUrl.toLowerCase().replace(/[^a-z0-9]/g, ''))) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(product.category))
         return false;
       if (product.price < priceRange[0] || product.price > priceRange[1]) return false;
@@ -56,7 +57,7 @@ const Shop = () => {
         return false;
       return true;
     });
-  }, [categoryFromUrl, selectedCategories, priceRange, selectedTags]);
+  }, [categoryFromUrl, brandFromUrl, selectedCategories, priceRange, selectedTags]);
 
   const sortedProducts = useMemo(() => {
     const productsToSort = [...filteredProducts];
