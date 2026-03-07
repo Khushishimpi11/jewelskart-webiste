@@ -66,57 +66,70 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-6">
-            {navLinks.map((link) => {
-              if (link.hasBrandsDropdown) {
-                return (
-                  <div
-                    key="brands"
-                    className="relative"
-                    onMouseEnter={() => setShowBrandsDropdown(true)}
-                    onMouseLeave={() => setShowBrandsDropdown(false)}
-                  >
-                    <button className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${textMutedColor} ${hoverColor}`}>
-                      Brands
-                      <ChevronDown className={`w-4 h-4 transition-transform ${showBrandsDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    <AnimatePresence>
-                      {showBrandsDropdown && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute left-0 top-full mt-2 w-52 bg-card border border-border/50 shadow-lg py-2 z-50"
-                        >
-                          {brands.map((brand) => (
-                            <Link
-                              key={brand.id}
-                              to={`/shop?brand=${brand.slug}`}
-                              className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
-                            >
-                              {brand.name}
-                            </Link>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              }
+            {[
+              { name: 'Home', path: '/' },
+              { name: 'Shop', path: '/shop' },
+            ].map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  (link.path === '/' ? location.pathname === '/' : location.pathname === link.path)
+                    ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
 
-              return (
-                <Link
-                  key={link.path + link.name}
-                  to={link.path}
-                  className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                    (link.path === '/' ? location.pathname === '/' : location.pathname + location.search === link.path)
-                      ? textColor
-                      : `${textMutedColor} ${hoverColor}`
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
+            {/* Brands dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setShowBrandsDropdown(true)}
+              onMouseLeave={() => setShowBrandsDropdown(false)}
+            >
+              <button className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${textMutedColor} ${hoverColor}`}>
+                Brands
+                <ChevronDown className={`w-4 h-4 transition-transform ${showBrandsDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showBrandsDropdown && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute left-0 top-full mt-2 w-52 bg-card border border-border/50 shadow-lg py-2 z-50">
+                    {brands.map((brand) => (
+                      <Link key={brand.id} to={`/shop?brand=${brand.slug}`} className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors">{brand.name}</Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Category links */}
+            {categoryLinks.map((cat) => (
+              <Link
+                key={cat.name}
+                to={cat.path}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  location.pathname + location.search === cat.path ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                {cat.name}
+              </Link>
+            ))}
+
+            {[
+              { name: 'About', path: '/about' },
+              { name: 'Contact Us', path: '/contact' },
+            ].map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  location.pathname === link.path ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
           </nav>
 
           {/* Desktop Actions */}
