@@ -17,6 +17,7 @@ import TrackOrder from "./pages/TrackOrder";
 import Profile from "./pages/Profile";
 import OrderSummary from "./pages/OrderSummary";
 import About from "./pages/About";
+import BrandPage from "./pages/BrandPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
