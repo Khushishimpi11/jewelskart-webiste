@@ -48,7 +48,7 @@ export const Header = () => {
   const hoverColor = 'hover:text-primary-foreground';
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-primary shadow-lg transition-all duration-500">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-primary transition-all duration-500">
       <div className="container mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
           {/* Logo */}
@@ -89,31 +89,31 @@ export const Header = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-card border border-border/50 shadow-2xl z-50 w-[680px] p-6"
+                    className="fixed left-1/2 -translate-x-1/2 top-[64px] sm:top-[80px] lg:top-[96px] bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"
                   >
                     {/* Top row: All */}
                     <Link
                       to="/shop"
-                      className="block text-sm font-semibold text-primary mb-4 hover:underline uppercase tracking-wider"
+                      className="block text-base font-semibold text-primary mb-5 hover:underline uppercase tracking-wider"
                     >
                       All Products
                     </Link>
-                    <div className="border-t border-border/30 pt-4">
-                      <div className="grid grid-cols-5 gap-6">
+                    <div className="border-t border-border/20 pt-5">
+                      <div className="grid grid-cols-5 gap-8">
                         {brands.map((brand) => (
                           <div key={brand.id}>
                             <Link
                               to={`/shop?brand=${brand.slug}`}
-                              className="block font-display text-sm font-bold text-foreground hover:text-primary transition-colors mb-3"
+                              className="block font-display text-[15px] font-bold text-foreground hover:text-primary transition-colors mb-4"
                             >
                               {brand.name}
                             </Link>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {shopCategories.map((cat) => (
                                 <Link
                                   key={cat}
                                   to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
-                                  className="block text-xs text-muted-foreground hover:text-primary transition-colors"
+                                  className="block text-sm text-muted-foreground hover:text-primary hover:translate-x-1 transition-all duration-200"
                                 >
                                   {cat}
                                 </Link>
