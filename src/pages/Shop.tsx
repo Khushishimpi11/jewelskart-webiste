@@ -24,6 +24,7 @@ const Shop = () => {
   const [sortBy, setSortBy] = useState<SortOption>('default');
 
   const categoryFromUrl = searchParams.get('category');
+  const brandFromUrl = searchParams.get('brand');
 
   // Scroll to top function
   const scrollToTop = () => {
@@ -48,6 +49,7 @@ const Shop = () => {
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (categoryFromUrl && product.category !== categoryFromUrl) return false;
+      if (brandFromUrl && (!product.brand || product.brand.toLowerCase().replace(/[^a-z0-9]/g, '') !== brandFromUrl.toLowerCase().replace(/[^a-z0-9]/g, ''))) return false;
       if (selectedCategories.length > 0 && !selectedCategories.includes(product.category))
         return false;
       if (product.price < priceRange[0] || product.price > priceRange[1]) return false;
@@ -55,7 +57,7 @@ const Shop = () => {
         return false;
       return true;
     });
-  }, [categoryFromUrl, selectedCategories, priceRange, selectedTags]);
+  }, [categoryFromUrl, brandFromUrl, selectedCategories, priceRange, selectedTags]);
 
   const sortedProducts = useMemo(() => {
     const productsToSort = [...filteredProducts];
@@ -113,15 +115,21 @@ const Shop = () => {
 
       <main className="pt-16 lg:pt-24">
         <InnerPageBanner
-          title={categoryFromUrl
-            ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-            : 'Shop All'}
+          title={
+            brandFromUrl
+              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
+              : categoryFromUrl
+                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
+                : 'Shop All'
+          }
           subtitle="Our Collection"
           breadcrumbs={[
             { label: 'Home', path: '/' },
-            { label: categoryFromUrl
-              ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
-              : 'Shop' },
+            { label: brandFromUrl
+              ? brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)
+              : categoryFromUrl
+                ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
+                : 'Shop' },
           ]}
         />
 
