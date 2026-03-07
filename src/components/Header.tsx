@@ -48,7 +48,7 @@ export const Header = () => {
   const hoverColor = 'hover:text-primary-foreground';
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-primary shadow-lg transition-all duration-500">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-primary transition-all duration-500">
       <div className="container mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
           {/* Logo */}
