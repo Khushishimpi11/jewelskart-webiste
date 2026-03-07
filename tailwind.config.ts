@@ -156,7 +156,7 @@ export default {
         "scale-in": "scale-in 0.4s ease-out forwards",
         float: "float 3s ease-in-out infinite",
         shimmer: "shimmer 2s linear infinite",
-        marquee: "marquee 30s linear infinite",
+        marquee: "marquee 10s linear infinite",
         "slide-up": "slide-up 0.5s ease-out forwards",
         glow: "glow 2s ease-in-out infinite",
       },

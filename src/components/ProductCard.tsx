@@ -79,7 +79,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
         {/* Hover Overlay */}
         <motion.div
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3"
+          className="absolute inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: isHovered ? 1 : 0 }}
           transition={{ duration: 0.3 }}

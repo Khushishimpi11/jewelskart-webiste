@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -10,7 +10,7 @@ import { products, categories } from '@/data/products';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const PRODUCTS_PER_PAGE = 6;
+const PRODUCTS_PER_PAGE = 9; // Changed from 6 to 9
 
 type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
 
@@ -24,6 +24,20 @@ const Shop = () => {
   const [sortBy, setSortBy] = useState<SortOption>('default');
 
   const categoryFromUrl = searchParams.get('category');
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Handle page change with scroll to top
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    scrollToTop();
+  };
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -65,6 +79,7 @@ const Shop = () => {
       prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
     );
     setCurrentPage(1);
+    scrollToTop(); // Scroll to top when filters change
   };
 
   const toggleTag = (tag: string) => {
@@ -72,6 +87,7 @@ const Shop = () => {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
     setCurrentPage(1);
+    scrollToTop(); // Scroll to top when filters change
   };
 
   const clearFilters = () => {
@@ -80,11 +96,13 @@ const Shop = () => {
     setPriceRange([0, 100000]);
     setSortBy('default');
     setCurrentPage(1);
+    scrollToTop(); // Scroll to top when clearing filters
   };
 
   const handleSortChange = (option: SortOption) => {
     setSortBy(option);
     setCurrentPage(1);
+    scrollToTop(); // Scroll to top when sorting changes
   };
 
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
@@ -174,7 +192,11 @@ const Shop = () => {
                       </h4>
                       <Slider
                         value={priceRange}
-                        onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }}
+                        onValueChange={(val) => { 
+                          setPriceRange(val); 
+                          setCurrentPage(1); 
+                          scrollToTop(); // Scroll to top when price range changes
+                        }}
                         min={0}
                         max={100000}
                         step={500}
@@ -265,7 +287,7 @@ const Shop = () => {
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 sm:mt-12">
                   <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                     className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
@@ -274,7 +296,7 @@ const Shop = () => {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => handlePageChange(page)}
                       className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors ${
                         currentPage === page
                           ? 'bg-primary text-primary-foreground border-primary'
@@ -285,7 +307,7 @@ const Shop = () => {
                     </button>
                   ))}
                   <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
                     className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >

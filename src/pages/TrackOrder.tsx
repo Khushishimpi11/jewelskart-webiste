@@ -62,7 +62,7 @@ const TrackOrder = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 lg:pt-24">
+<main className="pt-16 lg:pt-24">  
         <InnerPageBanner
           title="Track Your Order"
           subtitle="Order Tracking"

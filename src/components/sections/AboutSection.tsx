@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import productImage from '@/assets/product-necklace.jpg';
+import productImage from '@/assets/Chain/Chain/c1.1.jpg';
 import exploreIcon from '../../assets/logoicon.png';
 import { Link } from 'react-router-dom';
 

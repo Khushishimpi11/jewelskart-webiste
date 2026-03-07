@@ -30,7 +30,7 @@ const Contact = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20 lg:pt-24">
+     <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title="Contact Us"
           subtitle="Get In Touch"

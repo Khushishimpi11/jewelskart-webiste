@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import bannerImg from '@/assets/promo-banner.jpg';
+import bannerImg from '@/assets/promo-banner.png';
 
 interface BreadcrumbItem {
   label: string;

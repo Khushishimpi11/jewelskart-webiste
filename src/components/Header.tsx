@@ -5,7 +5,7 @@ import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, C
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
-import { categories } from '@/data/products';
+import { categories, chainProducts } from '@/data/products';
 import logo from '@/assets/logo.png';
 
 const navLinks = [
@@ -21,6 +21,8 @@ export const Header = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showShopDropdown, setShowShopDropdown] = useState(false);
   const [showMobileShopDropdown, setShowMobileShopDropdown] = useState(false);
+  const [showChainsDropdown, setShowChainsDropdown] = useState(false);
+  const [showMobileChainsDropdown, setShowMobileChainsDropdown] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const cartItemCount = useCartStore((state) => state.getItemCount());
@@ -39,6 +41,7 @@ export const Header = () => {
   useEffect(() => {
     setIsMenuOpen(false);
     setShowMobileShopDropdown(false);
+    setShowMobileChainsDropdown(false);
   }, [location.pathname]);
 
   // Prevent body scroll when mobile menu is open
@@ -66,6 +69,10 @@ export const Header = () => {
   const textColor = isScrolled ? 'text-primary-foreground' : 'text-white';
   const textMutedColor = isScrolled ? 'text-primary-foreground/80' : 'text-white/80';
   const hoverColor = isScrolled ? 'hover:text-primary-foreground' : 'hover:text-white';
+
+  // Group chains by some criteria or just show first few
+  const featuredChains = chainProducts.slice(0, 6); // Show first 6 chains
+  const chainCategories = [...new Set(chainProducts.map(chain => chain.category))];
 
   return (
     <header
@@ -111,23 +118,30 @@ export const Header = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute left-0 top-full mt-2 w-48 bg-card border border-border/50 shadow-lg py-2 z-50"
+                        className="absolute left-0 top-full mt-2 w-56 bg-card border border-border/50 shadow-lg py-2 z-50"
                       >
                         <Link
                           to="/shop"
-                          className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
+                          className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors font-medium"
                         >
                           All Products
                         </Link>
-                        {categories.map((category) => (
-                          <Link
-                            key={category.id}
-                            to={`/shop?category=${category.id}`}
-                            className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors capitalize"
-                          >
-                            {category.name}
-                          </Link>
-                        ))}
+                        
+                        {/* Categories Section */}
+                        <div className="border-t border-border/20 my-2 pt-2">
+                          <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Categories
+                          </p>
+                          {categories.map((category) => (
+                            <Link
+                              key={category.id}
+                              to={`/shop?category=${category.id}`}
+                              className="block px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors capitalize"
+                            >
+                              {category.name} ({category.productCount})
+                            </Link>
+                          ))}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -154,6 +168,92 @@ export const Header = () => {
                 </Link>
               )
             ))}
+
+            {/* Chains Dropdown - Separate Menu Item */}
+            {/* <div
+              className="relative"
+              onMouseEnter={() => setShowChainsDropdown(true)}
+              onMouseLeave={() => setShowChainsDropdown(false)}
+            >
+              <button
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 ${
+                  location.pathname.includes('/chains') ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                Chains
+                <ChevronDown className={`w-4 h-4 transition-transform ${showChainsDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <AnimatePresence>
+                {showChainsDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute left-0 top-full mt-2 w-72 bg-card border border-border/50 shadow-lg py-2 z-50"
+                  >
+                    <div className="px-4 py-2 border-b border-border/20">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                        Shop by Style
+                      </p>
+                      <div className="grid grid-cols-2 gap-1">
+                        <Link
+                          to="/shop?category=chains&style=delicate"
+                          className="text-sm text-foreground hover:text-primary py-1"
+                        >
+                          Delicate
+                        </Link>
+                        <Link
+                          to="/shop?category=chains&style=classic"
+                          className="text-sm text-foreground hover:text-primary py-1"
+                        >
+                          Classic
+                        </Link>
+                        <Link
+                          to="/shop?category=chains&style=premium"
+                          className="text-sm text-foreground hover:text-primary py-1"
+                        >
+                          Premium
+                        </Link>
+                        <Link
+                          to="/shop?category=chains&style=modern"
+                          className="text-sm text-foreground hover:text-primary py-1"
+                        >
+                          Modern
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="px-4 py-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                        Popular Chains
+                      </p>
+                      {chainProducts.slice(0, 8).map((chain) => (
+                        <Link
+                          key={chain.id}
+                          to={`/product/${chain.id}`}
+                          className="block text-sm text-foreground hover:text-primary py-1.5 border-b border-border/10 last:border-0"
+                        >
+                          <span>{chain.name}</span>
+                          <span className="float-right text-muted-foreground">
+                            ₹{chain.price.toLocaleString()}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-border/20 mt-2 pt-2 px-4 pb-2">
+                      <Link
+                        to="/shop?category=chains"
+                        className="block text-center text-sm bg-primary text-primary-foreground py-2 px-4 hover:bg-primary/90 transition-colors"
+                      >
+                        Browse All Chains (24)
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div> */}
           </nav>
 
           {/* Desktop Actions */}
@@ -294,20 +394,25 @@ export const Header = () => {
                             <Link
                               to="/shop"
                               onClick={() => setIsMenuOpen(false)}
-                              className="block py-3 px-6 min-h-[44px] text-sm text-foreground/70 hover:text-primary border-b border-border/10"
+                              className="block py-3 px-6 min-h-[44px] text-sm text-foreground/70 hover:text-primary border-b border-border/10 font-medium"
                             >
                               All Products
                             </Link>
-                            {categories.map((category) => (
-                              <Link
-                                key={category.id}
-                                to={`/shop?category=${category.id}`}
-                                onClick={() => setIsMenuOpen(false)}
-                                className="block py-3 px-6 min-h-[44px] text-sm text-foreground/70 hover:text-primary border-b border-border/10 capitalize"
-                              >
-                                {category.name}
-                              </Link>
-                            ))}
+                            
+                            {/* Categories */}
+                            <div className="py-2 px-6 bg-muted/20">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase py-2">Categories</p>
+                              {categories.map((category) => (
+                                <Link
+                                  key={category.id}
+                                  to={`/shop?category=${category.id}`}
+                                  onClick={() => setIsMenuOpen(false)}
+                                  className="block py-2 text-sm text-foreground/70 hover:text-primary capitalize"
+                                >
+                                  {category.name} ({category.productCount})
+                                </Link>
+                              ))}
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -325,6 +430,42 @@ export const Header = () => {
                   )}
                 </div>
               ))}
+
+              {/* Separate Chains Link for Mobile */}
+              <button
+                onClick={() => setShowMobileChainsDropdown(!showMobileChainsDropdown)}
+                className={`w-full flex items-center justify-between py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80`}
+              >
+                Chains
+                <ChevronDown className={`w-5 h-5 transition-transform ${showMobileChainsDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {showMobileChainsDropdown && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-muted/30"
+                  >
+                    <div className="py-2 px-6">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase py-2">All Chains</p>
+                      {chainProducts.map((chain) => (
+                        <Link
+                          key={chain.id}
+                          to={`/product/${chain.id}`}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="block py-2 text-sm text-foreground/70 hover:text-primary border-b border-border/10"
+                        >
+                          <div className="flex justify-between">
+                            <span>{chain.name}</span>
+                            <span className="text-muted-foreground">₹{chain.price.toLocaleString()}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               {/* Mobile Menu Actions */}
               <div className="mt-6 space-y-1 pt-4 border-t border-border/30">

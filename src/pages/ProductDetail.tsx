@@ -367,7 +367,7 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-      <main className="pt-20 lg:pt-24">
+   <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title={product.name}
           breadcrumbs={[

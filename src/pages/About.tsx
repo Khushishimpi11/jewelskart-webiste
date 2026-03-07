@@ -41,7 +41,7 @@ const About = () => {
     <div className="min-h-screen bg-white text-foreground">
       <Header />
 
-      <main className="pt-20 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
 
         {/* Banner Section */}
         <InnerPageBanner
