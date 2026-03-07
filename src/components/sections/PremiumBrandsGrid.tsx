@@ -9,7 +9,7 @@ const PremiumBrandsGrid = () => {
   const gridBrands = brands.slice(1, 5); // 4 smaller cards
 
   return (
-    <section className="py-10 md:py-16 px-4 md:px-8 lg:px-16 bg-secondary">
+    <section className="py-8 md:py-12 px-4 md:px-8 lg:px-16 bg-secondary">
       <div className="max-w-7xl mx-auto">
         <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-8">
           Premium Brands
