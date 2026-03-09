@@ -50,26 +50,9 @@ const CollaborationBanner = () => {
 
   return (
     <section className="py-14 sm:py-20 lg:py-24 overflow-hidden">
-      {/* Header area — contained */}
+      {/* Navigation arrows — contained */}
       <div className="max-w-[1280px] mx-auto px-6 sm:px-10 lg:px-16 mb-10 sm:mb-14">
-        <div className="flex items-end justify-between gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p
-              className="font-body text-xs sm:text-sm uppercase tracking-[0.2em] mb-2"
-              style={{ color: 'hsl(43, 54%, 53%)' }}
-            >
-              Exclusive Collaborations
-            </p>
-            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl xl:text-5xl text-foreground leading-tight">
-              Our Brand Partners
-            </h2>
-          </motion.div>
-
-          {/* Navigation arrows */}
+        <div className="flex items-end justify-end gap-3">
           <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={() => scroll('left')}

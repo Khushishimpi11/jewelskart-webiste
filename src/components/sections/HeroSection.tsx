@@ -52,11 +52,10 @@ export const HeroSection = () => {
 
   return (
     <section className="relative overflow-hidden" style={{ paddingTop: "calc(38px + 64px)" }}>
-      {/* Left margin only — right bleeds to edge */}
-      <div className="ml-4 sm:ml-8 lg:ml-[60px]">
+      <div>
         <div
-          className="relative rounded-l-2xl overflow-hidden"
-          style={{ height: "clamp(520px, 65vh, 700px)" }}
+          className="relative overflow-hidden"
+          style={{ height: "clamp(580px, 72vh, 780px)" }}
         >
           {/* Background image layer */}
           <AnimatePresence mode="wait">
