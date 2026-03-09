@@ -11,6 +11,7 @@ import { MarqueeSection } from '@/components/sections/MarqueeSection';
 import GlamorousLifeMarquee from '@/components/sections/GlamorousLifeMarquee';
 import TrendingBrandsSection from '@/components/sections/TrendingBrandsSection';
 import PremiumBrandsGrid from '@/components/sections/PremiumBrandsGrid';
+import CollaborationBanner from '@/components/sections/CollaborationBanner';
 
 const Index = () => {
   return (
@@ -18,8 +19,9 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-      <GlamorousLifeMarquee/>
-           <TrendingBrandsSection />
+        <CollaborationBanner />
+        <GlamorousLifeMarquee />
+        <TrendingBrandsSection />
         <CategorySection />
         <BestSellersSection />
         <PromoBanner />

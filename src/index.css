@@ -46,6 +46,10 @@
     --burgundy: 332 87% 18%;          /* #570630 */
     --burgundy-light: 332 60% 30%;    /* Lighter burgundy */
     --burgundy-dark: 332 90% 12%;     /* Darker burgundy */
+    
+    --maroon-nav: 345 80% 27%;        /* #7a0f2a navbar */
+    --announcement-maroon: 345 80% 27%; /* #7a0f2a text */
+    --cream-banner: 24 33% 95%;       /* #f7f3f0 */
 
     --gold: 46 67% 52%;               /* #D4AF37 */
     --gold-light: 46 80% 65%;
