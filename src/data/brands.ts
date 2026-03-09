@@ -1,8 +1,15 @@
-import ring1 from '@/assets/Ring/Ring/r1.jpg';
-import chain01a from '@/assets/Chain/Chain/c1.1.jpg';
-import pendant1 from '@/assets/Pendant/Pendant/p1.jpg';
-import ring3 from '@/assets/Ring/Ring/r3.jpg';
-import chain05a from '@/assets/Chain/Chain/c5.1.jpg';
+import ring1 from '@/assets/jewelskartimg.webp';
+import chain01a from '@/assets/palmonasimg.jpg';
+import pendant1 from '@/assets/givaimg.jpg';
+import ring3 from '@/assets/kushalsimg.webp';
+import chain05a from '@/assets/voyllai.avif';
+
+// Import videos
+import jewelskartVideo from '@/assets/jewelskart.mp4';
+import palmonasVideo from '@/assets/palmonas.mp4';
+import givaVideo from '@/assets/giva.mp4';
+import kushalsVideo from '@/assets/kushals.mp4';
+import voyllaVideo from '@/assets/Voylla.mp4';
 
 export interface Brand {
   id: string;
@@ -21,6 +28,7 @@ export const brands: Brand[] = [
     slug: 'jewelskart',
     tagline: 'Premium Jewellery',
     image: ring1,
+    video: jewelskartVideo,
     isFeatured: true,
   },
   {
@@ -29,6 +37,7 @@ export const brands: Brand[] = [
     slug: 'palmonas',
     tagline: 'Crafted in India',
     image: chain01a,
+    video: palmonasVideo,
   },
   {
     id: 'giva',
@@ -36,6 +45,7 @@ export const brands: Brand[] = [
     slug: 'giva',
     tagline: 'Silver Elegance',
     image: pendant1,
+    video: givaVideo,
   },
   {
     id: 'kushals',
@@ -43,6 +53,7 @@ export const brands: Brand[] = [
     slug: 'kushals',
     tagline: 'Heritage Craft',
     image: ring3,
+    video: kushalsVideo,
   },
   {
     id: 'voylla',
@@ -50,6 +61,7 @@ export const brands: Brand[] = [
     slug: 'voylla',
     tagline: 'Fashion Forward',
     image: chain05a,
+    video: voyllaVideo,
   },
 ];
 

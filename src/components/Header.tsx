@@ -89,8 +89,7 @@ export const Header = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed left-1/2 -translate-x-1/2 top-[64px] sm:top-[80px] lg:top-[96px] bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"
-                  >
+className="fixed left-[30%] -translate-x-1/2 top-[64px] sm:top-[80px] lg:top-[76px] bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"                  >
                     {/* Top row: All */}
                     <Link
                       to="/shop"
@@ -104,7 +103,7 @@ export const Header = () => {
                           <div key={brand.id}>
                             <Link
                               to={`/shop?brand=${brand.slug}`}
-                              className="block font-display text-[15px] font-bold text-foreground hover:text-primary transition-colors mb-4"
+                              className="block font-display text-[20px] font-bold text-foreground hover:text-primary transition-colors mb-4"
                             >
                               {brand.name}
                             </Link>
@@ -113,7 +112,7 @@ export const Header = () => {
                                 <Link
                                   key={cat}
                                   to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
-                                  className="block text-sm text-muted-foreground hover:text-primary hover:translate-x-1 transition-all duration-200"
+                                  className="block text-m text-muted-foreground hover:text-primary hover:translate-x-1 transition-all duration-200"
                                 >
                                   {cat}
                                 </Link>
@@ -171,12 +170,27 @@ export const Header = () => {
                 </button>
                 <AnimatePresence>
                   {showDropdown && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 top-full mt-2 w-48 bg-card border border-border/50 shadow-lg py-2">
-                      <Link to="/track-order" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"><Package className="w-4 h-4" /> Track Order</Link>
-                      <Link to="/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"><User className="w-4 h-4" /> Profile</Link>
-                      <Link to="/order-summary" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"><ShoppingBag className="w-4 h-4" /> Order Summary</Link>
-                      <Link to="/account" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"><Settings className="w-4 h-4" /> Account</Link>
-                      <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors w-full"><LogOut className="w-4 h-4" /> Logout</button>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      exit={{ opacity: 0, y: 10 }} 
+                      className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 shadow-lg py-2 rounded-lg -translate-x-[120px]"
+                    >
+                      <Link to="/track-order" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
+                        <Package className="w-5 h-5" /> Track Order
+                      </Link>
+                      <Link to="/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
+                        <User className="w-5 h-5" /> Profile
+                      </Link>
+                      <Link to="/order-summary" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
+                        <ShoppingBag className="w-5 h-5" /> Order Summary
+                      </Link>
+                      <Link to="/account" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
+                        <Settings className="w-5 h-5" /> Account
+                      </Link>
+                      <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-destructive hover:bg-muted transition-colors w-full">
+                        <LogOut className="w-5 h-5" /> Logout
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
