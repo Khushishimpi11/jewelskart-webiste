@@ -20,7 +20,6 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
-        <CollaborationBanner />
         <GlamorousLifeMarquee />
         <TrendingBrandsSection />
         <CategorySection />
