@@ -29,7 +29,6 @@ const Index = () => {
         <FeaturedSection />
         <MarqueeSection />
         <PremiumBrandsGrid />
-        <BrandTrustSection />
         <SpecialProducts />
         <AboutSection />
       </main>

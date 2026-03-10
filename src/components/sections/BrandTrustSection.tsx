@@ -46,7 +46,7 @@ const BrandTrustSection = () => {
               />
               
               {/* Brand image circle */}
-              <div className="relative w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden border-2 border-border/30 group-hover:border-accent/50 transition-all duration-500 shadow-md group-hover:shadow-xl">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 rounded-full overflow-hidden border-2 border-border/30 group-hover:border-accent/50 transition-all duration-500 shadow-md group-hover:shadow-xl group-hover:shadow-accent/20">
                 <img
                   src={brand.image}
                   alt={brand.name}

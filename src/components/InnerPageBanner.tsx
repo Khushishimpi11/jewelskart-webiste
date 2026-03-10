@@ -16,7 +16,7 @@ interface InnerPageBannerProps {
 
 export const InnerPageBanner = ({ title, subtitle, breadcrumbs }: InnerPageBannerProps) => {
   return (
-    <section className="relative py-12 sm:py-16 lg:py-28 overflow-hidden">
+    <section className="relative py-16 sm:py-20 lg:py-36 overflow-hidden">
       {/* Background Image with Dark Overlay */}
       <div className="absolute inset-0">
         <img src={bannerImg} alt="" className="w-full h-full object-cover" loading="lazy" />

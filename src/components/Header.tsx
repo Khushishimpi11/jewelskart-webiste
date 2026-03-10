@@ -105,7 +105,7 @@ export const Header = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="text-xs sm:text-sm font-body tracking-wider relative z-10"
-              style={{ color: 'hsl(46, 80%, 70%)' }}
+              style={{ color: 'hsl(332, 87%, 18%)' }}
             >
               {announcements[announcementIndex]}
             </motion.p>
