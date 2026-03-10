@@ -132,7 +132,9 @@ const TrendingBrandsSection = () => {
                     transition={{ delay: Math.min(index, 4) * 0.1, duration: 0.2 }}
                     viewport={{ once: true }}
                     onClick={() => navigate(`/shop?brand=${brand.slug}`)}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer group/card aspect-[3/4] min-h-[350px] md:min-h-[450px] lg:min-h-[500px] w-full"
+                    className="relative rounded-2xl overflow-hidden cursor-pointer group/card aspect-[3/4] min-h-[350px] md:min-h-[450px] lg:min-h-[520px] w-full transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10"
+                    style={{ border: '1px solid transparent' }}
+                    whileHover={{ scale: 1.02, borderColor: 'hsl(46, 67%, 52%, 0.3)' }}
                   >
                     {/* Video - Sirf video dikhega */}
                     {brand.video && (
