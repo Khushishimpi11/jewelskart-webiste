@@ -85,7 +85,7 @@ export const Header = () => {
         style={{
           height: `${ANNOUNCEMENT_HEIGHT}px`,
           transform: showAnnouncementBar ? 'translateY(0)' : `translateY(-${ANNOUNCEMENT_HEIGHT}px)`,
-          background: 'linear-gradient(90deg, hsl(332, 87%, 14%), hsl(345, 80%, 22%), hsl(332, 87%, 14%))',
+          background: 'hsl(345, 60%, 94%)',
         }}
       >
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
