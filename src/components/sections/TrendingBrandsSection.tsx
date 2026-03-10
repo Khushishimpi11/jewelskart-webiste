@@ -93,8 +93,8 @@ const TrendingBrandsSection = () => {
         >
           <Swiper
             modules={[Autoplay]}
-            spaceBetween={16}
-            slidesPerView={1.3}
+              spaceBetween={18}
+            slidesPerView={1.2}
             loop={true}
             speed={1200} // Thoda slow transition
             breakpoints={{
