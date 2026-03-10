@@ -85,15 +85,15 @@ export const Header = () => {
         style={{
           height: `${ANNOUNCEMENT_HEIGHT}px`,
           transform: showAnnouncementBar ? 'translateY(0)' : `translateY(-${ANNOUNCEMENT_HEIGHT}px)`,
-          background: 'linear-gradient(90deg, hsl(332, 87%, 14%), hsl(345, 80%, 22%), hsl(332, 87%, 14%))',
+          background: 'hsl(345, 60%, 94%)',
         }}
       >
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
           {/* Subtle shimmer effect */}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-10"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, hsl(46, 67%, 52%) 50%, transparent 100%)',
+              background: 'linear-gradient(90deg, transparent 0%, hsl(332, 87%, 18%) 50%, transparent 100%)',
               animation: 'shimmer 3s infinite',
             }}
           />
@@ -105,7 +105,7 @@ export const Header = () => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
               className="text-xs sm:text-sm font-body tracking-wider relative z-10"
-              style={{ color: 'hsl(46, 80%, 70%)' }}
+              style={{ color: 'hsl(332, 87%, 18%)' }}
             >
               {announcements[announcementIndex]}
             </motion.p>

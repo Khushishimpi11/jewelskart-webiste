@@ -20,6 +20,7 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
+        <BrandTrustSection />
         <GlamorousLifeMarquee />
         <TrendingBrandsSection />
         <CategorySection />
@@ -28,7 +29,6 @@ const Index = () => {
         <FeaturedSection />
         <MarqueeSection />
         <PremiumBrandsGrid />
-        <BrandTrustSection />
         <SpecialProducts />
         <AboutSection />
       </main>
