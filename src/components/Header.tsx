@@ -91,9 +91,9 @@ export const Header = () => {
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
           {/* Subtle shimmer effect */}
           <div
-            className="absolute inset-0 opacity-20"
+            className="absolute inset-0 opacity-10"
             style={{
-              background: 'linear-gradient(90deg, transparent 0%, hsl(46, 67%, 52%) 50%, transparent 100%)',
+              background: 'linear-gradient(90deg, transparent 0%, hsl(332, 87%, 18%) 50%, transparent 100%)',
               animation: 'shimmer 3s infinite',
             }}
           />
