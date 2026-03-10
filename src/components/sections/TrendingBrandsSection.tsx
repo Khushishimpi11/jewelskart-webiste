@@ -167,13 +167,6 @@ const TrendingBrandsSection = () => {
                       </span>
                     </div>
 
-                    {/* Video Status Indicator */}
-                    {isActiveSlide && (
-                      <div className="absolute top-4 left-4 z-30 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        Playing
-                      </div>
-                    )}
                   </motion.div>
                 </SwiperSlide>
               );
