@@ -12,6 +12,7 @@ import GlamorousLifeMarquee from '@/components/sections/GlamorousLifeMarquee';
 import TrendingBrandsSection from '@/components/sections/TrendingBrandsSection';
 import PremiumBrandsGrid from '@/components/sections/PremiumBrandsGrid';
 import CollaborationBanner from '@/components/sections/CollaborationBanner';
+import BrandTrustSection from '@/components/sections/BrandTrustSection';
 
 const Index = () => {
   return (
