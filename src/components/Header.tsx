@@ -81,22 +81,31 @@ export const Header = () => {
     <>
       {/* Announcement Bar */}
       <div
-        className="fixed top-0 left-0 right-0 z-[60] bg-white transition-transform duration-300 ease-in-out"
+        className="fixed top-0 left-0 right-0 z-[60] transition-transform duration-300 ease-in-out overflow-hidden"
         style={{
           height: `${ANNOUNCEMENT_HEIGHT}px`,
           transform: showAnnouncementBar ? 'translateY(0)' : `translateY(-${ANNOUNCEMENT_HEIGHT}px)`,
+          background: 'linear-gradient(90deg, hsl(332, 87%, 14%), hsl(345, 80%, 22%), hsl(332, 87%, 14%))',
         }}
       >
-        <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center">
+        <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
+          {/* Subtle shimmer effect */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: 'linear-gradient(90deg, transparent 0%, hsl(46, 67%, 52%) 50%, transparent 100%)',
+              animation: 'shimmer 3s infinite',
+            }}
+          />
           <AnimatePresence mode="wait">
             <motion.p
               key={announcementIndex}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3 }}
-              className="text-xs sm:text-sm font-body tracking-wide"
-              style={{ color: 'hsl(345, 80%, 27%)' }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="text-xs sm:text-sm font-body tracking-wider relative z-10"
+              style={{ color: 'hsl(46, 80%, 70%)' }}
             >
               {announcements[announcementIndex]}
             </motion.p>

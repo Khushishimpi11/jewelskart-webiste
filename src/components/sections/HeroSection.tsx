@@ -55,7 +55,7 @@ export const HeroSection = () => {
       <div>
         <div
           className="relative overflow-hidden"
-          style={{ height: "clamp(580px, 72vh, 780px)" }}
+          style={{ height: "clamp(640px, 80vh, 860px)" }}
         >
           {/* Background image layer */}
           <AnimatePresence mode="wait">

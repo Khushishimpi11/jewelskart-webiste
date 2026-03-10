@@ -98,12 +98,12 @@ const TrendingBrandsSection = () => {
             loop={true}
             speed={1200} // Thoda slow transition
             breakpoints={{
-              375: { slidesPerView: 1.5, spaceBetween: 16 },
-              480: { slidesPerView: 2, spaceBetween: 16 },
-              640: { slidesPerView: 2.2, spaceBetween: 18 },
-              768: { slidesPerView: 2.5, spaceBetween: 20 },
-              1024: { slidesPerView: 3.5, spaceBetween: 24 },
-              1280: { slidesPerView: 4, spaceBetween: 24 },
+              375: { slidesPerView: 1.4, spaceBetween: 18 },
+              480: { slidesPerView: 1.8, spaceBetween: 18 },
+              640: { slidesPerView: 2, spaceBetween: 20 },
+              768: { slidesPerView: 2.3, spaceBetween: 22 },
+              1024: { slidesPerView: 3.2, spaceBetween: 24 },
+              1280: { slidesPerView: 3.8, spaceBetween: 26 },
             }}
             autoplay={{ 
               delay: 3000, // 5 seconds - increased time
