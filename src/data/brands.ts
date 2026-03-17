@@ -11,6 +11,14 @@ import givaVideo from '@/assets/giva.mp4';
 import kushalsVideo from '@/assets/kushals.mp4';
 import voyllaVideo from '@/assets/Voylla.mp4';
 
+// IMPORT LOGOS - aapke assets folder se
+
+import palmonasLogo from '@/assets/1.png'; // path adjust karein
+import givaLogo from '@/assets/givalogo.png'; // path adjust karein
+import jewelskartLogo from '@/assets/2.png'; // path adjust karein
+import kushalsLogo from '@/assets/Kushalslogo.png'; // path adjust karein
+import voyllaLogo from '@/assets/Voyllalogo.png'; // path adjust karein
+
 export interface Brand {
   id: string;
   name: string;
@@ -19,18 +27,11 @@ export interface Brand {
   image: string;
   video?: string;
   isFeatured?: boolean;
+  logo?: string; // Add logo property (optional)
 }
 
 export const brands: Brand[] = [
-  {
-    id: 'jewelskart',
-    name: 'Jewelskart',
-    slug: 'jewelskart',
-    tagline: 'Premium Jewellery',
-    image: ring1,
-    video: jewelskartVideo,
-    isFeatured: true,
-  },
+
   {
     id: 'palmonas',
     name: 'Palmonas',
@@ -38,6 +39,7 @@ export const brands: Brand[] = [
     tagline: 'Crafted in India',
     image: chain01a,
     video: palmonasVideo,
+    logo: palmonasLogo, // Add logo
   },
   {
     id: 'giva',
@@ -46,6 +48,17 @@ export const brands: Brand[] = [
     tagline: 'Silver Elegance',
     image: pendant1,
     video: givaVideo,
+    logo: givaLogo, // Add logo
+  },
+    {
+    id: 'jewelskart',
+    name: 'Jewelskart',
+    slug: 'jewelskart',
+    tagline: 'Premium Jewellery',
+    image: ring1,
+    video: jewelskartVideo,
+    isFeatured: true,
+    logo: jewelskartLogo, // Add logo
   },
   {
     id: 'kushals',
@@ -54,6 +67,7 @@ export const brands: Brand[] = [
     tagline: 'Heritage Craft',
     image: ring3,
     video: kushalsVideo,
+    logo: kushalsLogo, // Add logo
   },
   {
     id: 'voylla',
@@ -62,8 +76,8 @@ export const brands: Brand[] = [
     tagline: 'Fashion Forward',
     image: chain05a,
     video: voyllaVideo,
+    logo: voyllaLogo, // Add logo
   },
 ];
 
-// Assign brands to products by distributing them
 export const brandNames = brands.map(b => b.name);

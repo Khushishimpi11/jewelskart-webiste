@@ -13,6 +13,7 @@ import TrendingBrandsSection from '@/components/sections/TrendingBrandsSection';
 import PremiumBrandsGrid from '@/components/sections/PremiumBrandsGrid';
 import CollaborationBanner from '@/components/sections/CollaborationBanner';
 import BrandTrustSection from '@/components/sections/BrandTrustSection';
+import TrustBar from '@/components/sections/TrustBar';
 
 const Index = () => {
   return (
@@ -20,6 +21,7 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
+        <TrustBar/>
         <BrandTrustSection />
         <GlamorousLifeMarquee />
         <TrendingBrandsSection />

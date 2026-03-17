@@ -93,20 +93,20 @@ const TrendingBrandsSection = () => {
         >
           <Swiper
             modules={[Autoplay]}
-              spaceBetween={18}
-            slidesPerView={1.2}
+            spaceBetween={16}
+            slidesPerView={1.3}
             loop={true}
             speed={1200} // Thoda slow transition
             breakpoints={{
-              375: { slidesPerView: 1.4, spaceBetween: 18 },
-              480: { slidesPerView: 1.8, spaceBetween: 18 },
-              640: { slidesPerView: 2, spaceBetween: 20 },
-              768: { slidesPerView: 2.3, spaceBetween: 22 },
-              1024: { slidesPerView: 3.2, spaceBetween: 24 },
-              1280: { slidesPerView: 3.8, spaceBetween: 26 },
+              375: { slidesPerView: 1.5, spaceBetween: 16 },
+              480: { slidesPerView: 2, spaceBetween: 16 },
+              640: { slidesPerView: 2.2, spaceBetween: 18 },
+              768: { slidesPerView: 2.5, spaceBetween: 20 },
+              1024: { slidesPerView: 3.5, spaceBetween: 24 },
+              1280: { slidesPerView: 4, spaceBetween: 24 },
             }}
             autoplay={{ 
-              delay: 3000, // 5 seconds - increased time
+              delay: 3000, // 3 seconds
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
               stopOnLastSlide: false,
@@ -132,9 +132,7 @@ const TrendingBrandsSection = () => {
                     transition={{ delay: Math.min(index, 4) * 0.1, duration: 0.2 }}
                     viewport={{ once: true }}
                     onClick={() => navigate(`/shop?brand=${brand.slug}`)}
-                    className="relative rounded-2xl overflow-hidden cursor-pointer group/card aspect-[3/4] min-h-[350px] md:min-h-[450px] lg:min-h-[520px] w-full transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10"
-                    style={{ border: '1px solid transparent' }}
-                    whileHover={{ scale: 1.02, borderColor: 'hsl(46, 67%, 52%, 0.3)' }}
+                    className="relative rounded-2xl overflow-hidden cursor-pointer group/card aspect-[3/4] min-h-[350px] md:min-h-[450px] lg:min-h-[500px] w-full"
                   >
                     {/* Video - Sirf video dikhega */}
                     {brand.video && (
@@ -167,6 +165,13 @@ const TrendingBrandsSection = () => {
                       </span>
                     </div>
 
+                    {/* Video Status Indicator */}
+                    {isActiveSlide && (
+                      <div className="absolute top-4 left-4 z-30 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        Playing
+                      </div>
+                    )}
                   </motion.div>
                 </SwiperSlide>
               );

@@ -293,7 +293,7 @@ const Shop = () => {
                   </div>
                   <h3 className="font-display text-xl text-foreground mb-2">Product Not Found</h3>
                   <p className="text-muted-foreground text-sm max-w-md">
-                    {brandFromUrl && brandFromUrl !== 'jewelskart'
+                    {brandFromUrl && brandFromUrl !== 'jewelskat'
                       ? `Products for ${brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1)} are coming soon. Stay tuned!`
                       : 'No products found matching your criteria.'}
                   </p>

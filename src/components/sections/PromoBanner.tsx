@@ -1,46 +1,60 @@
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
-import promoBanner from '../../assets/promo-banner.png';
-import exploreIcon from '../../assets/logoicon.png';
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
+import promoBanner from "../../assets/banner1.png";
+import exploreIcon from "../../assets/logoicon.png";
 
 export const PromoBanner = () => {
   return (
-    <section className="relative py-16 sm:py-24 lg:py-32 overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <img
-          src={promoBanner}
-          alt="Winter Collection"
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
+    <section className="relative w-full h-[450px] sm:h-[520px] lg:h-[600px] overflow-hidden">
 
-      <div className="container mx-auto px-4 lg:px-8 relative z-10">
+      {/* Background Image */}
+      <img
+        src={promoBanner}
+        alt="JewelsKart Collection"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
+      {/* Overlay */}
+      {/* <div className="absolute inset-0 bg-black/30"></div> */}
+
+      {/* Content */}
+      
+      <div className="relative z-10 flex items-center h-full px-6 sm:px-12 lg:px-20">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, x: -40 }}
+          whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
-          className="max-w-2xl mx-auto text-center"
+          transition={{ duration: 0.6 }}
+          className="max-w-xl text-left"
         >
-          <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
-            <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-            Exclusive Offer
-          </span>
-          
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-7xl text-white mt-3 sm:mt-4 leading-tight">
-            Winter Collection
-          </h2>
-          
-          <p className="text-white/80 text-sm sm:text-lg mb-6 sm:mb-8 max-w-lg mx-auto">
-            Up to 30% off on select pieces. Discover timeless elegance.
+
+   {/* Heading */}
+<h2 className="text-4xl sm:text-5xl lg:text-6xl text-white leading-tight font-semibold">
+  <span className="block font-light text-white/90 italic">
+    Our Signature Brand
+  </span>
+
+  <span className="block mt-4" style={{ fontFamily: "Montserrat, sans-serif" }}>
+    <span className="font-semibold">JEWELS</span>
+  <span className="font-extralight tracking-tight">KART</span>
+  </span>
+</h2>
+{/* Description */}
+          <p className="text-white/80 text-lg mt-4 mb-8 leading-relaxed">
+            Discover our exclusive in-house jewellery collection crafted with
+            precision, elegance, and timeless beauty.
           </p>
-          
-          <Link to="/shop" className="btn-primary inline-flex items-center gap-2 min-h-[44px]">
+
+          {/* Button */}
+          <Link
+            to="/shop?brand=jewelskart"
+            className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-6 py-3  shadow-lg hover:scale-105 transition"
+          >
             <Sparkles className="w-4 h-4" />
-            Shop the Sale
+            Shop JewelsKart
           </Link>
+
         </motion.div>
       </div>
     </section>

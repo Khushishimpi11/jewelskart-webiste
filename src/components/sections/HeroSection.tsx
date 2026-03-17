@@ -73,13 +73,13 @@ export const HeroSection = () => {
                 className="w-full h-full object-cover"
               />
               {/* Dark cinematic overlay */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(90deg, hsla(332, 87%, 12%, 0.85) 0%, hsla(332, 87%, 12%, 0.6) 30%, hsla(332, 87%, 12%, 0.75) 50%, hsla(332, 87%, 12%, 0.6) 70%, hsla(332, 87%, 12%, 0.85) 100%)",
-                }}
-              />
+             <div
+  className="absolute inset-0"
+  style={{
+    background:
+      "linear-gradient(90deg, hsla(332, 80%, 12%, 0.9) 0%, hsla(332, 70%, 18%, 0.55) 30%, hsla(332, 60%, 25%, 0.35) 50%, hsla(332, 70%, 18%, 0.55) 70%, hsla(332, 80%, 12%, 0.9) 100%)",
+  }}
+/>
             </motion.div>
           </AnimatePresence>
 
@@ -149,7 +149,7 @@ export const HeroSection = () => {
                     onClick={() => setCurrent(i)}
                     className={`rounded-full transition-all duration-300 ${
                       i === current
-                        ? "w-7 h-2.5 bg-accent"
+                        ? "w-7 h-2.5 bg-white"
                         : "w-2.5 h-2.5 bg-primary-foreground/40 hover:bg-primary-foreground/60"
                     }`}
                     aria-label={`Go to slide ${i + 1}`}

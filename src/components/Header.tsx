@@ -71,15 +71,16 @@ export const Header = () => {
   const handleLogout = () => { logout(); setShowDropdown(false); };
   const getInitial = () => user?.email ? user.email.charAt(0).toUpperCase() : 'U';
 
-  const textColor = 'text-white';
-  const textMutedColor = 'text-white/80';
-  const hoverColor = 'hover:text-white';
+  // Color classes
+  const textColor = 'text-primary-foreground';
+  const textMutedColor = 'text-primary-foreground/80';
+  const hoverColor = 'hover:text-primary-foreground';
 
   const navTopOffset = showAnnouncementBar ? ANNOUNCEMENT_HEIGHT : 0;
 
   return (
     <>
-      {/* Announcement Bar */}
+      {/* Announcement Bar - Color from first code (hsl(345, 60%, 94%)) */}
       <div
         className="fixed top-0 left-0 right-0 z-[60] transition-transform duration-300 ease-in-out overflow-hidden"
         style={{
@@ -89,7 +90,7 @@ export const Header = () => {
         }}
       >
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
-          {/* Subtle shimmer effect */}
+          {/* Subtle shimmer effect from first code */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -100,11 +101,11 @@ export const Header = () => {
           <AnimatePresence mode="wait">
             <motion.p
               key={announcementIndex}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              className="text-xs sm:text-sm font-body tracking-wider relative z-10"
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className="text-xs sm:text-sm font-body tracking-wide relative z-10"
               style={{ color: 'hsl(332, 87%, 18%)' }}
             >
               {announcements[announcementIndex]}
@@ -113,12 +114,11 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Main Navbar */}
+      {/* Main Navbar - with bg-primary from second code */}
       <header
-        className="fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out"
+        className="fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out  "
         style={{
           top: `${navTopOffset}px`,
-          backgroundColor: 'hsl(345, 80%, 27%)',
         }}
       >
         <div className="container mx-auto px-3 sm:px-4 lg:px-8">
@@ -161,7 +161,7 @@ export const Header = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
-                      className="fixed left-1/2 -translate-x-1/2 bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"
+                      className="fixed left-[30%] -translate-x-1/2 bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"
                       style={{ top: `${navTopOffset + 96}px` }}
                     >
                       <Link
@@ -368,6 +368,14 @@ export const Header = () => {
           )}
         </AnimatePresence>
       </header>
+
+      {/* Add the shimmer animation keyframes */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </>
   );
 };

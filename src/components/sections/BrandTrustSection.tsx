@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { brands } from '@/data/brands';
+import exploreIcon from '../../assets/logoicon.png';
 
 const BrandTrustSection = () => {
   return (
@@ -12,19 +13,21 @@ const BrandTrustSection = () => {
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
         {/* Tagline */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
           className="text-center mb-16 sm:mb-20"
         >
-          <p className="text-muted-foreground text-xs sm:text-sm tracking-[0.3em] uppercase mb-4">
+          <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Trust" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
             Trusted Partners
-          </p>
-          <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground leading-tight">
+          </span>
+          <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground mt-3 sm:mt-4 leading-tight">
             Jewelskart – Trusted by
             <br />
-            <span className="text-gradient-gold">Premium Jewellery Brands</span>
+           <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">
+  Premium Jewellery Brands
+</span>
           </h2>
           <div className="section-divider-gold mt-6" />
         </motion.div>
@@ -56,10 +59,16 @@ const BrandTrustSection = () => {
                 <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-all duration-500" />
               </div>
 
-              {/* Brand name */}
-              <p className="mt-4 font-display text-sm sm:text-base lg:text-lg text-foreground/80 group-hover:text-foreground tracking-wider transition-colors duration-300">
-                {brand.name}
-              </p>
+              {/* Logo - OPACITY HATAYI, AB CLEAR DIKHEGA */}
+              {brand.logo && (
+                <div className="mt-2">
+                  <img 
+                    src={brand.logo} 
+                    alt={`${brand.name} logo`}
+                    className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 object-contain transition-transform duration-300 group-hover:scale-110"
+                  />
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
