@@ -171,28 +171,28 @@ export const Header = () => {
                         All Products
                       </Link>
                       <div className="border-t border-border/20 pt-5">
-                        <div className="grid grid-cols-5 gap-8">
-                          {brands.map((brand) => (
-                            <div key={brand.id}>
+                        <div className="flex flex-col gap-4 max-w-[300px]">
+                          <Link
+                            to="/shop?brand=jewelskart"
+                            className="block font-display text-[20px] font-bold text-foreground hover:text-primary transition-colors mb-2"
+                            style={{ fontFamily: 'Montserrat, sans-serif' }}
+                          >
+                            <span className="font-bold">JEWELS</span><span className="font-thin tracking-wider">KART</span>
+                          </Link>
+                          <div className="space-y-3 pl-2">
+                            {shopCategories.map((cat) => (
                               <Link
-                                to={`/shop?brand=${brand.slug}`}
-                                className="block font-display text-[20px] font-bold text-foreground hover:text-primary transition-colors mb-4"
+                                key={cat}
+                                to={`/shop?brand=jewelskart&category=${cat.toLowerCase()}`}
+                                className="flex items-center gap-3 text-base text-muted-foreground hover:text-primary hover:translate-x-1 transition-all duration-200"
                               >
-                                {brand.name}
+                                <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary">
+                                  {cat.charAt(0)}
+                                </span>
+                                {cat}
                               </Link>
-                              <div className="space-y-3">
-                                {shopCategories.map((cat) => (
-                                  <Link
-                                    key={cat}
-                                    to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
-                                    className="block text-m text-muted-foreground hover:text-primary hover:translate-x-1 transition-all duration-200"
-                                  >
-                                    {cat}
-                                  </Link>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </motion.div>
