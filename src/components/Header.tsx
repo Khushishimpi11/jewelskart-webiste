@@ -161,7 +161,7 @@ export const Header = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
-                      className="fixed left-[30%] -translate-x-1/2 bg-card border border-border/20 shadow-2xl z-50 w-[760px] rounded-b-xl p-8"
+                      className="fixed left-[30%] -translate-x-1/2 bg-card border border-border/20 shadow-2xl z-50 w-[400px] rounded-b-xl p-8"
                       style={{ top: `${navTopOffset + 96}px` }}
                     >
                       <Link
