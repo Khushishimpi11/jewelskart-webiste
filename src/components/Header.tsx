@@ -316,33 +316,31 @@ export const Header = () => {
                       <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="block py-2 px-4 text-sm font-semibold text-primary">
                         All Products
                       </Link>
-                      {brands.map((brand) => (
-                        <div key={brand.id}>
-                          <button
-                            onClick={() => setMobileBrandOpen(mobileBrandOpen === brand.id ? null : brand.id)}
-                            className="w-full flex items-center justify-between py-2 px-4 text-sm text-foreground/80"
-                          >
-                            {brand.name}
-                            <ChevronRight className={`w-4 h-4 transition-transform ${mobileBrandOpen === brand.id ? 'rotate-90' : ''}`} />
-                          </button>
-                          <AnimatePresence>
-                            {mobileBrandOpen === brand.id && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                {shopCategories.map((cat) => (
-                                  <Link
-                                    key={cat}
-                                    to={`/shop?brand=${brand.slug}&category=${cat.toLowerCase()}`}
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className="block py-2 px-8 text-xs text-muted-foreground hover:text-primary"
-                                  >
-                                    {cat}
-                                  </Link>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
+                      <div>
+                        <button
+                          onClick={() => setMobileBrandOpen(mobileBrandOpen === 'jewelskart' ? null : 'jewelskart')}
+                          className="w-full flex items-center justify-between py-2 px-4 text-sm text-foreground/80"
+                        >
+                          JewelsKart
+                          <ChevronRight className={`w-4 h-4 transition-transform ${mobileBrandOpen === 'jewelskart' ? 'rotate-90' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {mobileBrandOpen === 'jewelskart' && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                              {shopCategories.map((cat) => (
+                                <Link
+                                  key={cat}
+                                  to={`/shop?brand=jewelskart&category=${cat.toLowerCase()}`}
+                                  onClick={() => setIsMenuOpen(false)}
+                                  className="block py-2 px-8 text-xs text-muted-foreground hover:text-primary"
+                                >
+                                  {cat}
+                                </Link>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
