@@ -1,8 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import productImage from '@/assets/Chain/Chain/c1.1.jpg';
-import exploreIcon from '../../assets/logoicon.png';
 import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import aboutModel from '@/assets/about-model.jpg';
+import aboutDetail from '@/assets/about-earring-detail.jpg';
+import exploreIcon from '../../assets/logoicon.png';
 
 interface CounterProps {
   end: number;
@@ -19,23 +21,19 @@ const AnimatedCounter = ({ end, suffix = '', label, inView }: CounterProps) => {
     let startTime: number;
     let animationFrame: number;
     const duration = 2000;
-
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       setCount(Math.floor(progress * end));
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
+      if (progress < 1) animationFrame = requestAnimationFrame(animate);
     };
-
     animationFrame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrame);
   }, [end, inView]);
 
   return (
-    <div className="text-center">
-      <span className="block font-display text-2xl sm:text-4xl text-primary mb-1 sm:mb-2">
+    <div className="bg-[#f5ebe0] px-6 py-6 text-center">
+      <span className="block font-display text-3xl sm:text-4xl text-foreground mb-1">
         {count}{suffix}
       </span>
       <span className="text-muted-foreground text-xs sm:text-sm">{label}</span>
@@ -43,95 +41,102 @@ const AnimatedCounter = ({ end, suffix = '', label, inView }: CounterProps) => {
   );
 };
 
+import { useState, useEffect } from 'react';
+
 export const AboutSection = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   return (
-    <section className="py-12 sm:py-20 lg:py-32 bg-background relative overflow-hidden">
-      {/* Decorative Elements */}
-      <div className="absolute top-1/4 left-0 w-48 sm:w-96 h-48 sm:h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-primary/5 rounded-full blur-3xl" />
+    <section className="py-16 sm:py-24 lg:py-32 relative overflow-hidden" style={{ backgroundColor: '#FBF5F6' }}>
+      {/* Subtle leaf decorations */}
+      <div className="absolute top-0 left-0 w-64 h-64 opacity-[0.04]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath d='M20,180 Q100,20 180,180' fill='none' stroke='%23333' stroke-width='1'/%3E%3Cpath d='M40,180 Q100,40 160,180' fill='none' stroke='%23333' stroke-width='0.5'/%3E%3C/svg%3E")`,
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat'
+      }} />
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center">
-          {/* Image Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          
+          {/* Left: Text Content */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="relative"
+            transition={{ duration: 0.7 }}
           >
-            <div className="aspect-square overflow-hidden border border-border/30">
-              <img
-                src={productImage}
-                alt="Evimeria Craftsmanship"
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+            <span className="inline-flex items-center text-primary font-body text-xs sm:text-sm tracking-[0.3em] uppercase mb-4">
+              <img src={exploreIcon} alt="Icon" className="w-5 h-5 mr-2" />
+              Jewels As Unique As You
+            </span>
+
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-foreground leading-[1.1] mb-6">
+              Commitment, Forever, In Every Sparkling Jewel
+            </h2>
+
+            <p className="text-muted-foreground text-base sm:text-lg leading-relaxed mb-10 max-w-lg">
+              Our brand was born in 1990, but its roots run far deeper. Jewellery has always been more than a business for our family — it is a legacy passed down through generations, carrying stories of love, celebration, and timeless elegance.
+            </p>
+
+            {/* Stats Row */}
+            <div ref={ref} className="grid grid-cols-3 gap-4 mb-10">
+              <AnimatedCounter end={20} suffix="+" label="Worldwide Branch" inView={isInView} />
+              <AnimatedCounter end={200} suffix="+" label="Unique Designs" inView={isInView} />
+              <AnimatedCounter end={3} suffix="M" label="Happy Clients" inView={isInView} />
             </div>
-            <div className="absolute -bottom-3 -right-3 sm:-bottom-4 sm:-right-4 w-full h-full border border-primary -z-10" />
+
+            <Link
+              to="/about"
+              className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-8 py-4 font-body text-sm tracking-wider uppercase hover:bg-primary/90 transition-all duration-300 group"
+            >
+              Know More
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
           </motion.div>
 
-          {/* Content Side */}
-          <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
-                <img src={exploreIcon} alt="Our Story" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                Our Legacy
-              </span>
-              <h2 className="font-display text-2xl sm:text-4xl md:text-5xl text-foreground mt-3 sm:mt-4 mb-4 sm:mb-8">
-                A Heritage of Craftsmanship
-              </h2>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="space-y-4 sm:space-y-6 text-muted-foreground text-sm sm:text-lg leading-relaxed"
-            >
-              <p className="font-medium text-foreground/90 italic">
-                Our brand was born in 1990, but its roots run far deeper.
-              </p>
+          {/* Right: Images - arch frame with circular overlay */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="relative flex justify-center lg:justify-end"
+          >
+            {/* Main arch image with gold border */}
+            <div className="relative w-full max-w-[420px]">
+              {/* Gold arch border */}
+              <div className="absolute inset-0 rounded-t-[50%] border-2 border-accent/60 translate-x-3 translate-y-3 z-0" 
+                style={{ borderColor: 'hsl(36, 60%, 55%)' }}
+              />
               
-              <p>
-                Jewellery has always been more than a business for our family — it is a legacy passed down through generations. Our founder's grandfather laid the foundation with a deep passion for jewellery and fine craftsmanship.
-              </p>
-              
-              <p className="hidden sm:block">
-                Growing up surrounded by gemstones, gold, silver, and diamonds, the founder naturally developed an eye for quality and a respect for tradition. In 1990, he officially established the brand with a vision to preserve the family's values of trust, purity, and excellence.
-              </p>
-            </motion.div>
+              {/* Main image in arch shape */}
+              <div className="relative rounded-t-[50%] overflow-hidden aspect-[3/4] z-10">
+                <img
+                  src={aboutModel}
+                  alt="Elegant jewellery model"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-              className="mt-6 sm:mt-8"
-            >
-              <Link
-                to="/about"
-                className="inline-flex items-center justify-center px-6 sm:px-8 py-3 min-h-[44px] bg-primary text-white font-medium rounded-md hover:bg-primary/90 transition-colors duration-300 group text-sm"
+              {/* Circular detail image overlapping bottom-right */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="absolute -bottom-8 right-[-20px] sm:right-[-30px] w-28 h-28 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-white shadow-xl z-20"
               >
-                Know More
-                <svg
-                  className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </motion.div>
-          </div>
+                <img
+                  src={aboutDetail}
+                  alt="Jewellery detail"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
