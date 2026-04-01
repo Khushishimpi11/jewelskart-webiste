@@ -154,9 +154,16 @@ const TrendingBrandsSection = () => {
 
                     {/* Brand name + CTA */}
                     <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 lg:p-8 z-30">
-                      <h3 className="text-white font-serif text-lg md:text-xl lg:text-2xl font-semibold mb-1">
-                        {brand.name}
-                      </h3>
+                     <h3 className="text-white font-serif text-lg md:text-xl lg:text-2xl mb-1">
+  {brand.slug === "jewelskart" ? (
+    <span style={{ fontFamily: "Montserrat, sans-serif" }}>
+      <span className="font-bold">JEWELS</span>
+      <span className="font-thin tracking-wider">KART</span>
+    </span>
+  ) : (
+    <span className="font-semibold">{brand.name}</span>
+  )}
+</h3>
                       <p className="text-white/70 text-xs md:text-sm lg:text-base mb-3 md:mb-4">
                         {brand.tagline}
                       </p>

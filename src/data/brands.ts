@@ -32,6 +32,17 @@ export interface Brand {
 
 export const brands: Brand[] = [
 
+   {
+    id: 'jewelskart',
+    name: 'Jewelskart',
+    slug: 'jewelskart',
+    tagline: 'Premium Jewellery',
+    image: ring1,
+    video: jewelskartVideo,
+    isFeatured: true,
+    logo: jewelskartLogo, // Add logo
+  },
+
   {
     id: 'palmonas',
     name: 'Palmonas',
@@ -50,16 +61,7 @@ export const brands: Brand[] = [
     video: givaVideo,
     logo: givaLogo, // Add logo
   },
-    {
-    id: 'jewelskart',
-    name: 'Jewelskart',
-    slug: 'jewelskart',
-    tagline: 'Premium Jewellery',
-    image: ring1,
-    video: jewelskartVideo,
-    isFeatured: true,
-    logo: jewelskartLogo, // Add logo
-  },
+ 
   {
     id: 'kushals',
     name: "Kushal's",

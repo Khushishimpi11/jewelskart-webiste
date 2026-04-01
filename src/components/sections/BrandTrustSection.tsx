@@ -4,7 +4,9 @@ import exploreIcon from '../../assets/logoicon.png';
 
 const BrandTrustSection = () => {
   return (
-    <section className="py-16 sm:py-24 lg:py-32 bg-background relative overflow-hidden">
+ <section className="py-10 sm:py-16 lg:py-24  relative overflow-hidden"
+style={{ backgroundColor: "#FBF5F6" }}
+>
       {/* Ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.06]"
         style={{ background: 'radial-gradient(circle, hsl(46, 67%, 52%), transparent 70%)' }}
@@ -12,25 +14,38 @@ const BrandTrustSection = () => {
 
       <div className="container mx-auto px-4 lg:px-8 relative z-10">
         {/* Tagline */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16 sm:mb-20"
-        >
-          <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
-            <img src={exploreIcon} alt="Trust" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-            Trusted Partners
-          </span>
-          <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground mt-3 sm:mt-4 leading-tight">
-            Jewelskart – Trusted by
-            <br />
-           <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">
-  Premium Jewellery Brands
-</span>
-          </h2>
-          <div className="section-divider-gold mt-6" />
-        </motion.div>
+      <motion.div
+  initial={{ opacity: 0, y: 20 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true }}
+  className="text-center mb-16 sm:mb-20"
+>
+  <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
+    <img src={exploreIcon} alt="Trust" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+    Trusted Partners
+  </span>
+
+  <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl text-foreground mt-3 sm:mt-4 leading-tight">
+    
+    <span
+      className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent"
+      style={{ fontFamily: 'Montserrat, sans-serif' }}
+    >
+      <span className="font-bold">JEWELS</span>
+      <span className="font-light">KART</span>
+    </span>
+
+    {" "}– Trusted by
+    <br />
+
+    <span className="bg-gradient-to-r from-primary via-primary/90 to-primary bg-clip-text text-transparent">
+      Premium Jewellery Brands
+    </span>
+
+  </h2>
+
+  <div className="section-divider-gold mt-6" />
+</motion.div>
 
         {/* Brand logos grid */}
         <div className="flex flex-wrap items-center justify-center gap-10 sm:gap-16 lg:gap-20">
@@ -67,6 +82,8 @@ const BrandTrustSection = () => {
                     alt={`${brand.name} logo`}
                     className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 object-contain transition-transform duration-300 group-hover:scale-110"
                   />
+
+                  
                 </div>
               )}
             </motion.div>

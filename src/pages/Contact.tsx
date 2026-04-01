@@ -76,7 +76,7 @@ const Contact = () => {
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-2xl text-foreground mb-1">Our Store</h3>
+                    <h3 className="font-semibold text-xl text-foreground mb-1">Our Store</h3>
                     <p className="text-muted-foreground">
                       42, MG Road, Connaught Place<br />
                       New Delhi, Delhi 110001, India
@@ -89,7 +89,7 @@ const Contact = () => {
                     <Mail className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-2xl text-foreground mb-1">Email Us</h3>
+                    <h3 className="font-semibold text-xl text-foreground mb-1">Email Us</h3>
                     <p className="text-muted-foreground">
                       info@evimeria.com<br />
                       support@evimeria.com
@@ -102,7 +102,7 @@ const Contact = () => {
                     <Phone className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-2xl text-foreground mb-1">Call Us</h3>
+                    <h3 className="font-semibold text-xl text-foreground mb-1">Call Us</h3>
                     <p className="text-muted-foreground">
                       +91 98765 43210<br />
                       +91 11 2345 6789

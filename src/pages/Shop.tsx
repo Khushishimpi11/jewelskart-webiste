@@ -180,12 +180,22 @@ const Shop = () => {
                         {brands.map((brand) => (
                           <div key={brand.id}>
                             <button
-                              onClick={() => toggleBrandExpand(brand.id)}
-                              className="w-full flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition-colors"
-                            >
-                              <span className="font-medium">{brand.name}</span>
-                              <ChevronDown className={`w-4 h-4 transition-transform ${expandedBrands.includes(brand.id) ? 'rotate-180' : ''}`} />
-                            </button>
+  onClick={() => toggleBrandExpand(brand.id)}
+  className="w-full flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition-colors"
+>
+  <span className="font-medium">
+    {brand.slug === "jewelskart" ? (
+      <span style={{ fontFamily: "Montserrat, sans-serif" }}>
+        <span className="font-bold">JEWELS</span>
+        <span className="font-thin tracking-wider">KART</span>
+      </span>
+    ) : (
+      brand.name
+    )}
+  </span>
+
+  <ChevronDown className={`w-4 h-4 transition-transform ${expandedBrands.includes(brand.id) ? 'rotate-180' : ''}`} />
+</button>
                             <AnimatePresence>
                               {expandedBrands.includes(brand.id) && (
                                 <motion.div

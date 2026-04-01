@@ -160,6 +160,7 @@ export interface Product {
   };
   isBestSeller?: boolean;
   isSpecial?: boolean;
+  isJewelry?: boolean;
   tags: string[];
 }
 
@@ -287,6 +288,7 @@ export const ringProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+    isJewelry: true,
     tags: ['modern', 'fashion', 'contemporary'],
   },
   {
@@ -328,6 +330,7 @@ export const ringProducts: Product[] = [
       diamondQuality: 'VS',
       diamondCount: 1
     },
+    isJewelry: true,
     tags: ['sparkle', 'brilliant', 'vs'],
   },
   {
@@ -390,6 +393,7 @@ export const ringProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+   
     tags: ['minimalist', 'understated', 'simple'],
   },
   {
@@ -431,6 +435,7 @@ export const ringProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+   
     tags: ['petite', 'stackable', 'delicate'],
   },
   {
@@ -498,6 +503,7 @@ export const chainProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+    isJewelry: true,
     tags: ['mini', 'lightweight', 'sparkle'],
   },
   {
@@ -576,6 +582,7 @@ export const chainProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+    isJewelry: true,
     tags: ['gold-rich', 'substantial', 'elegant'],
   },
   {
@@ -974,6 +981,7 @@ export const pendantProducts: Product[] = [
       diamondQuality: 'VS',
       diamondCount: 1
     },
+   
     tags: ['classic', 'timeless', 'substantial'],
   },
   {
@@ -1013,6 +1021,7 @@ export const pendantProducts: Product[] = [
       diamondQuality: 'VS',
       diamondCount: 1
     },
+   
     tags: ['diamond', 'gift', 'beautiful'],
   },
   {
@@ -1168,6 +1177,7 @@ export const pendantProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+     isJewelry: true,
     tags: ['delicate', 'subtle', 'minimal'],
   },
   {
@@ -1227,6 +1237,7 @@ export const pendantProducts: Product[] = [
       diamondQuality: 'SI',
       diamondCount: 1
     },
+     isJewelry: true,
     tags: ['value', 'affordable', 'everyday'],
   },
   {

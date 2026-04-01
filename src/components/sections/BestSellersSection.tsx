@@ -20,7 +20,7 @@ export const BestSellersSection = () => {
   };
 
   return (
-    <section className="py-10 sm:py-16 lg:py-24 bg-card">
+    <section className="py-10 sm:py-16 lg:py-24 bg-[#FBF5F6]">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Section Header */}
         <motion.div

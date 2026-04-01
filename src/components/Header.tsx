@@ -116,7 +116,7 @@ export const Header = () => {
 
       {/* Main Navbar - with bg-primary from second code */}
       <header
-        className="fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out  "
+        className="fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out bg-primary  "
         style={{
           top: `${navTopOffset}px`,
         }}

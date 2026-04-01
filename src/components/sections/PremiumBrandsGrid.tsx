@@ -53,8 +53,16 @@ const PremiumBrandsGrid = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
-              <h3 className="text-white font-display text-2xl md:text-4xl font-bold">{featured.name}</h3>
-              <p className="text-white/70 text-m mt-1">{featured.tagline}</p>
+<h3 className="text-white font-display text-2xl md:text-4xl">
+  {featured.slug === "jewelskart" ? (
+    <span style={{ fontFamily: "Montserrat, sans-serif" }}>
+      <span className="font-bold">JEWELS</span>
+      <span className="font-thin tracking-wider">KART</span>
+    </span>
+  ) : (
+    <span className="font-bold">{featured.name}</span>
+  )}
+</h3>              <p className="text-white/70 text-m mt-1">{featured.tagline}</p>
             </div>
             <div className="absolute bottom-5 right-5 md:bottom-8 md:right-8 w-12 h-12 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
               <ArrowRight className="w-5 h-5 text-foreground" />
