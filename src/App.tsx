@@ -19,6 +19,7 @@ import OrderSummary from "./pages/OrderSummary";
 import About from "./pages/About";
 import BrandPage from "./pages/BrandPage";
 import NotFound from "./pages/NotFound";
+import Testimonials from "./pages/Testimonials";
 
 const queryClient = new QueryClient();
 
