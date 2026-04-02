@@ -24,29 +24,29 @@ const OfferBanners: React.FC = () => {
           {/* Content */}
           <div className="relative z-10 text-left md:text-center">
             <p className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm tracking-widest text-gray-500 mb-1">
-              COMPANY
+              JEWELSKART
             </p>
 
             <h1 className="font-serif text-primary leading-tight mb-1 md:mb-3
-                           text-xl             /* Mobile */
-                           sm:text-3xl         /* Tablet */
+                           text-xl
+                           sm:text-3xl
                            md:text-4xl">      
-              JEWELRY
+              RINGS
             </h1>
 
             <p className="hidden xs:block text-[10px] sm:text-xs text-gray-400 mb-2 md:mb-4">
-              CLICK TO GET
+              EXCLUSIVE OFFER
             </p>
 
             <button className="bg-primary text-white rounded-lg font-semibold transition-transform active:scale-95
-                               px-3 py-1 text-xs         /* Mobile */
-                               sm:px-5 sm:py-2 sm:text-base /* Tablet */
+                               px-3 py-1 text-xs
+                               sm:px-5 sm:py-2 sm:text-base
                                md:px-6 md:py-2 md:text-lg"> 
               20% OFF
             </button>
 
             <p className="text-[9px] xs:text-[10px] sm:text-xs text-gray-400 mt-2 md:mt-4">
-              WWW.WEBSITE.COM
+              WWW.JEWELSKART.COM
             </p>
           </div>
         </div>
