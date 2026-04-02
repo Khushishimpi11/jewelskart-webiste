@@ -5,7 +5,7 @@ import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, C
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
-import { brands } from '@/data/brands';
+
 import logo from '@/assets/logo.png';
 
 // --- IMAGE IMPORTS (from second code) ---

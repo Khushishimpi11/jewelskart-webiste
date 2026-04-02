@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
@@ -9,56 +10,95 @@ import { MapPin, Mail, Phone } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Contact = () => {
+  const [searchParams] = useSearchParams();
+  const isPartner = searchParams.get('partner') === 'true';
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  // Partner-specific fields
+  const [brandName, setBrandName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [productType, setProductType] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !message) {
-      toast.error('Please fill in all required fields');
-      return;
+    if (isPartner) {
+      if (!brandName || !ownerName || !email || !phone) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+      toast.success('Partnership application submitted! We will review and get back to you soon.');
+      setBrandName(''); setOwnerName(''); setEmail(''); setPhone(''); setProductType(''); setMessage('');
+    } else {
+      if (!name || !email || !message) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+      toast.success('Message sent successfully! We will get back to you soon.');
+      setName(''); setEmail(''); setSubject(''); setMessage('');
     }
-    toast.success('Message sent successfully! We will get back to you soon.');
-    setName('');
-    setEmail('');
-    setSubject('');
-    setMessage('');
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-     <main className="pt-16 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
-          title="Contact Us"
-          subtitle="Get In Touch"
-          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Contact Us' }]}
+          title={isPartner ? "Partner With Us" : "Contact Us"}
+          subtitle={isPartner ? "Grow Your Brand" : "Get In Touch"}
+          breadcrumbs={[
+            { label: 'Home', path: '/' },
+            { label: isPartner ? 'Partner With Us' : 'Contact Us' },
+          ]}
         />
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
+            {/* Form */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="font-bold text-4xl text-foreground mb-6">Send Us a Message</h2>
+              <h2 className="font-bold text-4xl text-foreground mb-6">
+                {isPartner ? 'Partnership Application' : 'Send Us a Message'}
+              </h2>
+
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <Input placeholder="Your Name *" value={name} onChange={(e) => setName(e.target.value)} className="bg-card" />
-                  <Input type="email" placeholder="Your Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
-                </div>
-                <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-card" />
-                <Textarea placeholder="Your Message *" value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
-<button
-  type="submit"
-  className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
->
-  Send Message
-</button>              </form>
+                {isPartner ? (
+                  <>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Input placeholder="Brand Name *" value={brandName} onChange={(e) => setBrandName(e.target.value)} className="bg-card" />
+                      <Input placeholder="Owner Name *" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="bg-card" />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Input type="email" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
+                      <Input placeholder="Phone *" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-card" />
+                    </div>
+                    <Input placeholder="Product Type (e.g., Rings, Chains, Pendants)" value={productType} onChange={(e) => setProductType(e.target.value)} className="bg-card" />
+                    <Textarea placeholder="Tell us about your brand..." value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
+                  </>
+                ) : (
+                  <>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Input placeholder="Your Name *" value={name} onChange={(e) => setName(e.target.value)} className="bg-card" />
+                      <Input type="email" placeholder="Your Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
+                    </div>
+                    <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-card" />
+                    <Textarea placeholder="Your Message *" value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
+                  </>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+                >
+                  {isPartner ? 'Submit Application' : 'Send Message'}
+                </button>
+              </form>
             </motion.div>
 
             {/* Contact Info */}
@@ -69,7 +109,7 @@ const Contact = () => {
               className="space-y-8"
             >
               <h2 className="font-bold text-4xl text-foreground mb-6">Contact Information</h2>
-              
+
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -91,8 +131,8 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-xl text-foreground mb-1">Email Us</h3>
                     <p className="text-muted-foreground">
-                      info@evimeria.com<br />
-                      support@evimeria.com
+                      info@jewelskart.com<br />
+                      support@jewelskart.com
                     </p>
                   </div>
                 </div>
@@ -114,7 +154,7 @@ const Contact = () => {
           </div>
         </div>
 
-        {/* Full Width Google Map */}
+        {/* Google Map */}
         <div className="w-full h-[400px] border-t border-border/30">
           <iframe
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3501.7629442404167!2d77.21659731508!3d28.632751982418!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390cfd37b741d057%3A0xcdee88e47393c3f1!2sConnaught%20Place%2C%20New%20Delhi%2C%20Delhi%20110001!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
@@ -124,7 +164,7 @@ const Contact = () => {
             allowFullScreen
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            title="Evimeria Store Location"
+            title="Jewelskart Store Location"
           />
         </div>
       </main>
