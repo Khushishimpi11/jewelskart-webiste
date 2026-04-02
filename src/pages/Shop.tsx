@@ -22,7 +22,6 @@ const Shop = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('default');
-  const [expandedBrand, setExpandedBrand] = useState(false);
 
   const categoryFromUrl = searchParams.get('category');
   const brandFromUrl = searchParams.get('brand');
@@ -74,6 +73,16 @@ const Shop = () => {
       ? categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1)
       : 'Shop All';
 
+  // Get category display name with proper styling
+  const getCategoryDisplayName = (category: string) => {
+    const names: Record<string, string> = {
+      rings: 'Rings',
+      chains: 'Chains',
+      pendants: 'Pendants'
+    };
+    return names[category] || category;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -101,29 +110,35 @@ const Shop = () => {
                       <button onClick={clearFilters} className="text-primary text-sm hover:underline min-h-[44px] flex items-center">Clear All</button>
                     </div>
 
-                    {/* Categories - Only JewelsKart */}
+                    {/* Categories - Always Open */}
                     <div className="mb-6 lg:mb-8">
                       <h4 className="font-body text-xs sm:text-sm text-foreground mb-3 sm:mb-4 uppercase tracking-wider">Categories</h4>
-                      <div className="space-y-1">
-                        <a href="/shop" className="block py-2 text-sm font-semibold text-primary hover:underline">All</a>
-                        <div>
-                          <button onClick={() => setExpandedBrand(!expandedBrand)} className="w-full flex items-center justify-between py-2 text-sm text-foreground hover:text-primary transition-colors">
-                            <span className="font-medium" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                              <span className="font-bold">JEWELS</span><span className="font-thin tracking-wider">KART</span>
-                            </span>
-                            <ChevronDown className={`w-4 h-4 transition-transform ${expandedBrand ? 'rotate-180' : ''}`} />
-                          </button>
-                          <AnimatePresence>
-                            {expandedBrand && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                {shopCategories.map((cat) => (
-                                  <a key={cat} href={`/shop?brand=jewelskart&category=${cat}`} className={`block py-1.5 pl-4 text-xs transition-colors ${brandFromUrl === 'jewelskart' && categoryFromUrl === cat ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-primary'}`}>
-                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                                  </a>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                      <div className="space-y-2">
+                        <a href="/shop" className="block py-2 text-sm font-semibold text-primary hover:underline">All Products</a>
+                        
+                        {/* JewelsKart Brand Header */}
+                        <div className="pt-2">
+                          <div className="text-sm font-medium text-foreground mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                            <span className="font-bold">JEWELS</span><span className="font-thin tracking-wider">KART</span>
+                          </div>
+                          
+                          {/* Categories always visible - no dropdown */}
+                          <div className="space-y-1 ml-2">
+                            {shopCategories.map((cat) => (
+                              <a 
+                                key={cat} 
+                                href={`/shop?brand=jewelskart&category=${cat}`}
+                                className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${
+                                  brandFromUrl === 'jewelskart' && categoryFromUrl === cat 
+                                    ? 'text-primary font-semibold' 
+                                    : 'text-muted-foreground hover:text-primary'
+                                }`}
+                                style={{ fontFamily: 'Montserrat, sans-serif' }}
+                              >
+                                {getCategoryDisplayName(cat)}
+                              </a>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>

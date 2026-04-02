@@ -70,25 +70,25 @@ const TestimonialCard = ({ testimonial, index }: { testimonial: typeof allTestim
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ duration: 0.5, delay: index * 0.1 }}
-    className="bg-white p-8 border border-border/20 shadow-sm hover:shadow-lg transition-shadow duration-300"
+    className="bg-[#FBF5F6] p-8 border-2 border-primary shadow-sm hover:shadow-lg transition-shadow duration-300"
   >
     {/* Stars */}
-    <div className="flex gap-1 mb-4">
+    <div className="flex gap-1 mb-5">
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
-          className={`w-4 h-4 ${i < testimonial.rating ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted'}`}
+          className={`w-5 h-5 ${i < testimonial.rating ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted'}`}
         />
       ))}
     </div>
 
     {/* Text */}
-    <p className="text-foreground/80 text-sm leading-relaxed mb-6">
+    <p className="text-foreground/80 text-base leading-relaxed mb-6">
       {testimonial.text}
     </p>
 
     {/* Closing quote */}
-    <div className="text-muted-foreground/20 text-4xl font-display text-right mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+    <div className="text-muted-foreground/20 text-5xl font-display text-right mb-4" style={{ fontFamily: 'Georgia, serif' }}>
       ❞
     </div>
 
@@ -101,8 +101,8 @@ const TestimonialCard = ({ testimonial, index }: { testimonial: typeof allTestim
         loading="lazy"
       />
       <div>
-        <p className="font-display text-base text-foreground">{testimonial.title}</p>
-        <p className="text-muted-foreground text-xs">
+        <p className="font-display text-lg text-foreground">{testimonial.title}</p>
+        <p className="text-muted-foreground text-sm">
           – {testimonial.name} <span className="text-primary">{testimonial.location}</span>
         </p>
       </div>

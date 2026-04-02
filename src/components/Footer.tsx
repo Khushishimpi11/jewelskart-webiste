@@ -42,6 +42,7 @@ export const Footer = () => {
               {[
                 { name: 'Shop All', path: '/shop' },
                 { name: 'About Us', path: '/about' },
+                { name: 'Testimonials', path: '/testimonials' },
                 { name: 'Contact Us', path: '/contact' },
                 { name: 'Track Order', path: '/track-order' },
                 { name: 'My Account', path: '/account' },

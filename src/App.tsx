@@ -17,7 +17,7 @@ import TrackOrder from "./pages/TrackOrder";
 import Profile from "./pages/Profile";
 import OrderSummary from "./pages/OrderSummary";
 import About from "./pages/About";
-import BrandPage from "./pages/BrandPage";
+
 import NotFound from "./pages/NotFound";
 import Testimonials from "./pages/Testimonials";
 
@@ -55,7 +55,7 @@ const App = () => (
           <Route path="/order-summary" element={<OrderSummary />} />
           <Route path="/about" element={<About />} />
           <Route path="/testimonials" element={<Testimonials />} />
-          <Route path="/brand/:brandSlug" element={<BrandPage />} />
+        
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
