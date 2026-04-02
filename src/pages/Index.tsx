@@ -13,6 +13,7 @@ import Banner from '@/components/sections/Banner';
 import OfferBanners from '@/components/sections/OfferBanners';
 import { JewelrySection } from '@/components/sections/JewelrySection';
 import Jewellery from '@/components/sections/Jewellery';
+import { PartnerSection } from '@/components/sections/PartnerSection';
 
 const Index = () => {
   return (
@@ -23,6 +24,7 @@ const Index = () => {
         <TrustBar />
         <Banner />
         <Jewellery />
+        <PartnerSection />
         <BestSellersSection />
         <MarqueeSection />
         <JewelrySection />

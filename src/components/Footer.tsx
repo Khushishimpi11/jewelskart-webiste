@@ -110,7 +110,7 @@ export const Footer = () => {
       <div className="border-t border-white/10">
         <div className="container mx-auto px-4 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <p className="text-white/70 text-sm">
-            © 2026 <span className="text-white font-semibold">Jewelskart.</span> All rights reserved. | Designed by <span className="text-white font-semibold">Pawar Technologies and Services</span>
+            © 2026 <span className="text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}><span className="font-bold">Jewels</span><span className="font-thin tracking-wider">kart</span></span>. All rights reserved. | Designed by <span className="text-white font-semibold">Pawar Technologies and Services</span>
           </p>
           <div className="flex items-center gap-6 text-white/60 text-sm justify-center md:justify-start">
             <Link to="#" className="hover:text-white transition-colors">Privacy Policy</Link>

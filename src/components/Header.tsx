@@ -5,7 +5,7 @@ import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, C
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
-import { brands } from '@/data/brands';
+
 import logo from '@/assets/logo.png';
 
 // --- IMAGE IMPORTS (from second code) ---
@@ -21,8 +21,8 @@ const shopCategories = [
 
 const announcements = [
   '✨ Festive Offer – Flat 25% Off on Diamond Collection',
-  '🚚 Free Shipping Above ₹1999',
-  '🤝 Jewelskart × Vogue Collaboration',
+  '🚚 Free Shipping Above ₹1999 | Jewelskart',
+  '💎 New Arrivals – Exclusive Diamond Pendants & Chains',
 ];
 
 export const Header = () => {
