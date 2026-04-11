@@ -1,178 +1,429 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
-import { Input } from '@/components/ui/input';
-import { Package, CheckCircle, Truck, Home, Clock } from 'lucide-react';
 import { useOrderStore } from '@/store/orderStore';
+import { 
+  Package, CheckCircle, Truck, Home, Clock, Loader2, 
+  Search, Copy, Check, Calendar, ArrowLeft
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const TrackOrder = () => {
-  const [orderId, setOrderId] = useState('');
+  const location = useLocation();
+  const [trackingId, setTrackingId] = useState('');
   const [orderStatus, setOrderStatus] = useState<any>(null);
-  const { getOrderById, orders } = useOrderStore();
+  const [isTracking, setIsTracking] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [fromOrderHistory, setFromOrderHistory] = useState(false);
+  
+  const { getTrackingByTrackingId, fetchMyOrders, orders } = useOrderStore();
 
-  const handleTrack = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchMyOrders();
+  }, []);
+
+  useEffect(() => {
+    // ✅ Check if coming from Order History page via state
+    if (location.state?.fromOrderHistory === true) {
+      setFromOrderHistory(true);
+    } else if (location.state?.trackingId) {
+      // If trackingId is passed, check if it came from order history
+      // You can also check referrer
+      const referrer = document.referrer;
+      if (referrer.includes('/order-summary')) {
+        setFromOrderHistory(true);
+      } else {
+        setFromOrderHistory(false);
+      }
+      const id = location.state.trackingId;
+      setTrackingId(id);
+      handleTrackFromId(id);
+    } else {
+      // ✅ Direct access - no order history
+      setFromOrderHistory(false);
+    }
+  }, [location.state]);
+
+  const handleTrackFromId = async (id: string) => {
+    setIsTracking(true);
+    
+    const tracking = await getTrackingByTrackingId(id);
+    
+    if (tracking) {
+      const order = orders.find(o => o.id === tracking.orderId);
+      
+      if (order) {
+        setOrderStatus({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          trackingId: tracking.trackingId,
+          status: order.status,
+          date: order.date,
+          estimatedDelivery: order.estimatedDelivery,
+          items: order.items || [],
+          shippingAddress: order.shippingAddress,
+          total: order.total || 0,
+          paymentMethod: order.paymentMethod,
+          steps: getOrderSteps(order.status, order.date),
+        });
+        toast.success(`Tracking ID ${tracking.trackingId} found!`);
+      } else {
+        toast.error('Order details not found');
+        setOrderStatus(null);
+      }
+    } else {
+      toast.error('No order found with this Tracking ID');
+      setOrderStatus(null);
+    }
+    setIsTracking(false);
+  };
+
+  const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orderId) {
-      toast.error('Please enter an order ID');
+    if (!trackingId) {
+      toast.error('Please enter a Tracking ID');
       return;
     }
+    await handleTrackFromId(trackingId);
+  };
+
+  const copyTrackingId = () => {
+    navigator.clipboard.writeText(trackingId);
+    setCopied(true);
+    toast.success('Tracking ID copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getOrderSteps = (status: string, orderDate: string) => {
+    const steps = [
+      { name: 'Order Confirmed', icon: CheckCircle, key: 'Confirmed', description: 'Your order has been confirmed' },
+      { name: 'Processing', icon: Clock, key: 'Processing', description: 'Order is being prepared' },
+      { name: 'Shipped', icon: Truck, key: 'Shipped', description: 'Order has been dispatched' },
+      { name: 'Out for Delivery', icon: Truck, key: 'Out for Delivery', description: 'Out for delivery' },
+      { name: 'Delivered', icon: Home, key: 'Delivered', description: 'Order delivered successfully' },
+    ];
+
+    const statusOrder = ['Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
+    const currentIndex = statusOrder.indexOf(status);
     
-    const order = getOrderById(orderId);
-    if (order) {
-      setOrderStatus({
-        id: order.id,
-        status: order.status,
-        date: order.date,
-        estimatedDelivery: order.estimatedDelivery,
-        items: order.items,
-        steps: [
-          { name: 'Order Placed', completed: true, date: order.date },
-          { name: 'Processing', completed: true, date: order.date },
-          { name: 'Shipped', completed: order.status !== 'Processing' && order.status !== 'Order Placed', date: 'In Progress' },
-          { name: 'In Transit', completed: order.status === 'In Transit' || order.status === 'Delivered', date: 'Pending' },
-          { name: 'Delivered', completed: order.status === 'Delivered', date: 'Pending' },
-        ],
-      });
-    } else {
-      // Show dummy data for demo
-      setOrderStatus({
-        id: orderId,
-        status: 'In Transit',
-        date: 'February 15, 2026',
-        estimatedDelivery: 'February 20, 2026',
-        items: [],
-        steps: [
-          { name: 'Order Placed', completed: true, date: 'Feb 15, 2026' },
-          { name: 'Processing', completed: true, date: 'Feb 16, 2026' },
-          { name: 'Shipped', completed: true, date: 'Feb 17, 2026' },
-          { name: 'In Transit', completed: true, date: 'Feb 18, 2026' },
-          { name: 'Delivered', completed: false, date: 'Pending' },
-        ],
-      });
-    }
+    return steps.map((step, index) => ({
+      ...step,
+      completed: index <= currentIndex,
+      current: index === currentIndex,
+      date: index <= currentIndex ? (index === 0 ? orderDate : 'In Progress') : 'Pending',
+    }));
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(price);
+    const num = Number(price);
+    if (isNaN(num) || num === 0) return '₹0';
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const statusLower = status?.toLowerCase() || '';
+    switch(statusLower) {
+      case 'pending':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'confirmed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'processing':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'shipped':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'out for delivery':
+        return 'bg-pink-100 text-pink-800 border-pink-200';
+      case 'delivered':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'returned':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    const statusLower = status?.toLowerCase() || '';
+    switch(statusLower) {
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'confirmed':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'processing':
+        return <Loader2 className="w-4 h-4 animate-spin" />;
+      case 'shipped':
+        return <Truck className="w-4 h-4" />;
+      case 'out for delivery':
+        return <Truck className="w-4 h-4" />;
+      case 'delivered':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled':
+        return <Package className="w-4 h-4" />;
+      case 'returned':
+        return <Package className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  const StatusBadge = ({ status }: { status: string }) => {
+    const colorClass = getStatusColor(status);
+    const icon = getStatusIcon(status);
+    const displayStatus = status || 'Confirmed';
+    
+    return (
+      <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${colorClass}`}>
+        {icon}
+        {displayStatus}
+      </span>
+    );
+  };
+
+  // ✅ Dynamic breadcrumb - ONLY show My Orders if coming from Order History
+  const getBreadcrumbs = () => {
+    if (fromOrderHistory) {
+      return [
+        { label: 'Home', path: '/' },
+        { label: 'My Orders', path: '/order-summary' },
+        { label: 'Track Order' }
+      ];
+    } else {
+      return [
+        { label: 'Home', path: '/' },
+        { label: 'Track Order' }
+      ];
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-<main className="pt-16 lg:pt-24">  
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title="Track Your Order"
-          subtitle="Order Tracking"
-          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Track Order' }]}
+          subtitle="Enter Tracking ID"
+          breadcrumbs={getBreadcrumbs()}
         />
 
-        <div className="container mx-auto px-4 lg:px-8 py-16">
-          <div className="max-w-2xl mx-auto">
-            <motion.form
+        <div className="container mx-auto px-4 lg:px-8 py-12">
+          <div className="max-w-3xl mx-auto">
+            
+            {/* Search Section */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              onSubmit={handleTrack}
-              className="flex gap-4 mb-12"
+              className="bg-card border border-border/30 p-6 rounded-sm mb-8"
             >
-              <Input
-                placeholder="Enter your order ID (e.g., EV-XXXXXX)"
-                value={orderId}
-                onChange={(e) => setOrderId(e.target.value)}
-                className="bg-card flex-1"
-              />
-            <button
-  type="submit"
-  className="bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
->
-  Track Order
-</button>
-            </motion.form>
+              <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Search className="w-5 h-5 text-primary" />
+                Track Your Order
+              </h2>
+
+              <form onSubmit={handleTrack} className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="Enter Tracking ID (e.g., TRK123456)"
+                  value={trackingId}
+                  onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
+                  className="flex-1 p-3 bg-background border border-border/30 rounded-sm focus:border-primary focus:outline-none text-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={isTracking}
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isTracking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  Track
+                </button>
+              </form>
+              
+              <p className="text-xs text-muted-foreground mt-3">
+                Enter the Tracking ID you received in your order confirmation
+              </p>
+            </motion.div>
 
             {orderStatus && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-card border border-border/30 p-8"
+                className="space-y-6"
               >
-                <div className="flex items-center justify-between mb-8 pb-6 border-b border-border/30">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Order ID</p>
-                    <p className="font-display text-xl text-foreground">{orderStatus.id}</p>
+                {/* Order Summary Card */}
+                <div className="bg-card border border-border/30 rounded-sm overflow-hidden">
+                  <div className="bg-muted/30 px-6 py-4 border-b border-border/30">
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">TRACKING ID</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono text-lg font-semibold text-primary">
+                            {orderStatus.trackingId}
+                          </p>
+                          <button
+                            onClick={copyTrackingId}
+                            className="p-1 hover:bg-primary/10 rounded transition-colors"
+                          >
+                            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">ORDER NUMBER</p>
+                        <p className="text-sm font-medium text-foreground">{orderStatus.orderNumber}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">ORDER DATE</p>
+                        <p className="text-sm font-medium text-foreground">{formatDate(orderStatus.date)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">TOTAL</p>
+                        <p className="text-xl font-bold text-primary">{formatPrice(orderStatus.total)}</p>
+                      </div>
+                      <div>
+                        <StatusBadge status={orderStatus.status || 'Confirmed'} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Estimated Delivery</p>
-                    <p className="font-display text-lg text-primary">{orderStatus.estimatedDelivery}</p>
+
+                  {/* Order Items */}
+                  <div className="px-6 py-4 border-b border-border/30">
+                    <h3 className="font-semibold text-foreground mb-3">Items</h3>
+                    <div className="space-y-3">
+                      {orderStatus.items.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-4">
+                          <img 
+                            src={item.image || '/placeholder-image.jpg'} 
+                            alt={item.name || 'Product'} 
+                            className="w-16 h-16 object-cover rounded-sm border border-border/30"
+                            onError={(e) => (e.currentTarget.src = '/placeholder-image.jpg')}
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground">{item.name || 'Product'}</p>
+                            <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
+                            {item.productSku && (
+                              <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
+                            )}
+                          </div>
+                          <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shipping Address */}
+                  {orderStatus.shippingAddress && (
+                    <div className="px-6 py-4 border-b border-border/30">
+                      <h3 className="font-semibold text-foreground mb-2">Delivery Address</h3>
+                      <div className="text-sm text-muted-foreground">
+                        <p>{orderStatus.shippingAddress.firstName} {orderStatus.shippingAddress.lastName}</p>
+                        <p>{orderStatus.shippingAddress.address || orderStatus.shippingAddress.street}</p>
+                        <p>{orderStatus.shippingAddress.city}, {orderStatus.shippingAddress.state} - {orderStatus.shippingAddress.zip || orderStatus.shippingAddress.pincode}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Estimated Delivery */}
+                  {orderStatus.estimatedDelivery && orderStatus.status !== 'Delivered' && orderStatus.status !== 'Cancelled' && (
+                    <div className="bg-primary/5 px-6 py-3 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <p className="text-sm text-muted-foreground">
+                        Estimated Delivery: <span className="text-foreground font-medium">{orderStatus.estimatedDelivery}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Timeline */}
+                <div className="bg-card border border-border/30 rounded-sm p-6">
+                  <h3 className="font-semibold text-foreground mb-6">Order Timeline</h3>
+                  <div className="relative">
+                    {orderStatus.steps.map((step: any, index: number) => {
+                      const Icon = step.icon;
+                      return (
+                        <div key={index} className="flex gap-4 mb-8 last:mb-0 relative">
+                          {index < orderStatus.steps.length - 1 && (
+                            <div className={`absolute left-5 top-10 w-0.5 h-12 ${step.completed ? 'bg-primary' : 'bg-border'}`} />
+                          )}
+                          <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            step.completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                          }`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 pt-1">
+                            <h4 className={`font-semibold ${step.completed ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {step.name}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">{step.date}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Order Items if available */}
-                {orderStatus.items && orderStatus.items.length > 0 && (
-                  <div className="mb-8 pb-6 border-b border-border/30 space-y-3">
-                    {orderStatus.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-4">
-                        <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-sm" />
-                        <div className="flex-1">
-                          <p className="text-foreground text-sm">{item.name}</p>
-                          <p className="text-muted-foreground text-xs">Qty: {item.quantity}</p>
-                        </div>
-                        <span className="text-primary text-sm">{formatPrice(item.price)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="relative">
-                  {orderStatus.steps.map((step: any, index: number) => (
-                    <div key={index} className="flex items-start gap-4 mb-6 last:mb-0">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        step.completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {index === 0 && <Package className="w-5 h-5" />}
-                        {index === 1 && <CheckCircle className="w-5 h-5" />}
-                        {index === 2 && <Package className="w-5 h-5" />}
-                        {index === 3 && <Truck className="w-5 h-5" />}
-                        {index === 4 && <Home className="w-5 h-5" />}
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <p className={`font-display ${step.completed ? 'text-foreground' : 'text-muted-foreground'}`}>{step.name}</p>
-                        <p className="text-sm text-muted-foreground">{step.date}</p>
-                      </div>
-                    </div>
-                  ))}
+                {/* Action Buttons */}
+                <div className="flex gap-4">
+                  <Link
+                    to="/order-summary"
+                    className="flex-1 border border-primary text-primary py-3 rounded-sm text-center hover:bg-primary/10 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    View Order History
+                  </Link>
+                  <Link to="/shop" className="flex-1 bg-primary text-primary-foreground py-3 rounded-sm text-center hover:bg-primary/90 transition-colors">
+                    Continue Shopping
+                  </Link>
                 </div>
               </motion.div>
             )}
 
-            {/* Recent Orders */}
-            {!orderStatus && orders.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="font-display text-lg text-foreground">Your Recent Orders</h3>
-                {orders.slice(0, 3).map((order) => (
-                  <button
-                    key={order.id}
-                    onClick={() => { setOrderId(order.id); }}
-                    className="w-full flex items-center justify-between bg-card border border-border/30 p-4 hover:border-primary/50 transition-colors text-left"
+            {/* Empty State - Also allow direct tracking from here */}
+            {!orderStatus && !isTracking && (
+              <div className="text-center py-16 bg-card border border-border/30 rounded-sm">
+                <Package className="w-20 h-20 mx-auto mb-4 text-primary/30" />
+                <h3 className="text-xl text-foreground mb-2">Enter Tracking ID</h3>
+                <p className="text-muted-foreground">
+                  Enter your tracking ID to track your order
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link 
+                    to="/order-summary" 
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2 border border-primary text-primary rounded-sm hover:bg-primary/10 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="text-foreground font-display">{order.id}</p>
-                        <p className="text-muted-foreground text-sm">{order.date}</p>
-                      </div>
-                    </div>
-                    <span className="text-primary text-sm">{order.status}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {!orderStatus && orders.length === 0 && (
-              <div className="text-center text-muted-foreground py-12">
-                <Package className="w-16 h-16 mx-auto mb-4 text-primary/30" />
-                <p>Enter your order ID to track your package</p>
+                    <ArrowLeft className="w-4 h-4" />
+                    My Orders
+                  </Link>
+                  <Link 
+                    to="/shop" 
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-sm hover:bg-primary/90 transition-colors"
+                  >
+                    Continue Shopping
+                  </Link>
+                </div>
               </div>
             )}
           </div>

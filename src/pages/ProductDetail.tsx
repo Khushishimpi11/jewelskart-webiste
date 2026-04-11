@@ -1,21 +1,71 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, Check, Truck, RotateCcw, Shield, Award, Star, X } from 'lucide-react';
+import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, Check, Truck, RotateCcw, Shield, Award, Star, X, Loader2 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
-import { products } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { ProductCard } from '@/components/ProductCard';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = "http://localhost:5000/api";
+
+interface Product {
+  _id?: string;
+  id?: string;
+  name: string;
+  price: number;
+  purchasePrice: number;
+  category: string;
+  brand?: string;
+  stock: number;
+  description: string;
+  images: string[];
+  sku: string;
+  tags: string[];
+  status: "Published" | "Draft" | "Archived";
+  goldDetails?: {
+    weight: number;
+    purity: string;
+    makingCharge: number;
+  };
+  specifications?: {
+    material?: string;
+    finish?: string;
+    hallmark?: string;
+    certification?: string;
+    ringSizes?: string[];
+    gender?: string;
+    occasion?: string;
+    stoneType?: string;
+    stoneWeight?: number;
+    warranty?: string;
+  };
+  careInstructions?: {
+    instructions: string[];
+  };
+  additionalInfo?: {
+    delivery?: string;
+    returns?: string;
+    payment?: string;
+  };
+  reviews?: {
+    rating: number;
+    count: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = products.find((p) => p.id === id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -31,26 +81,118 @@ const ProductDetail = () => {
   });
 
   const addToCart = useCartStore((state) => state.addItem);
-  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } =
-    useWishlistStore();
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
 
-  if (!product) {
+  // Fetch product from API
+  useEffect(() => {
+    if (id) {
+      fetchProduct();
+    }
+  }, [id]);
+
+  const fetchProduct = async () => {
+    setLoading(true);
+    try {
+      // Fetch single product
+      const response = await fetch(`${API_BASE_URL}/products/${id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch product");
+      }
+      const data = await response.json();
+      const productData = data.product || data;
+      
+      // Normalize product data
+      const normalizedProduct = {
+        ...productData,
+        price: Number(productData.price),
+        purchasePrice: Number(productData.purchasePrice),
+        images: productData.images && productData.images.length > 0 ? productData.images : ['/placeholder-image.jpg']
+      };
+      
+      setProduct(normalizedProduct);
+      
+      // Fetch related products (same category)
+      await fetchRelatedProducts(productData.category);
+      
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      toast.error("Failed to load product details");
+      setProduct(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRelatedProducts = async (category: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products`);
+      const data = await response.json();
+      
+      let productsArray = [];
+      if (data.products && Array.isArray(data.products)) {
+        productsArray = data.products;
+      } else if (Array.isArray(data)) {
+        productsArray = data;
+      } else {
+        productsArray = [];
+      }
+      
+      const related = productsArray
+        .filter((p: Product) => p.category === category && p._id !== id && p.status === "Published")
+        .slice(0, 4)
+        .map((p: Product) => ({
+          ...p,
+          price: Number(p.price),
+          images: p.images && p.images.length > 0 ? p.images : ['/placeholder-image.jpg']
+        }));
+      
+      setRelatedProducts(related);
+    } catch (error) {
+      console.error("Error fetching related products:", error);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-3xl text-foreground mb-4">Product Not Found</h1>
-          <Link to="/shop" className="btn-gold">Back to Shop</Link>
-        </div>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16 lg:pt-24">
+          <div className="container mx-auto px-4 lg:px-8 py-12 lg:py-20">
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+              <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading product details...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
 
-  const inWishlist = isInWishlist(product.id);
-  // Create gallery images (using same image multiple times as placeholder)
-  const galleryImages = [product.image, product.image, product.image, product.image];
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16 lg:pt-24">
+          <div className="container mx-auto px-4 lg:px-8 py-12 lg:py-20">
+            <div className="text-center">
+              <h1 className="font-display text-3xl text-foreground mb-4">Product Not Found</h1>
+              <p className="text-muted-foreground mb-6">The product you're looking for doesn't exist or has been removed.</p>
+              <Link to="/shop" className="btn-gold inline-block">Back to Shop</Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const inWishlist = isInWishlist(product._id || product.id || '');
+  
+  // Create gallery images from product images array
+  const galleryImages = product.images && product.images.length > 0 
+    ? product.images 
+    : ['/placeholder-image.jpg'];
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -61,18 +203,36 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
+    const cartProduct = {
+      id: product._id || product.id || '',
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0] || '/placeholder-image.jpg',
+      category: product.category,
+      sku: product.sku
+    };
+    
     for (let i = 0; i < quantity; i++) {
-      addToCart(product, selectedSize || undefined);
+      addToCart(cartProduct, selectedSize || undefined);
     }
     toast.success(`Added ${quantity} ${product.name} to cart`);
   };
 
   const handleWishlistToggle = () => {
+    const wishlistProduct = {
+      id: product._id || product.id || '',
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0] || '/placeholder-image.jpg',
+      category: product.category,
+      originalPrice: product.purchasePrice
+    };
+    
     if (inWishlist) {
-      removeFromWishlist(product.id);
+      removeFromWishlist(product._id || product.id || '');
       toast.success('Removed from wishlist');
     } else {
-      addToWishlist(product);
+      addToWishlist(wishlistProduct);
       toast.success('Added to wishlist');
     }
   };
@@ -102,28 +262,79 @@ const ProductDetail = () => {
     });
   };
 
+  // Build accordion sections from CMS data
   const accordionSections = [
-    {
-      id: 'additional',
-      title: 'Additional Information',
-      content: (
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>Material: {product.material}</p>
-          <p>Category: {product.category.charAt(0).toUpperCase() + product.category.slice(1)}</p>
-          <p>SKU: EV-{product.id.padStart(5, '0')}</p>
-          <p>Weight: 12g (approx.)</p>
-        </div>
-      ),
-    },
     {
       id: 'specifications',
       title: 'Specifications',
       content: (
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>Purity: 18K / 22K</p>
-          <p>Finish: High Polish</p>
-          <p>Hallmark: BIS Hallmarked</p>
-          <p>Certification: IGI Certified</p>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          {product.specifications?.material && (
+            <div>
+              <p className="text-muted-foreground">Material</p>
+              <p className="text-foreground font-medium">{product.specifications.material}</p>
+            </div>
+          )}
+          {product.goldDetails?.purity && (
+            <div>
+              <p className="text-muted-foreground">Purity</p>
+              <p className="text-foreground font-medium">{product.goldDetails.purity}</p>
+            </div>
+          )}
+          {product.goldDetails?.weight && (
+            <div>
+              <p className="text-muted-foreground">Weight</p>
+              <p className="text-foreground font-medium">{product.goldDetails.weight}g</p>
+            </div>
+          )}
+          {product.specifications?.finish && (
+            <div>
+              <p className="text-muted-foreground">Finish</p>
+              <p className="text-foreground font-medium">{product.specifications.finish}</p>
+            </div>
+          )}
+          {product.specifications?.hallmark && (
+            <div>
+              <p className="text-muted-foreground">Hallmark</p>
+              <p className="text-foreground font-medium">{product.specifications.hallmark}</p>
+            </div>
+          )}
+          {product.specifications?.certification && (
+            <div>
+              <p className="text-muted-foreground">Certification</p>
+              <p className="text-foreground font-medium">{product.specifications.certification}</p>
+            </div>
+          )}
+          {product.specifications?.gender && (
+            <div>
+              <p className="text-muted-foreground">Gender</p>
+              <p className="text-foreground font-medium">{product.specifications.gender}</p>
+            </div>
+          )}
+          {product.specifications?.occasion && (
+            <div>
+              <p className="text-muted-foreground">Occasion</p>
+              <p className="text-foreground font-medium">{product.specifications.occasion}</p>
+            </div>
+          )}
+          {product.specifications?.stoneType && product.specifications.stoneType !== "No Stone" && (
+            <div>
+              <p className="text-muted-foreground">Stone Type</p>
+              <p className="text-foreground font-medium">{product.specifications.stoneType}</p>
+            </div>
+          )}
+          {product.specifications?.stoneWeight && product.specifications.stoneWeight > 0 && (
+            <div>
+              <p className="text-muted-foreground">Stone Weight</p>
+              <p className="text-foreground font-medium">{product.specifications.stoneWeight} ct</p>
+            </div>
+          )}
+          {product.specifications?.warranty && (
+            <div className="col-span-2">
+              <p className="text-muted-foreground">Warranty</p>
+              <p className="text-foreground font-medium">{product.specifications.warranty}</p>
+            </div>
+          )}
         </div>
       ),
     },
@@ -131,26 +342,91 @@ const ProductDetail = () => {
       id: 'care',
       title: 'Care Instructions',
       content: (
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <p>• Store in a cool, dry place away from direct sunlight</p>
-          <p>• Clean with a soft, lint-free cloth</p>
-          <p>• Avoid contact with perfumes, lotions, and chemicals</p>
-          <p>• Remove before swimming or bathing</p>
+        <div className="space-y-2 text-sm">
+          {product.careInstructions?.instructions && product.careInstructions.instructions.length > 0 ? (
+            product.careInstructions.instructions.map((instruction, idx) => (
+              <p key={idx} className="text-muted-foreground flex items-start gap-2">
+                <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                {instruction}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted-foreground">No care instructions available.</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'additional',
+      title: 'Additional Information',
+      content: (
+        <div className="space-y-3 text-sm">
+          {product.additionalInfo?.delivery && (
+            <div className="flex items-start gap-3">
+              <Truck className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">Delivery</p>
+                <p className="text-muted-foreground">{product.additionalInfo.delivery}</p>
+              </div>
+            </div>
+          )}
+          {product.additionalInfo?.returns && (
+            <div className="flex items-start gap-3">
+              <RotateCcw className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">Returns</p>
+                <p className="text-muted-foreground">{product.additionalInfo.returns}</p>
+              </div>
+            </div>
+          )}
+          {product.additionalInfo?.payment && (
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">Payment</p>
+                <p className="text-muted-foreground">{product.additionalInfo.payment}</p>
+              </div>
+            </div>
+          )}
+          {product.sku && (
+            <div className="flex items-start gap-3">
+              <Award className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">SKU</p>
+                <p className="text-muted-foreground font-mono text-xs">{product.sku}</p>
+              </div>
+            </div>
+          )}
+          {product.brand && (
+            <div className="flex items-start gap-3">
+              <Star className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-foreground">Brand</p>
+                <p className="text-muted-foreground">{product.brand}</p>
+              </div>
+            </div>
+          )}
         </div>
       ),
     },
     {
       id: 'reviews',
-      title: 'Customer Reviews (24)',
+      title: `Customer Reviews (${product.reviews?.count || 0})`,
       content: (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="flex">
-                {[1,2,3,4].map(i => <Star key={i} className="w-4 h-4 text-primary fill-primary" />)}
-                <Star className="w-4 h-4 text-primary" />
+                {[1,2,3,4,5].map((i) => (
+                  <Star 
+                    key={i} 
+                    className={`w-4 h-4 ${i <= (product.reviews?.rating || 4) ? 'text-primary fill-primary' : 'text-muted-foreground'}`} 
+                  />
+                ))}
               </div>
-              <span className="text-sm text-muted-foreground">4.0 out of 5 (24 reviews)</span>
+              <span className="text-sm text-muted-foreground">
+                {product.reviews?.rating || 4.0} out of 5 ({product.reviews?.count || 0} reviews)
+              </span>
             </div>
             <button 
               onClick={() => setShowReviewForm(true)}
@@ -160,7 +436,7 @@ const ProductDetail = () => {
             </button>
           </div>
 
-          {/* Existing Reviews */}
+          {/* Sample Reviews - In real app, fetch from API */}
           <div className="space-y-4">
             <div className="border-t border-border/30 pt-4">
               <div className="flex items-center gap-2 mb-1">
@@ -168,7 +444,7 @@ const ProductDetail = () => {
                   {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 text-primary fill-primary" />)}
                 </div>
                 <span className="text-sm font-display text-foreground">Priya S.</span>
-                <span className="text-xs text-muted-foreground">• 2 days ago</span>
+                <span className="text-xs text-muted-foreground">• Verified Buyer</span>
               </div>
               <h4 className="font-medium text-foreground text-sm mb-1">Absolutely stunning!</h4>
               <p className="text-sm text-muted-foreground">Beautiful piece, exactly as shown. The craftsmanship is exceptional.</p>
@@ -181,7 +457,7 @@ const ProductDetail = () => {
                   <Star className="w-3 h-3 text-muted-foreground" />
                 </div>
                 <span className="text-sm font-display text-foreground">Rahul M.</span>
-                <span className="text-xs text-muted-foreground">• 1 week ago</span>
+                <span className="text-xs text-muted-foreground">• Verified Buyer</span>
               </div>
               <h4 className="font-medium text-foreground text-sm mb-1">Great gift</h4>
               <p className="text-sm text-muted-foreground">Great quality, my wife loved it. Fast delivery too!</p>
@@ -367,7 +643,7 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-   <main className="pt-16 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title={product.name}
           breadcrumbs={[
@@ -401,47 +677,55 @@ const ProductDetail = () => {
                   />
                 </AnimatePresence>
                 
-                <button
-                  onClick={() => setActiveImageIndex(i => i === 0 ? galleryImages.length - 1 : i - 1)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setActiveImageIndex(i => i === galleryImages.length - 1 ? 0 : i + 1)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex(i => i === 0 ? galleryImages.length - 1 : i - 1)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex(i => i === galleryImages.length - 1 ? 0 : i + 1)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 backdrop-blur-sm rounded-full flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
 
                 {/* Dots */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                  {galleryImages.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                        activeImageIndex === idx ? 'bg-primary' : 'bg-foreground/30'
-                      }`}
-                    />
-                  ))}
-                </div>
+                {galleryImages.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {galleryImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                          activeImageIndex === idx ? 'bg-primary' : 'bg-foreground/30'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Thumbnails */}
-              <div className="flex gap-3">
-                {galleryImages.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`w-20 h-20 overflow-hidden border-2 transition-colors ${
-                      activeImageIndex === idx ? 'border-primary' : 'border-border/30'
-                    }`}
-                  >
-                    <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+              {galleryImages.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {galleryImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-20 h-20 flex-shrink-0 overflow-hidden border-2 transition-colors ${
+                        activeImageIndex === idx ? 'border-primary' : 'border-border/30'
+                      }`}
+                    >
+                      <img src={img} alt={`${product.name} ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* Product Info */}
@@ -461,10 +745,16 @@ const ProductDetail = () => {
                 {/* Rating */}
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex">
-                    {[1,2,3,4].map(i => <Star key={i} className="w-4 h-4 text-primary fill-primary" />)}
-                    <Star className="w-4 h-4 text-primary" />
+                    {[1,2,3,4,5].map((i) => (
+                      <Star 
+                        key={i} 
+                        className={`w-4 h-4 ${i <= (product.reviews?.rating || 4) ? 'text-primary fill-primary' : 'text-muted-foreground'}`} 
+                      />
+                    ))}
                   </div>
-                  <span className="text-muted-foreground text-sm">(24 Customer Reviews)</span>
+                  <span className="text-muted-foreground text-sm">
+                    ({product.reviews?.count || 0} Customer Reviews)
+                  </span>
                 </div>
               </div>
 
@@ -473,39 +763,32 @@ const ProductDetail = () => {
                 <span className="font-display text-3xl text-foreground">
                   {formatPrice(product.price)}
                 </span>
-                {product.originalPrice && (
+                {product.purchasePrice && product.purchasePrice > product.price && (
                   <span className="text-muted-foreground line-through text-lg">
-                    {formatPrice(product.originalPrice)}
+                    {formatPrice(product.purchasePrice)}
                   </span>
                 )}
               </div>
 
               {/* Product Code & Stock */}
               <div className="text-sm text-muted-foreground">
-                Product Code: EV-{product.id.padStart(3, '0')} | <Check className="w-4 h-4 inline text-green-400" /> In Stock
+                SKU: {product.sku} | 
+                {product.stock > 0 ? (
+                  <span className="text-green-600 ml-1">✓ In Stock ({product.stock} units)</span>
+                ) : (
+                  <span className="text-red-600 ml-1">✗ Out of Stock</span>
+                )}
               </div>
 
               {/* Description */}
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+              <p className="text-muted-foreground leading-relaxed">{product.description || "No description available."}</p>
 
-              {/* Free Size Badge */}
-              {!product.isRing && (
-                <div className="flex items-center gap-3 p-4 border border-border/30 rounded-sm">
-                  <div className="bg-primary/10 px-4 py-2 rounded-sm">
-                    <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Check className="w-4 h-4 text-primary" /> Free Size
-                    </span>
-                  </div>
-                  <span className="text-sm text-muted-foreground">This product comes in one universal size that fits all.</span>
-                </div>
-              )}
-
-              {/* Size Selector for Rings */}
-              {product.isRing && (
+              {/* Ring Size Selector */}
+              {product.category === "Rings" && product.specifications?.ringSizes && product.specifications.ringSizes.length > 0 && (
                 <div>
                   <label className="block text-foreground text-sm font-medium mb-3">Ring Size</label>
                   <div className="flex flex-wrap gap-2">
-                    {product.sizes?.map((size) => (
+                    {product.specifications.ringSizes.map((size) => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
@@ -519,6 +802,18 @@ const ProductDetail = () => {
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Free Size Badge for non-ring products */}
+              {product.category !== "Rings" && (
+                <div className="flex items-center gap-3 p-4 border border-border/30 rounded-sm">
+                  <div className="bg-primary/10 px-4 py-2 rounded-sm">
+                    <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Check className="w-4 h-4 text-primary" /> Free Size
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">This product comes in one universal size that fits all.</span>
                 </div>
               )}
 
@@ -536,20 +831,27 @@ const ProductDetail = () => {
                   <button
                     onClick={() => setQuantity((q) => q + 1)}
                     className="w-12 h-12 flex items-center justify-center text-foreground hover:bg-muted transition-colors border-l border-border/50"
+                    disabled={product.stock <= quantity}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
+                {product.stock <= quantity && product.stock > 0 && (
+                  <p className="text-xs text-amber-600 mt-1">Only {product.stock} left in stock</p>
+                )}
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-4">
                 <button 
                   onClick={handleAddToCart} 
-                  className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 py-4 text-base font-medium"
+                  disabled={product.stock === 0}
+                  className={`flex-1 bg-primary text-primary-foreground transition-colors flex items-center justify-center gap-2 py-4 text-base font-medium ${
+                    product.stock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/90'
+                  }`}
                 >
                   <ShoppingBag className="w-5 h-5" />
-                  ADD TO CART
+                  {product.stock === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}
                 </button>
                 <button
                   onClick={handleWishlistToggle}
@@ -571,7 +873,7 @@ const ProductDetail = () => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Shield className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>Delivery: 3–5 Days</span>
+                  <span>Delivery: {product.additionalInfo?.delivery || '3–5 Days'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Award className="w-5 h-5 text-primary flex-shrink-0" />
@@ -579,14 +881,19 @@ const ProductDetail = () => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <RotateCcw className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>Return: 7 Days</span>
+                  <span>Return: {product.additionalInfo?.returns || '7 Days'}</span>
                 </div>
               </div>
 
               {/* Proceed to Checkout */}
               <button
                 onClick={handleProceedToCheckout}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors py-4 text-base tracking-widest font-medium"
+                disabled={product.stock === 0}
+                className={`w-full transition-colors py-4 text-base tracking-widest font-medium ${
+                  product.stock === 0 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                }`}
               >
                 PROCEED TO CHECKOUT
               </button>
@@ -608,58 +915,58 @@ const ProductDetail = () => {
             </motion.div>
           </div>
 
-       {/* Accordion Sections */}
-<div className="mt-24 lg:mt-28 max-w-7xl mx-auto space-y-6 px-4">
-  {accordionSections.map((section) => (
-    <div
-      key={section.id}
-      className={`border rounded-md overflow-hidden transition-all duration-300 shadow-sm
-        ${
-          expandedSection === section.id
-            ? 'border-border/40 bg-muted/30'
-            : 'border-primary/30 bg-primary/10'
-        }`}
-    >
-      <button
-        onClick={() => toggleSection(section.id)}
-        className={`w-full flex items-center justify-between px-6 py-6 text-left transition-all duration-300 bg-primary
-        ${
-          expandedSection === section.id
-            ? 'border-l-4 border-primary'
-            : ''
-        }`}
-      >
-        <h3 className="font-display text-xl font-semibold tracking-wide text-white ">
-          {section.title}
-        </h3>
+          {/* Accordion Sections */}
+          <div className="mt-24 lg:mt-28 max-w-7xl mx-auto space-y-6 px-4">
+            {accordionSections.map((section) => (
+              <div
+                key={section.id}
+                className={`border rounded-md overflow-hidden transition-all duration-300 shadow-sm
+                  ${
+                    expandedSection === section.id
+                      ? 'border-border/40 bg-muted/30'
+                      : 'border-primary/30 bg-primary/10'
+                  }`}
+              >
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className={`w-full flex items-center justify-between px-6 py-6 text-left transition-all duration-300 bg-primary
+                  ${
+                    expandedSection === section.id
+                      ? 'border-l-4 border-primary'
+                      : ''
+                  }`}
+                >
+                  <h3 className="font-display text-xl font-semibold tracking-wide text-white">
+                    {section.title}
+                  </h3>
+                  <ChevronRight
+                    className={`w-5 h-5 transition-all duration-300 ${
+                      expandedSection === section.id
+                        ? 'rotate-90 text-white'
+                        : 'text-white'
+                    }`}
+                  />
+                </button>
 
-        <ChevronRight
-          className={`w-5 h-5 transition-all duration-300 ${
-            expandedSection === section.id
-              ? 'rotate-90 text-white '
-              : 'text-white'
-          }`}
-        />
-      </button>
-
-      <AnimatePresence>
-        {expandedSection === section.id && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="px-6 pb-6 pt-4 text-sm leading-relaxed text-black border-t border-border/30">
-              {section.content}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  ))}
-</div>
+                <AnimatePresence>
+                  {expandedSection === section.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6 pt-4 text-sm leading-relaxed text-black border-t border-border/30">
+                        {section.content}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+          
           {/* Related Products */}
           {relatedProducts.length > 0 && (
             <section className="mt-16 lg:mt-24">
@@ -668,7 +975,19 @@ const ProductDetail = () => {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {relatedProducts.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard 
+                    key={p._id || p.id} 
+                    product={{
+                      id: p._id || p.id || '',
+                      name: p.name,
+                      price: p.price,
+                      originalPrice: p.purchasePrice,
+                      image: p.images?.[0] || '/placeholder-image.jpg',
+                      category: p.category,
+                      sku: p.sku,
+                      tags: p.tags,
+                    }} 
+                  />
                 ))}
               </div>
             </section>

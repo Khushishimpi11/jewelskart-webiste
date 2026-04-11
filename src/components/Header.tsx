@@ -8,22 +8,23 @@ import { useAuthStore } from '@/store/authStore';
 
 import logo from '@/assets/logo.png';
 
-// --- IMAGE IMPORTS (from second code) ---
+// --- IMAGE IMPORTS ---
 import ringImg from '@/assets/ring.jpeg'; 
-import chainImg from '@/assets/chains.webp';
-import pendantImg from '@/assets/pendants.jpg';
-
-const shopCategories = [
-  { name: 'Rings', img: ringImg },
-  { name: 'Chains', img: chainImg },
-  { name: 'Pendants', img: pendantImg },
-];
+import pendantImg from '@/assets/chains.webp';
+import earringImg from '@/assets/earring/e1.jpg';
+import braceletImg from '@/assets/c.jpg';
+import necklaceImg from '@/assets/c.png';
 
 const announcements = [
   '✨ Festive Offer – Flat 25% Off on Diamond Collection',
   '🚚 Free Shipping Above ₹1999 | Jewelskart',
-  '💎 New Arrivals – Exclusive Diamond Pendants & Chains',
+  '💎 New Arrivals – Exclusive Diamond Earrings & Pendants',
 ];
+
+const capitalizeCategory = (name: string) => {
+  if (!name) return '';
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,6 +35,8 @@ export const Header = () => {
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const [mobileBrandOpen, setMobileBrandOpen] = useState<string | null>(null);
   const [announcementIndex, setAnnouncementIndex] = useState(0);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const lastScrollY = useRef(0);
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,6 +45,57 @@ export const Header = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
 
   const ANNOUNCEMENT_HEIGHT = 38;
+  const API_BASE_URL = "http://localhost:5000/api";
+
+  const getCategoryImage = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('ring')) return ringImg;
+    if (name.includes('earring')) return earringImg;
+    if (name.includes('pendant')) return pendantImg;
+    if (name.includes('necklace')) return necklaceImg;
+    if (name.includes('bracelet')) return braceletImg;
+    return ringImg;
+  };
+
+  // ✅ Fetch ONLY featured categories from API
+  const fetchCategories = async () => {
+    console.log("🔍 Fetching featured categories from API...");
+    setLoadingCategories(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories`);
+      const data = await response.json();
+      
+      if (data.success && data.categories) {
+        // ✅ IMPORTANT: Filter only categories with featured === true
+        const featuredCategories = data.categories
+          .filter((cat: any) => cat.isActive === true && cat.featured === true)
+          .map((cat: any) => ({
+            name: capitalizeCategory(cat.name),
+            category: cat.slug || cat.name.toLowerCase(),
+            img: getCategoryImage(cat.name),
+            _id: cat._id,
+            productCount: cat.productCount || 0,
+            featured: cat.featured
+          }));
+        
+        console.log("⭐ Featured categories only:", featuredCategories);
+        setCategories(featuredCategories);
+      } else {
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching categories:", error);
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Load categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,7 +112,6 @@ export const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Rotate announcements
   useEffect(() => {
     const timer = setInterval(() => {
       setAnnouncementIndex((prev) => (prev + 1) % announcements.length);
@@ -80,7 +133,6 @@ export const Header = () => {
   const handleLogout = () => { logout(); setShowDropdown(false); };
   const getInitial = () => user?.email ? user.email.charAt(0).toUpperCase() : 'U';
 
-  // Color classes
   const textColor = 'text-primary-foreground';
   const textMutedColor = 'text-primary-foreground/80';
   const hoverColor = 'hover:text-primary-foreground';
@@ -89,7 +141,7 @@ export const Header = () => {
 
   return (
     <>
-      {/* Announcement Bar - Color from first code (hsl(345, 60%, 94%)) */}
+      {/* Announcement Bar */}
       <div
         className="fixed top-0 left-0 right-0 z-[60] transition-transform duration-300 ease-in-out overflow-hidden"
         style={{
@@ -99,7 +151,6 @@ export const Header = () => {
         }}
       >
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-full flex items-center justify-center relative">
-          {/* Subtle shimmer effect from first code */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -123,7 +174,7 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* Main Navbar - with bg-primary from first code */}
+      {/* Main Navbar */}
       <header
         className="fixed left-0 right-0 z-50 transition-all duration-300 ease-in-out bg-primary"
         style={{
@@ -148,7 +199,7 @@ export const Header = () => {
                 Home
               </Link>
 
-              {/* Shop Mega Menu - Updated with second code's design */}
+              {/* Shop Mega Menu - Only Featured Categories */}
               <div
                 className="relative"
                 onMouseEnter={() => setShowShopMega(true)}
@@ -170,7 +221,7 @@ export const Header = () => {
                       animate={{ opacity: 1, y: 0, x: '-50%' }}
                       exit={{ opacity: 0, y: 5, x: '-50%' }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-[90%] left-1/2 bg-white border border-border/20 shadow-2xl z-50 w-[260px] rounded-xl p-6"
+                      className="absolute top-[90%] left-1/2 bg-white border border-border/20 shadow-2xl z-50 w-[320px] rounded-xl p-6"
                     >
                       <Link
                         to="/shop"
@@ -180,18 +231,26 @@ export const Header = () => {
                       </Link>
                       
                       <div className="space-y-4 pt-2">
-                        {shopCategories.map((cat) => (
-                          <Link
-                            key={cat.name}
-                            to={`/shop?category=${cat.name.toLowerCase()}`}
-                            className="flex items-center gap-4 text-sm text-gray-600 hover:text-primary group transition-all"
-                          >
-                            <div className="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-border/10 group-hover:border-primary/30 transition-colors">
-                              <img src={cat.img} alt={cat.name} className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform" />
-                            </div>
-                            <span className="font-semibold">{cat.name}</span>
-                          </Link>
-                        ))}
+                        {loadingCategories ? (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          </div>
+                        ) : categories.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">No featured categories</p>
+                        ) : (
+                          categories.map((cat) => (
+                            <Link
+                              key={cat.name}
+                              to={`/shop?category=${cat.category}`}
+                              className="flex items-center gap-4 text-sm text-gray-600 hover:text-primary group transition-all"
+                            >
+                              <div className="w-12 h-12 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-border/10 group-hover:border-primary/30 transition-colors">
+                                <img src={cat.img} alt={cat.name} className="w-full h-full object-cover scale-110 group-hover:scale-125 transition-transform" />
+                              </div>
+                              <span className="font-semibold">{cat.name}</span>
+                            </Link>
+                          ))
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -325,16 +384,22 @@ export const Header = () => {
                         <AnimatePresence>
                           {mobileBrandOpen === 'jewelskart' && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                              {shopCategories.map((cat) => (
-                                <Link
-                                  key={cat.name}
-                                  to={`/shop?brand=jewelskart&category=${cat.name.toLowerCase()}`}
-                                  onClick={() => setIsMenuOpen(false)}
-                                  className="block py-2 px-8 text-xs text-muted-foreground hover:text-primary"
-                                >
-                                  {cat.name}
-                                </Link>
-                              ))}
+                              {loadingCategories ? (
+                                <div className="py-2 px-8 text-xs text-muted-foreground">Loading...</div>
+                              ) : categories.length === 0 ? (
+                                <div className="py-2 px-8 text-xs text-muted-foreground">No featured categories</div>
+                              ) : (
+                                categories.map((cat) => (
+                                  <Link
+                                    key={cat.name}
+                                    to={`/shop?category=${cat.category}`}
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="block py-2 px-8 text-xs text-muted-foreground hover:text-primary"
+                                  >
+                                    {cat.name}
+                                  </Link>
+                                ))
+                              )}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -365,7 +430,6 @@ export const Header = () => {
         </AnimatePresence>
       </header>
 
-      {/* Add the shimmer animation keyframes */}
       <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }

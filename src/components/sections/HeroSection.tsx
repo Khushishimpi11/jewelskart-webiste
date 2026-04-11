@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import exploreIcon from "../../assets/logoicon.png";
 import modelLeft1 from "@/assets/hero-model-left.jpg";
 import modelRight1 from "@/assets/hero-model-right.jpg";
 import modelLeft2 from "@/assets/hero-model-left2.jpg";
@@ -114,15 +114,13 @@ export const HeroSection = () => {
                   className="space-y-5 sm:space-y-7"
                 >
                   {/* Brand label */}
-                  <span
-                    className="inline-block font-body text-xs sm:text-sm tracking-[0.35em] uppercase"
-                    style={{ color: "hsl(var(--accent))" }}
-                  >
+                  <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
+            <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                     {slide.brand}
                   </span>
 
                   {/* Main title */}
-                  <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1] text-primary-foreground tracking-wide">
+                  <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-6xl leading-[1.1] text-primary-foreground tracking-wide">
                     {slide.title}
                   </h1>
 
@@ -132,12 +130,16 @@ export const HeroSection = () => {
                   </p>
 
                   {/* CTA Button */}
-                  <Link
-                    to="/shop"
-                    className="inline-flex items-center justify-center px-10 py-3.5 rounded-full bg-background text-foreground font-body text-sm tracking-widest uppercase shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
-                  >
-                    Shop Now
-                  </Link>
+                <Link
+  to="/shop"
+  className="bg-primary text-white px-8 py-3 
+  flex items-center gap-2.5 
+  mx-auto justify-center
+  hover:bg-black transition-all uppercase 
+  text-[16px] tracking-[2px] font-semibold w-fit border border-white"
+>
+  Shop Now
+</Link>
                 </motion.div>
               </AnimatePresence>
 

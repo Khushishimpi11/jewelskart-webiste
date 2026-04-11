@@ -101,9 +101,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
       {/* Product Info */}
       <div className="pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
-        <h3 className="font-display text-base sm:text-xl font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-          {product.name}
-        </h3>
+       <h3 className="font-[Montserrat,sans-serif] text-base sm:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+  {product.name}
+</h3>
 
         <div className="flex items-center gap-2">
           <span className="font-body text-sm sm:text-base text-primary font-medium">

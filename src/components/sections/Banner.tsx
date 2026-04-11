@@ -1,9 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import ringBg from "../../assets/c.png";       // background for rings
-import braceletBg from "../../assets/mm.png"; // background for bracelets
-import necklaceBg from "../../assets/p.png"; // background for necklace
+import ringBg from "../../assets/c.png";       // background for neckwear
+import braceletBg from "../../assets/mm.png"; // background for rings
+import necklaceBg from "../../assets/e.png"; // background for earrings
 import exploreIcon from "../../assets/logoicon.png";
 
 const Banner: React.FC = () => {
@@ -11,7 +11,7 @@ const Banner: React.FC = () => {
 
   const handleShopNavigation = (category: string) => {
     // Navigate to shop page with category filter
-    navigate(`/shop?category=${category.toLowerCase()}`);
+    navigate(`/shop?brand=jewelskart&category=${category.toLowerCase()}`);
     // Scroll to top when navigating
     window.scrollTo(0, 0);
   };
@@ -42,16 +42,16 @@ const Banner: React.FC = () => {
         {/* Heading row - three categories side by side */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           
-          {/* First column - CHAINS */}
+          {/* First column - NECKWEAR (formerly Chains) */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
             className="relative overflow-hidden rounded-2xl shadow-xl aspect-[3/2] group cursor-pointer"
-            onClick={() => handleShopNavigation('Chains')}
+            onClick={() => handleShopNavigation('neckwear')}
           >
-            {/* background image - chains specific */}
+            {/* background image - neckwear specific */}
             <div 
               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
               style={{ backgroundImage: `url(${ringBg})` }}
@@ -59,8 +59,8 @@ const Banner: React.FC = () => {
             
             {/* content - positioned at bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-4xl tracking-wide leading-tight mb-4">
-                CHAINS
+              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide leading-tight mb-4">
+                PENDANTS
               </h3>
               
               {/* Shop button */}
@@ -68,10 +68,10 @@ const Banner: React.FC = () => {
                 className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleShopNavigation('Chains');
+                  handleShopNavigation('pendants');
                 }}
               >
-                shop chains
+                shop pendants
               </button>
             </div>
           </motion.div>
@@ -83,7 +83,7 @@ const Banner: React.FC = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
             className="relative overflow-hidden rounded-2xl shadow-xl aspect-[3/2] group cursor-pointer"
-            onClick={() => handleShopNavigation('Rings')}
+            onClick={() => handleShopNavigation('rings')}
           >
             {/* background image - rings specific */}
             <div 
@@ -93,7 +93,7 @@ const Banner: React.FC = () => {
             
             {/* content - positioned at bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-4xl tracking-wide mb-4">
+              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide mb-4">
                 RINGS
               </h3>
               
@@ -102,7 +102,7 @@ const Banner: React.FC = () => {
                 className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleShopNavigation('Rings');
+                  handleShopNavigation('rings');
                 }}
               >
                 shop rings
@@ -110,16 +110,16 @@ const Banner: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Third column - PENDANTS */}
+          {/* Third column - EARRINGS (formerly Pendants) */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
             className="relative overflow-hidden rounded-2xl shadow-xl aspect-[3/2] group cursor-pointer"
-            onClick={() => handleShopNavigation('Pendants')}
+            onClick={() => handleShopNavigation('earrings')}
           >
-            {/* background image - pendants specific */}
+            {/* background image - earrings specific */}
             <div 
               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
               style={{ backgroundImage: `url(${necklaceBg})` }}
@@ -127,8 +127,8 @@ const Banner: React.FC = () => {
             
             {/* content - positioned at bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-4xl tracking-wide mb-4">
-                PENDANTS
+              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide mb-4">
+                EARRINGS
               </h3>
               
               {/* Shop button */}
@@ -136,10 +136,10 @@ const Banner: React.FC = () => {
                 className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleShopNavigation('Pendants');
+                  handleShopNavigation('earrings');
                 }}
               >
-                shop pendants
+                shop earrings
               </button>
             </div>
           </motion.div>

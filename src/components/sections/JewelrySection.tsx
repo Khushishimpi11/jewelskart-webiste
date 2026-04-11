@@ -18,40 +18,59 @@ export const JewelrySection = () => {
 
   const bottomProducts = [
     {
-      id: "diamond-chain-1",
+      id: "chain-001",  // Changed to match actual product ID from products.ts
       name: "Delicate Diamond Chain",
       price: "₹10,000 – ₹15,000",
-      minPrice: 10000,
+      minPrice: 12649,
       maxPrice: 15000,
       image: necklace,
-      description: "Elegant diamond chain for special occasions"
+      description: "Elegant diamond chain for special occasions",
+      category: "neckwear"
     },
     {
-      id: "delicate-pendant-1",
-      name: "Delicate Pendant",
+      id: "pendant-012",  // Changed to match actual product ID from products.ts
+      name: "THE DIYA CREST",
       price: "₹15,000 – ₹21,000",
-      minPrice: 15000,
+      minPrice: 20080,
       maxPrice: 21000,
       image: ring,
-      description: "Beautiful pendant with intricate design"
+      description: "Beautiful pendant with intricate design",
+      category: "neckwear"
     }
   ];
 
   const handleAddToCart = (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart({ ...product, price: product.minPrice });
+    addToCart({ 
+      id: product.id,
+      name: product.name,
+      price: product.minPrice,
+      image: product.image,
+      category: product.category
+    });
     toast.success(`${product.name} added to cart!`);
   };
 
   const handleWishlist = (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    addToWishlist(product);
+    addToWishlist({
+      id: product.id,
+      name: product.name,
+      price: product.minPrice,
+      image: product.image,
+      category: product.category
+    });
     toast.success(`${product.name} added to wishlist!`);
   };
 
   const handleQuickView = (product: any, e: React.MouseEvent) => {
     e.stopPropagation();
     toast.info(`Quick view: ${product.name}`);
+  };
+
+  const handleProductClick = (productId: string) => {
+    navigate(`/product/${productId}`);
+    window.scrollTo(0, 0);
   };
 
   return (
@@ -71,10 +90,6 @@ export const JewelrySection = () => {
             <svg viewBox="0 0 580 300" className="absolute top-[20px] left-0 w-full overflow-visible pointer-events-none z-30">
               <defs><path id="archPathTop" d="M 40,280 A 250,250 0 0 1 540,280" /></defs>
               <text fill="white" letterSpacing="1">
-                {/* fontSize="22" handles mobile (base).
-                  className="... md:text-[36px]" overrides it for desktop,
-                  keeping the original desktop size.
-                */}
                 <textPath 
                   href="#archPathTop" 
                   startOffset="50%" 
@@ -137,7 +152,7 @@ export const JewelrySection = () => {
                 <div 
                   key={product.id}
                   className="min-w-[160px] max-w-[200px] lg:min-w-0 lg:max-w-none lg:flex-1 group cursor-pointer"
-                  onClick={() => navigate(`/product/${product.id}`)}
+                  onClick={() => handleProductClick(product.id)}
                 >
                   <div className="relative bg-white aspect-[3/3.5] sm:aspect-[4/5] overflow-hidden mb-3 border border-gray-50 rounded-lg md:rounded-none">
                     <img src={product.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={product.name} />
@@ -169,10 +184,6 @@ export const JewelrySection = () => {
             <svg viewBox="0 0 500 300" className="absolute top-[20px] left-0 w-full overflow-visible pointer-events-none z-30">
               <defs><path id="archPathBottom" d="M 30,280 A 220,220 0 0 1 470,280" /></defs>
               <text fill="white" letterSpacing="1">
-                {/* fontSize="18" handles mobile (base).
-                  className="... md:text-[28px]" overrides it for desktop,
-                  keeping the original desktop size.
-                */}
                 <textPath 
                   href="#archPathBottom" 
                   startOffset="50%" 
