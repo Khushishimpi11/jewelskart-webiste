@@ -12,22 +12,35 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 type Step = 'login' | 'shipping' | 'summary' | 'payment' | 'confirmation';
-type PaymentMethod = 'cod' | 'upi' | 'card';
+type PaymentMethod = 'cod' | 'online';
+
+// ========== RAZORPAY DECLARATION ==========
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+const RAZORPAY_KEY_ID = "rzp_test_Sg6bppZOCOWIL6";
 
 const Checkout = () => {
-  const { isAuthenticated, isLoading: authLoading, login, register } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, login, register, user } = useAuthStore();
   const { items, getTotal, clearCart } = useCartStore();
   const { placeOrder, isLoading: orderLoading, resetLoading } = useOrderStore();
   const navigate = useNavigate();
   
   const [currentStep, setCurrentStep] = useState<Step>('shipping');
   const [orderId, setOrderId] = useState('');
-  const [orderNumber, setOrderNumber] = useState(''); // ✅ Store full order number
+  const [orderNumber, setOrderNumber] = useState('');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [popupOrderNumber, setPopupOrderNumber] = useState(''); // ✅ Full order number for popup
+  const [popupOrderNumber, setPopupOrderNumber] = useState('');
   const [popupTotal, setPopupTotal] = useState(0);
   const [copied, setCopied] = useState(false);
+  
+  // Razorpay payment states
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [razorpayOrderId, setRazorpayOrderId] = useState('');
   
   // Auth form states
   const [loginEmail, setLoginEmail] = useState('');
@@ -53,7 +66,7 @@ const Checkout = () => {
     country: 'India',
   });
   
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
 
   useEffect(() => {
     return () => {
@@ -80,6 +93,21 @@ const Checkout = () => {
     }
   }, [authLoading, isAuthenticated]);
 
+  // ========== LOAD RAZORPAY SCRIPT ==========
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -88,7 +116,6 @@ const Checkout = () => {
     }).format(price);
   };
 
-  // ✅ Copy to clipboard function
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -143,74 +170,269 @@ const Checkout = () => {
     setCurrentStep('summary');
   };
 
-  const subtotal = getTotal();
-  const shipping = subtotal >= 5000 ? 0 : 250;
-  const total = subtotal + shipping;
+  // ========== CREATE ORDER AND INITIATE RAZORPAY PAYMENT (ONLINE) ==========
+  const handleRazorpayPayment = async () => {
+    setIsProcessingPayment(true);
+    
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error("Failed to load payment gateway. Please try again.");
+      }
 
-  // ✅ Handle place order - Get full order number from response
-  const handlePlaceOrder = async () => {
-    console.log('🟢 Place order started');
+      const authUser = user;
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+      
+      const subtotal = getTotal();
+      const shipping = subtotal >= 5000 ? 0 : 250;
+      const total = subtotal + shipping;
+      
+      const orderData = {
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          size: item.size,
+          name: item.product.name,
+          image: item.product.image
+        })),
+        shippingAddress: {
+          street: shippingData.address,
+          city: shippingData.city,
+          state: shippingData.state,
+          pincode: shippingData.zip,
+          country: shippingData.country
+        },
+        paymentMethod: 'ONLINE',  // ✅ ONLINE payment
+        customerPhone: shippingData.phone,
+        customerId: authUser?.id || authUser?._id,
+        userId: authUser?.id || authUser?._id,
+        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerEmail: authUser?.email || shippingData.email,
+        totalAmount: total,
+        subtotal: subtotal,
+        shippingCharge: shipping,
+        tax: 0,
+        discount: 0,
+        notes: ""
+      };
+      
+      console.log('📦 Creating ONLINE order:', orderData);
+      
+      const orderResponse = await fetch('http://localhost:5000/api/orders/create', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      const orderResult = await orderResponse.json();
+      
+      if (!orderResponse.ok) {
+        throw new Error(orderResult.message || "Failed to create order");
+      }
+      
+      const newOrderId = orderResult.order?._id || orderResult.order?.id;
+      const newOrderNumber = orderResult.order?.orderNumber || newOrderId;
+      
+      setOrderId(newOrderId);
+      setOrderNumber(newOrderNumber);
+      
+      // Create Razorpay order
+      const razorpayResponse = await fetch('http://localhost:5000/api/payment/create-order', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: total,
+          currency: "INR",
+          orderId: newOrderId,
+          type: "order_payment"
+        })
+      });
+      
+      const razorpayData = await razorpayResponse.json();
+      
+      if (!razorpayData.success) {
+        throw new Error(razorpayData.message || "Failed to create payment order");
+      }
+      
+      setRazorpayOrderId(razorpayData.order_id);
+      
+      const options = {
+        key: razorpayData.key_id,
+        amount: razorpayData.amount,
+        currency: razorpayData.currency,
+        name: "JewelsKart",
+        description: `Payment for Order ${newOrderNumber}`,
+        order_id: razorpayData.order_id,
+        handler: async (response: any) => {
+          const verifyResponse = await fetch('http://localhost:5000/api/payment/verify-payment', {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              order_id: response.razorpay_order_id,
+              payment_id: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              orderId: newOrderId
+            })
+          });
+          
+          const verifyData = await verifyResponse.json();
+          
+          if (verifyData.success) {
+            toast.success("Payment successful! Order confirmed.");
+            setPopupOrderNumber(newOrderNumber);
+            setPopupTotal(total);
+            setShowPopup(true);
+          } else {
+            throw new Error("Payment verification failed");
+          }
+        },
+        prefill: {
+          name: orderData.customerName,
+          email: orderData.customerEmail,
+          contact: shippingData.phone
+        },
+        theme: { color: "#F37254" },
+        modal: {
+          ondismiss: () => {
+            toast.error("Payment cancelled");
+            setIsProcessingPayment(false);
+          }
+        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      
+      razorpay.on('payment.failed', (response: any) => {
+        console.error("Payment failed:", response.error);
+        toast.error(response.error.description || "Payment failed. Please try again.");
+        setIsProcessingPayment(false);
+      });
+      
+      razorpay.open();
+      
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast.error(error.message || "Something went wrong. Please try again.");
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // ========== HANDLE COD ORDER (CASH ON DELIVERY) ==========
+  const handleCODOrder = async () => {
     setIsPlacingOrder(true);
     
     try {
-      const newOrderId = await placeOrder(items, shippingData, paymentMethod, total);
-      console.log('🟢 Order result:', newOrderId);
+      const authUser = user;
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
       
-      if (newOrderId) {
-        // ✅ Fetch the order details to get the full order number
-        const token = localStorage.getItem('customer_token');
-        const response = await fetch(`http://localhost:5000/api/orders/${newOrderId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-        
-        const fullOrderNumber = data.order?.orderNumber || newOrderId;
-        console.log('🟢 Full Order Number:', fullOrderNumber);
-        
-        // Store full order number
-        setOrderNumber(fullOrderNumber);
-        setOrderId(newOrderId);
-        
-        // Show popup with full order number
-        setPopupOrderNumber(fullOrderNumber);
-        setPopupTotal(total);
-        setShowPopup(true);
-        console.log('🟢 Popup should show now with order:', fullOrderNumber);
-        
-      } else {
-        toast.error('Failed to place order. Please try again.');
+      const subtotal = getTotal();
+      const shipping = subtotal >= 5000 ? 0 : 250;
+      const total = subtotal + shipping;
+      
+      const orderData = {
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          size: item.size,
+          name: item.product.name,
+          image: item.product.image
+        })),
+        shippingAddress: {
+          street: shippingData.address,
+          city: shippingData.city,
+          state: shippingData.state,
+          pincode: shippingData.zip,
+          country: shippingData.country
+        },
+        paymentMethod: 'COD',  // ✅ COD payment
+        customerPhone: shippingData.phone,
+        customerId: authUser?.id || authUser?._id,
+        userId: authUser?.id || authUser?._id,
+        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerEmail: authUser?.email || shippingData.email,
+        totalAmount: total,
+        subtotal: subtotal,
+        shippingCharge: shipping,
+        tax: 0,
+        discount: 0,
+        notes: ""
+      };
+      
+      console.log('📦 Creating COD order with paymentMethod:', orderData.paymentMethod);
+      
+      const response = await fetch('http://localhost:5000/api/orders/create', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to place order");
       }
-    } catch (error) {
-      console.error('🔴 Order error:', error);
-      toast.error('Something went wrong! Please try again.');
+      
+      const newOrderId = data.order?._id || data.order?.id;
+      const newOrderNumber = data.order?.orderNumber || newOrderId;
+      
+      setOrderNumber(newOrderNumber);
+      setOrderId(newOrderId);
+      setPopupOrderNumber(newOrderNumber);
+      setPopupTotal(total);
+      setShowPopup(true);
+      
+    } catch (error: any) {
+      console.error('Order error:', error);
+      toast.error(error.message || 'Something went wrong! Please try again.');
     } finally {
       setIsPlacingOrder(false);
       resetLoading();
     }
   };
 
-  // Handle popup close
+  const handlePlaceOrder = async () => {
+    if (paymentMethod === 'cod') {
+      await handleCODOrder();      // ✅ COD order
+    } else {
+      await handleRazorpayPayment(); // ✅ ONLINE payment
+    }
+  };
+
   const handlePopupClose = () => {
     setShowPopup(false);
     clearCart();
     setCurrentStep('confirmation');
   };
 
-  // Handle continue shopping from popup
   const handleContinueShopping = () => {
     setShowPopup(false);
     clearCart();
     navigate('/shop');
   };
 
-  // Handle view orders from popup
   const handleViewOrders = () => {
     setShowPopup(false);
     clearCart();
     navigate('/order-summary');
   };
+
+  const subtotal = getTotal();
+  const shipping = subtotal >= 5000 ? 0 : 250;
+  const total = subtotal + shipping;
 
   if (items.length === 0 && currentStep !== 'confirmation' && !showPopup) {
     return (
@@ -407,58 +629,82 @@ const Checkout = () => {
             {currentStep === 'payment' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <h2 className="font-display text-2xl text-foreground">Payment Method</h2>
-                <div className="flex border border-border/30">
-                  {(['cod', 'upi', 'card'] as const).map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setPaymentMethod(method)}
-                      className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${
-                        paymentMethod === method ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
-                      }`}
-                    >
-                      {method === 'cod' ? 'Cash on Delivery' : method.toUpperCase()}
-                    </button>
-                  ))}
+                <div className="flex border border-border/30 rounded-sm overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('online')}
+                    className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${
+                      paymentMethod === 'online' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+                    }`}
+                  >
+                    💳 Pay Online (Razorpay)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${
+                      paymentMethod === 'cod' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+                    }`}
+                  >
+                    💵 Cash on Delivery
+                  </button>
                 </div>
+                
                 <div className="bg-card p-6 border border-border/30 rounded-sm">
+                  {paymentMethod === 'online' && (
+                    <div className="text-center py-4">
+                      <div className="mb-4">
+                        <img 
+                          src="https://razorpay.com/assets/razorpay-glyph.svg" 
+                          alt="Razorpay" 
+                          className="h-8 mx-auto mb-2"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                        <p className="text-foreground font-medium">Pay securely with Razorpay</p>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          Cards • UPI • NetBanking • Wallet
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                        <span>🔒 100% Secure</span>
+                        <span>⚡ Instant Payment</span>
+                        <span>🛡️ PCI Compliant</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   {paymentMethod === 'cod' && (
                     <div className="text-center py-4">
                       <p className="text-foreground mb-2">Pay when your order arrives</p>
                       <p className="text-muted-foreground text-sm">No additional charges for COD</p>
                     </div>
                   )}
-                  {paymentMethod === 'upi' && (
-                    <div className="space-y-4">
-                      <Input placeholder="Enter UPI ID (e.g., name@upi)" className="bg-background" />
-                    </div>
-                  )}
-                  {paymentMethod === 'card' && (
-                    <div className="space-y-4">
-                      <Input placeholder="Card Number" className="bg-background" />
-                      <div className="grid grid-cols-2 gap-4">
-                        <Input placeholder="MM/YY" className="bg-background" />
-                        <Input placeholder="CVV" className="bg-background" />
-                      </div>
-                      <Input placeholder="Cardholder Name" className="bg-background" />
-                    </div>
-                  )}
                 </div>
+                
                 <div className="flex gap-4">
-                  <button onClick={() => setCurrentStep('summary')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2"><ChevronLeft className="w-4 h-4" /> Back</button>
+                  <button onClick={() => setCurrentStep('summary')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={isPlacingOrder || orderLoading}
+                    disabled={isPlacingOrder || orderLoading || isProcessingPayment}
                     className="flex-1 bg-primary text-white py-3 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isPlacingOrder || orderLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : `Complete Order • ${formatPrice(total)}`}
+                    {(isPlacingOrder || orderLoading || isProcessingPayment) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      `Complete Order • ${formatPrice(total)}`
+                    )}
                   </button>
                 </div>
-                <p className="text-muted-foreground text-xs text-center">By placing this order, you agree to our terms and conditions</p>
+                
+                <p className="text-muted-foreground text-xs text-center">
+                  By placing this order, you agree to our terms and conditions
+                </p>
               </motion.div>
             )}
 
-            {/* Confirmation Step - With Full Order Number */}
+            {/* Confirmation Step */}
             {currentStep === 'confirmation' && (
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
                 <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center mx-auto mb-6">
@@ -488,7 +734,7 @@ const Checkout = () => {
 
       <Footer />
 
-      {/* ✅ SUCCESS POPUP - With Full Order Number */}
+      {/* SUCCESS POPUP */}
       <AnimatePresence>
         {showPopup && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">

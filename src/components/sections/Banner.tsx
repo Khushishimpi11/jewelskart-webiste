@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ringBg from "../../assets/c.png";       // background for neckwear
 import braceletBg from "../../assets/mm.png"; // background for rings
 import necklaceBg from "../../assets/e.png"; // background for earrings
+import chain from "../../assets/bracelet.jpeg";
 import exploreIcon from "../../assets/logoicon.png";
 
 const Banner: React.FC = () => {
@@ -39,10 +40,10 @@ const Banner: React.FC = () => {
           <div className="section-divider" />
         </motion.div>
 
-        {/* Heading row - three categories side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        {/* Heading row - four categories side by side */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           
-          {/* First column - NECKWEAR (formerly Chains) */}
+          {/* First column - NECKWEAR */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -58,14 +59,14 @@ const Banner: React.FC = () => {
             />
             
             {/* content - positioned at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide leading-tight mb-4">
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
+              <h3 className="font-serif font-bold text-lg md:text-xl tracking-wide leading-tight mb-2">
                 PENDANTS
               </h3>
               
               {/* Shop button */}
               <button 
-                className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
+                className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShopNavigation('pendants');
@@ -92,14 +93,14 @@ const Banner: React.FC = () => {
             />
             
             {/* content - positioned at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide mb-4">
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
+              <h3 className="font-serif font-bold text-lg md:text-xl tracking-wide mb-2">
                 RINGS
               </h3>
               
               {/* Shop button */}
               <button 
-                className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
+                className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShopNavigation('rings');
@@ -110,12 +111,14 @@ const Banner: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Third column - EARRINGS (formerly Pendants) */}
+         
+
+          {/* Fourth column - EARRINGS */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
             className="relative overflow-hidden rounded-2xl shadow-xl aspect-[3/2] group cursor-pointer"
             onClick={() => handleShopNavigation('earrings')}
           >
@@ -126,20 +129,53 @@ const Banner: React.FC = () => {
             />
             
             {/* content - positioned at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl lg:text-3xl tracking-wide mb-4">
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
+              <h3 className="font-serif font-bold text-lg md:text-xl tracking-wide mb-2">
                 EARRINGS
               </h3>
               
               {/* Shop button */}
               <button 
-                className="border-b-2 border-white pb-1 text-sm font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
+                className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleShopNavigation('earrings');
                 }}
               >
                 shop earrings
+              </button>
+            </div>
+          </motion.div>
+           {/* Third column - BRACELETS */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="relative overflow-hidden rounded-2xl shadow-xl aspect-[3/2] group cursor-pointer"
+            onClick={() => handleShopNavigation('bracelets')}
+          >
+            {/* background image - bracelets specific */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{ backgroundImage: `url(${chain})` }}
+            />
+            
+            {/* content - positioned at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
+              <h3 className="font-serif font-bold text-lg md:text-xl tracking-wide mb-2">
+                BRACELETS
+              </h3>
+              
+              {/* Shop button */}
+              <button 
+                className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleShopNavigation('bracelets');
+                }}
+              >
+                shop bracelets
               </button>
             </div>
           </motion.div>

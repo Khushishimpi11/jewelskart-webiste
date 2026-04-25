@@ -3,12 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import exploreIcon from "../../assets/logoicon.png";
-import modelLeft1 from "@/assets/hero-model-left.jpg";
-import modelRight1 from "@/assets/hero-model-right.jpg";
-import modelLeft2 from "@/assets/hero-model-left2.jpg";
-import modelRight2 from "@/assets/hero-model-right2.jpg";
-import heroImage1 from "@/assets/hero1.jpg";
-import heroImage2 from "@/assets/hero2.jpg";
+import modelLeft1 from "@/assets/hero/2.png";
+import modelRight1 from "@/assets/hero/3.png";
+import modelLeft2 from "@/assets/hero/4.png";
+import modelRight2 from "@/assets/hero/1.png";
+import modelRight3 from "@/assets/hero/5.png";
+import modelLeft4 from "@/assets/hero/6.png";
+import heroImage1 from "@/assets/hhhh.png";
+import heroImage2 from "@/assets/hhhh.png";
+
 
 const slides = [
   {
@@ -31,8 +34,8 @@ const slides = [
     brand: "JEWELSKART HERITAGE",
     title: "GOLDEN HOUR LUXURY",
     subtitle: "Crafted with passion, worn with pride — jewellery for every occasion",
-    modelLeft: modelRight2,
-    modelRight: modelLeft1,
+    modelLeft: modelRight3,
+    modelRight: modelLeft4,
     bg: heroImage1,
   },
 ];
@@ -73,19 +76,19 @@ export const HeroSection = () => {
                 className="w-full h-full object-cover"
               />
               {/* Dark cinematic overlay */}
-             <div
-  className="absolute inset-0"
-  style={{
-    background:
-      "linear-gradient(90deg, hsla(332, 80%, 12%, 0.9) 0%, hsla(332, 70%, 18%, 0.55) 30%, hsla(332, 60%, 25%, 0.35) 50%, hsla(332, 70%, 18%, 0.55) 70%, hsla(332, 80%, 12%, 0.9) 100%)",
-  }}
-/>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(90deg, hsla(332, 80%, 12%, 0.9) 0%, hsla(332, 70%, 18%, 0.55) 30%, hsla(332, 60%, 25%, 0.35) 50%, hsla(332, 70%, 18%, 0.55) 70%, hsla(332, 80%, 12%, 0.9) 100%)",
+                }}
+              />
             </motion.div>
           </AnimatePresence>
 
           {/* Content grid: model-left | text-center | model-right */}
           <div className="relative z-10 h-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr_1fr] items-end">
-            {/* Left model */}
+            {/* Left model - Removed opacity */}
             <div className="hidden lg:block h-full relative">
               <AnimatePresence mode="wait">
                 <motion.img
@@ -93,11 +96,10 @@ export const HeroSection = () => {
                   src={slide.modelLeft}
                   alt="Fashion Model"
                   initial={{ opacity: 0, x: -40 }}
-                  animate={{ opacity: 0.75, x: 0 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -40 }}
                   transition={{ duration: 0.7 }}
                   className="absolute bottom-0 left-0 h-[95%] w-auto max-w-none object-cover object-top"
-                  style={{ filter: "brightness(0.85)" }}
                 />
               </AnimatePresence>
             </div>
@@ -115,7 +117,7 @@ export const HeroSection = () => {
                 >
                   {/* Brand label */}
                   <span className="inline-flex items-center bg-primary text-white px-3 sm:px-4 py-1 font-body text-xs sm:text-sm tracking-luxury uppercase rounded-full">
-            <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                    <img src={exploreIcon} alt="Explore" className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
                     {slide.brand}
                   </span>
 
@@ -130,16 +132,16 @@ export const HeroSection = () => {
                   </p>
 
                   {/* CTA Button */}
-                <Link
-  to="/shop"
-  className="bg-primary text-white px-8 py-3 
-  flex items-center gap-2.5 
-  mx-auto justify-center
-  hover:bg-black transition-all uppercase 
-  text-[16px] tracking-[2px] font-semibold w-fit border border-white"
->
-  Shop Now
-</Link>
+                  <Link
+                    to="/shop"
+                    className="bg-primary text-white px-8 py-3 
+                    flex items-center gap-2.5 
+                    mx-auto justify-center
+                    hover:bg-black transition-all uppercase 
+                    text-[16px] tracking-[2px] font-semibold w-fit border border-white"
+                  >
+                    Shop Now
+                  </Link>
                 </motion.div>
               </AnimatePresence>
 
@@ -160,7 +162,7 @@ export const HeroSection = () => {
               </div>
             </div>
 
-            {/* Right model */}
+            {/* Right model - Removed opacity */}
             <div className="hidden lg:block h-full relative">
               <AnimatePresence mode="wait">
                 <motion.img
@@ -168,11 +170,10 @@ export const HeroSection = () => {
                   src={slide.modelRight}
                   alt="Fashion Model"
                   initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 0.75, x: 0 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 40 }}
                   transition={{ duration: 0.7 }}
                   className="absolute bottom-0 right-0 h-[95%] w-auto max-w-none object-cover object-top"
-                  style={{ filter: "brightness(0.85)" }}
                 />
               </AnimatePresence>
             </div>

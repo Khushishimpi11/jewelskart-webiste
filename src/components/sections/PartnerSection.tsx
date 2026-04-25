@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
-import partnerImg from '@/assets/partnerimg.jpg';
+import partnerImg from '@/assets/8.png';
 import exploreIcon from "../../assets/logoicon.png";
 
 const benefits = [

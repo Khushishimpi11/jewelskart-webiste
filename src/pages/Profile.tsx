@@ -1,65 +1,244 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
-import { User, MapPin, CreditCard } from 'lucide-react';
+import { User, MapPin, CreditCard, Loader2, Banknote, Plus, Trash2, CheckCircle } from 'lucide-react';
 
 const Profile = () => {
-  const { user, isAuthenticated, updateProfile } = useAuthStore();
+  const { user, isAuthenticated, token, updateProfile } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
+  const [loading, setLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   
+  // Personal Info
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(user?.phone || '');
   
-  const [addressLine1, setAddressLine1] = useState('');
+  // Address
+  const [addressLine1, setAddressLine1] = useState(user?.address?.street || '');
   const [addressLine2, setAddressLine2] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [pincode, setPincode] = useState('');
-  const [country, setCountry] = useState('India');
+  const [city, setCity] = useState(user?.address?.city || '');
+  const [state, setState] = useState(user?.address?.state || '');
+  const [pincode, setPincode] = useState(user?.address?.pincode || '');
+  const [country, setCountry] = useState(user?.address?.country || 'India');
   
-  const [accountHolder, setAccountHolder] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [ifscCode, setIfscCode] = useState('');
-  const [upiId, setUpiId] = useState('');
+  // ✅ UPI Details
+  const [upiId, setUpiId] = useState(user?.bankDetails?.upiId || '');
+  
+  // ✅ Bank Details
+  const [accountHolder, setAccountHolder] = useState(user?.bankDetails?.accountHolderName || '');
+  const [accountNumber, setAccountNumber] = useState(user?.bankDetails?.accountNumber || '');
+  const [bankName, setBankName] = useState(user?.bankDetails?.bankName || '');
+  const [ifscCode, setIfscCode] = useState(user?.bankDetails?.ifscCode || '');
+
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setFirstName(userData.firstName || userData.name?.split(' ')[0] || '');
+      setLastName(userData.lastName || userData.name?.split(' ')[1] || '');
+      setPhone(userData.phone || '');
+      setAddressLine1(userData.address?.street || '');
+      setCity(userData.address?.city || '');
+      setState(userData.address?.state || '');
+      setPincode(userData.address?.pincode || '');
+      setCountry(userData.address?.country || 'India');
+      // Load UPI and Bank details
+      setUpiId(userData.bankDetails?.upiId || '');
+      setAccountHolder(userData.bankDetails?.accountHolderName || '');
+      setAccountNumber(userData.bankDetails?.accountNumber || '');
+      setBankName(userData.bankDetails?.bankName || '');
+      setIfscCode(userData.bankDetails?.ifscCode || '');
+    }
+  }, []);
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/account" replace />;
   }
 
-  const handleSavePersonal = (e: React.FormEvent) => {
+  // Save Personal Info
+  const handleSavePersonal = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({ firstName, lastName });
-    toast.success('Personal information updated successfully!');
+    setLoading(true);
+    setSaveSuccess(false);
+    
+    const authToken = token || localStorage.getItem('customer_token');
+    
+    if (!authToken) {
+      toast.error('Please login again');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/update-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phone
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { ...storedUser, firstName, lastName, phone };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success('Personal information updated successfully!');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        updateProfile({ firstName, lastName, phone });
+      } else if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error(data.message || 'Failed to update');
+      }
+    } catch (error) {
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveAddress = (e: React.FormEvent) => {
+  // Save Address
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Address saved successfully!');
+    setLoading(true);
+    setSaveSuccess(false);
+    
+    const authToken = token || localStorage.getItem('customer_token');
+    
+    if (!authToken) {
+      toast.error('Please login again');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/update-address', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          street: addressLine1,
+          city,
+          state,
+          pincode,
+          country
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { 
+          ...storedUser, 
+          address: { street: addressLine1, city, state, pincode, country }
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success('Address saved successfully!');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error(data.message || 'Failed to update address');
+      }
+    } catch (error) {
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveBank = (e: React.FormEvent) => {
+  // ✅ Save UPI + Bank Details together
+  const handleSaveBankDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Bank details saved successfully!');
+    setLoading(true);
+    setSaveSuccess(false);
+    
+    const authToken = token || localStorage.getItem('customer_token');
+    
+    if (!authToken) {
+      toast.error('Please login again');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/update-bank-details', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({
+          upiId: upiId,
+          accountHolderName: accountHolder,
+          accountNumber: accountNumber,
+          bankName: bankName,
+          ifscCode: ifscCode
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const updatedUser = { 
+          ...storedUser, 
+          bankDetails: { 
+            upiId: upiId,
+            accountHolderName: accountHolder,
+            accountNumber: accountNumber,
+            bankName: bankName,
+            ifscCode: ifscCode
+          }
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        toast.success('UPI & Bank details saved successfully!');
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else if (response.status === 401) {
+        toast.error('Session expired. Please login again.');
+      } else {
+        toast.error(data.message || 'Failed to update bank details');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'address', label: 'Address', icon: MapPin },
-    { id: 'bank', label: 'Bank Details', icon: CreditCard },
+    { id: 'bank', label: 'UPI & Bank Details', icon: CreditCard },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-     <main className="pt-16 lg:pt-24">
+      <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title="Profile Settings"
           subtitle="My Profile"
@@ -72,7 +251,7 @@ const Profile = () => {
               <div className="w-24 h-24 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-4xl mx-auto mb-4">
                 {user.email.charAt(0).toUpperCase()}
               </div>
-              <h2 className="font-display text-2xl text-foreground">{user.firstName} {user.lastName}</h2>
+              <h2 className="font-display text-2xl text-foreground">{firstName} {lastName}</h2>
               <p className="text-muted-foreground">{user.email}</p>
             </motion.div>
 
@@ -93,68 +272,166 @@ const Profile = () => {
               ))}
             </div>
 
+            {/* Personal Info Tab */}
             {activeTab === 'personal' && (
               <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSavePersonal} className="bg-card border border-border/30 p-8 space-y-6">
                 <h3 className="font-display text-xl text-foreground mb-6">Personal Information</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-muted-foreground mb-2">First Name</label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-background" /></div>
-                  <div><label className="block text-sm text-muted-foreground mb-2">Last Name</label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-background" /></div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">First Name</label>
+                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-background" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">Last Name</label>
+                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-background" required />
+                  </div>
                 </div>
-                <div><label className="block text-sm text-muted-foreground mb-2">Email Address</label><Input type="email" value={user.email} disabled className="bg-background opacity-60" /></div>
-                <div><label className="block text-sm text-muted-foreground mb-2">Phone Number</label><Input type="tel" placeholder="Enter phone number" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-background" /></div>
-                <button
-  type="submit"
-  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
->
-  Save Changes
-</button>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">Email Address</label>
+                  <Input type="email" value={user.email} disabled className="bg-background opacity-60" />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">Phone Number</label>
+                  <Input 
+                    type="tel" 
+                    placeholder="Enter phone number" 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)} 
+                    className="bg-background" 
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Required for order updates and delivery</p>
+                </div>
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save Changes'}
+                </Button>
+                {saveSuccess && (
+                  <div className="flex items-center justify-center gap-2 text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4" /> Saved successfully!
+                  </div>
+                )}
               </motion.form>
             )}
 
+            {/* Address Tab */}
             {activeTab === 'address' && (
               <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSaveAddress} className="bg-card border border-border/30 p-8 space-y-6">
                 <h3 className="font-display text-xl text-foreground mb-6">Shipping Address</h3>
-                <div><label className="block text-sm text-muted-foreground mb-2">Address Line 1</label><Input placeholder="House/Flat No., Building Name" value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} className="bg-background" /></div>
-                <div><label className="block text-sm text-muted-foreground mb-2">Address Line 2</label><Input placeholder="Street, Area, Landmark" value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} className="bg-background" /></div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-muted-foreground mb-2">City</label><Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="bg-background" /></div>
-                  <div><label className="block text-sm text-muted-foreground mb-2">State</label><Input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} className="bg-background" /></div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">Address Line 1</label>
+                  <Input placeholder="House/Flat No., Building Name" value={addressLine1} onChange={(e) => setAddressLine1(e.target.value)} className="bg-background" required />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-2">Address Line 2</label>
+                  <Input placeholder="Street, Area, Landmark" value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} className="bg-background" />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-muted-foreground mb-2">Pincode</label><Input placeholder="Pincode" value={pincode} onChange={(e) => setPincode(e.target.value)} className="bg-background" /></div>
-                  <div><label className="block text-sm text-muted-foreground mb-2">Country</label><Input placeholder="Country" value={country} disabled className="bg-background opacity-60" /></div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">City</label>
+                    <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="bg-background" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">State</label>
+                    <Input placeholder="State" value={state} onChange={(e) => setState(e.target.value)} className="bg-background" required />
+                  </div>
                 </div>
-              <button
-  type="submit"
-  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
->
-  Save Address
-</button>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">Pincode</label>
+                    <Input placeholder="Pincode" value={pincode} onChange={(e) => setPincode(e.target.value)} className="bg-background" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-muted-foreground mb-2">Country</label>
+                    <Input placeholder="Country" value={country} disabled className="bg-background opacity-60" />
+                  </div>
+                </div>
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save Address'}
+                </Button>
+                {saveSuccess && (
+                  <div className="flex items-center justify-center gap-2 text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4" /> Saved successfully!
+                  </div>
+                )}
               </motion.form>
             )}
 
+            {/* ✅ UPI & Bank Details Tab */}
             {activeTab === 'bank' && (
-              <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSaveBank} className="bg-card border border-border/30 p-8 space-y-6">
+              <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSaveBankDetails} className="bg-card border border-border/30 p-8 space-y-6">
                 <div className="mb-6">
-                  <h3 className="font-display text-xl text-foreground">Bank Details</h3>
+                  <h3 className="font-display text-xl text-foreground">UPI & Bank Details</h3>
                   <p className="text-muted-foreground text-sm mt-1">For refunds and returns. Your details are securely stored.</p>
                 </div>
-                <div><label className="block text-sm text-muted-foreground mb-2">Account Holder Name</label><Input placeholder="Name as per bank records" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} className="bg-background" /></div>
-                <div><label className="block text-sm text-muted-foreground mb-2">Account Number</label><Input placeholder="Bank account number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="bg-background" /></div>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div><label className="block text-sm text-muted-foreground mb-2">Bank Name</label><Input placeholder="Bank name" value={bankName} onChange={(e) => setBankName(e.target.value)} className="bg-background" /></div>
-                  <div><label className="block text-sm text-muted-foreground mb-2">IFSC Code</label><Input placeholder="IFSC Code" value={ifscCode} onChange={(e) => setIfscCode(e.target.value)} className="bg-background" /></div>
+                
+                {/* UPI Section */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" /> UPI ID
+                  </h4>
+                  <Input 
+                    placeholder="Enter UPI ID (e.g., name@upi)" 
+                    value={upiId} 
+                    onChange={(e) => setUpiId(e.target.value)} 
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Used for instant refunds via UPI</p>
                 </div>
-                <div className="border-t border-border/30 pt-6">
-                  <h4 className="font-body text-sm text-foreground mb-4 uppercase tracking-wider">Or Add UPI</h4>
-                  <div><label className="block text-sm text-muted-foreground mb-2">UPI ID</label><Input placeholder="yourname@upi" value={upiId} onChange={(e) => setUpiId(e.target.value)} className="bg-background" /></div>
+                
+                {/* Bank Section */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                    <Banknote className="w-4 h-4" /> Bank Account Details
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">Account Holder Name</label>
+                      <Input 
+                        placeholder="Name as per bank records" 
+                        value={accountHolder} 
+                        onChange={(e) => setAccountHolder(e.target.value)} 
+                        className="bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-muted-foreground mb-1">Account Number</label>
+                      <Input 
+                        placeholder="Bank account number" 
+                        value={accountNumber} 
+                        onChange={(e) => setAccountNumber(e.target.value)} 
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm text-muted-foreground mb-1">Bank Name</label>
+                        <Input 
+                          placeholder="Bank name" 
+                          value={bankName} 
+                          onChange={(e) => setBankName(e.target.value)} 
+                          className="bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-muted-foreground mb-1">IFSC Code</label>
+                        <Input 
+                          placeholder="IFSC Code" 
+                          value={ifscCode} 
+                          onChange={(e) => setIfscCode(e.target.value)} 
+                          className="bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-             <button
-  type="submit"
-  className="w-full bg-primary text-white py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
->
-  Save Bank Details
-</button>
+                
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save UPI & Bank Details'}
+                </Button>
+                {saveSuccess && (
+                  <div className="flex items-center justify-center gap-2 text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4" /> Saved successfully!
+                  </div>
+                )}
               </motion.form>
             )}
           </div>

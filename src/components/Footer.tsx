@@ -1,8 +1,63 @@
 import { Link } from 'react-router-dom';
 import { Instagram, Facebook, Twitter, MapPin, Phone, Mail } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import logo from "@/assets/logo.png";
 
+// Images for categories
+import ringImg from '@/assets/ring.jpeg';
+import pendantImg from '@/assets/chains.webp';
+import earringImg from '@/assets/earring/e1.jpg';
+import braceletImg from '@/assets/c.jpg';
+import necklaceImg from '@/assets/c.png';
+
+const getCategoryImage = (categoryName: string) => {
+  const name = categoryName.toLowerCase();
+  if (name.includes('ring')) return ringImg;
+  if (name.includes('earring')) return earringImg;
+  if (name.includes('pendant')) return pendantImg;
+  if (name.includes('necklace')) return necklaceImg;
+  if (name.includes('bracelet')) return braceletImg;
+  return ringImg;
+};
+
+const capitalizeCategory = (name: string) => {
+  if (!name) return '';
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 export const Footer = () => {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const API_BASE_URL = "http://localhost:5000/api";
+
+  // Fetch ONLY featured categories from API (same as Header)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        const data = await response.json();
+        
+        if (data.success && data.categories) {
+          // ✅ ONLY featured categories (same filter as Header)
+          const featuredCategories = data.categories
+            .filter((cat: any) => cat.isActive === true && cat.featured === true)
+            .map((cat: any) => ({
+              name: capitalizeCategory(cat.name),
+              slug: cat.slug || cat.name.toLowerCase(),
+              img: getCategoryImage(cat.name),
+            }));
+          setCategories(featuredCategories);
+        }
+      } catch (error) {
+        console.error("Error fetching categories for footer:", error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
+
   return (
     <footer className="bg-primary border-t border-burgundy/20">
       <div className="container mx-auto px-4 lg:px-8 py-12 lg:py-14">
@@ -59,21 +114,27 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 3: Categories */}
+          {/* Column 3: Categories - Featured Categories ONLY */}
           <div className="text-center md:text-left">
             <h4 className="font-display text-lg text-white mb-6 font-bold">Categories</h4>
-            <ul className="space-y-3">
-              {['Rings', 'Necklaces', 'Earrings', 'Bracelets', 'Pendants'].map((category) => (
-                <li key={category}>
-                  <Link 
-                    to={`/shop?category=${category.toLowerCase()}`} 
-                    className="text-white/80 text-sm hover:underline hover:decoration-white underline-offset-4 transition-all duration-300"
-                  >
-                    {category}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {loadingCategories ? (
+              <div className="text-white/60 text-sm">Loading...</div>
+            ) : categories.length === 0 ? (
+              <div className="text-white/60 text-sm">No categories</div>
+            ) : (
+              <ul className="space-y-3">
+                {categories.map((category) => (
+                  <li key={category.name}>
+                    <Link 
+                      to={`/shop?category=${category.slug}`} 
+                      className="text-white/80 text-sm hover:underline hover:decoration-white underline-offset-4 transition-all duration-300"
+                    >
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Column 4: Contact Us */}
@@ -109,13 +170,26 @@ export const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
         <div className="container mx-auto px-4 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
-          <p className="text-white/70 text-sm">
-            © 2026 <span className="text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}><span className="font-bold">Jewels</span><span className="font-thin tracking-wider">kart</span></span>. All rights reserved. | Designed by <span className="text-white font-semibold">Pawar Technologies and Services</span>
-          </p>
+         <p className="text-white/70 text-sm">
+  © 2026 
+  <span className="text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+    <span className="font-bold">Jewels</span>
+    <span className="font-thin tracking-wider">kart</span>
+  </span>. 
+  All rights reserved. | Designed by{" "}
+  
+  <a 
+    href="https://www.pawartechnologyservices.com/" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="text-white font-semibold hover:underline"
+  >
+    Pawar Technologies and Services
+  </a>
+</p>
           <div className="flex items-center gap-6 text-white/60 text-sm justify-center md:justify-start">
-            <Link to="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="#" className="hover:text-white transition-colors">Terms of Service</Link>
-            <Link to="#" className="hover:text-white transition-colors">Shipping</Link>
+            <Link to="/RefundCancellationPage" className="hover:text-white transition-colors">Refund & Cancellation Policy</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>

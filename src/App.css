@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+/* Remove any stray text nodes from price container */
+.price-container-fixed {
+  position: relative;
+}
+
+.price-container-fixed::before,
+.price-container-fixed::after {
+  display: none !important;
+  content: none !important;
+}
+
+.price-container-fixed > :not(span) {
+  display: none !important;
+}

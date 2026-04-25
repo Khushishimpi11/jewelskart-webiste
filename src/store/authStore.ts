@@ -12,6 +12,8 @@ export interface User {
   lastName: string;
   name?: string;
   phone?: string;
+  profilePicture?: string;
+  isGoogleUser?: boolean;
 }
 
 interface AuthState {
@@ -19,10 +21,11 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, phone?: string) => Promise<boolean>;
+  googleLogin: (accessToken: string) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (data: Partial<User>) => void;
-  refreshUser: () => Promise<void>;  // ✅ ADD THIS
+  updateProfile: (data: Partial<User>) => Promise<boolean>;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -51,14 +54,22 @@ export const useAuthStore = create<AuthState>()(
 
           console.log('🔍 Login response:', data);
 
+          // Split name into first and last name
+          const fullName = data.user.name || '';
+          const nameParts = fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
           const user: User = {
             id: data.user.id,
             customerId: data.user.customerId,
             email: data.user.email,
-            firstName: data.user.name?.split(' ')[0] || '',
-            lastName: data.user.name?.split(' ')[1] || '',
+            firstName: firstName,
+            lastName: lastName,
             name: data.user.name,
-            phone: data.user.phone,
+            phone: data.user.phone || '',
+            profilePicture: data.user.profilePicture || '',
+            isGoogleUser: data.user.isGoogleUser || false,
           };
 
           localStorage.setItem('customer_token', data.token);
@@ -75,25 +86,29 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email: string, password: string, firstName: string, lastName: string) => {
+      register: async (email: string, password: string, name: string, phone?: string) => {
         set({ isLoading: true });
         try {
+          const requestBody = {
+            name: name.trim(),
+            email,
+            password,
+            phone: phone || '',
+            address: {
+              street: '',
+              city: '',
+              state: '',
+              pincode: '',
+              country: 'India'
+            }
+          };
+
+          console.log('📝 Registration request:', requestBody);
+
           const response = await fetch(`${API_BASE_URL}/auth/customer/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: `${firstName} ${lastName}`.trim(),
-              email,
-              password,
-              phone: '',
-              address: {
-                street: '',
-                city: '',
-                state: '',
-                pincode: '',
-                country: 'India'
-              }
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           const data = await response.json();
@@ -106,6 +121,11 @@ export const useAuthStore = create<AuthState>()(
 
           console.log('🔍 Register response:', data);
 
+          // Split name into first and last name
+          const nameParts = name.trim().split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
           const user: User = {
             id: data.user.id,
             customerId: data.user.customerId,
@@ -113,7 +133,9 @@ export const useAuthStore = create<AuthState>()(
             firstName: firstName,
             lastName: lastName,
             name: data.user.name,
-            phone: data.user.phone,
+            phone: data.user.phone || phone || '',
+            profilePicture: data.user.profilePicture || '',
+            isGoogleUser: data.user.isGoogleUser || false,
           };
 
           localStorage.setItem('customer_token', data.token);
@@ -130,6 +152,51 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+  googleLogin: async (accessToken: string) => {
+  set({ isLoading: true });
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: accessToken }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast.error(data.message || 'Google login failed');
+      set({ isLoading: false });
+      return false;
+    }
+
+    const fullName = data.user.name || '';
+    const nameParts = fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const user: User = {
+      id: data.user.id,
+      customerId: data.user.customerId,
+      email: data.user.email,
+      firstName: firstName,
+      lastName: lastName,
+      name: data.user.name,
+      phone: data.user.phone || '',
+      profilePicture: data.user.profilePicture || '',
+      isGoogleUser: true,
+    };
+
+    localStorage.setItem('customer_token', data.token);
+    set({ user, isAuthenticated: true, isLoading: false });
+    toast.success('Google login successful!');
+    return true;
+  } catch (error) {
+    console.error('Google login error:', error);
+    toast.error('Network error. Please try again.');
+    set({ isLoading: false });
+    return false;
+  }
+},
       logout: () => {
         localStorage.removeItem('customer_token');
         localStorage.removeItem('customer_storage');
@@ -137,15 +204,60 @@ export const useAuthStore = create<AuthState>()(
         toast.success('Logged out successfully');
       },
 
-      updateProfile: (data: Partial<User>) => {
-        const { user } = get();
-        if (user) {
-          set({ user: { ...user, ...data } });
+      updateProfile: async (data: Partial<User>) => {
+        const token = localStorage.getItem('customer_token');
+        if (!token) {
+          toast.error('Please login first');
+          return false;
+        }
+
+        set({ isLoading: true });
+        try {
+          // Prepare data for backend
+          const updateData: any = {};
+          if (data.firstName || data.lastName) {
+            updateData.name = `${data.firstName || get().user?.firstName} ${data.lastName || get().user?.lastName}`.trim();
+          }
+          if (data.phone !== undefined) updateData.phone = data.phone;
+
+          const response = await fetch(`${API_BASE_URL}/auth/customer/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(updateData),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            toast.error(result.message || 'Failed to update profile');
+            set({ isLoading: false });
+            return false;
+          }
+
+          // Update local state
+          const currentUser = get().user;
+          if (currentUser) {
+            const updatedUser = {
+              ...currentUser,
+              ...data,
+              name: updateData.name || currentUser.name,
+            };
+            set({ user: updatedUser, isLoading: false });
+          }
+          
           toast.success('Profile updated successfully');
+          return true;
+        } catch (error) {
+          console.error('Update profile error:', error);
+          toast.error('Network error. Please try again.');
+          set({ isLoading: false });
+          return false;
         }
       },
 
-      // ✅ Add refreshUser function to fetch latest user data
       refreshUser: async () => {
         const token = localStorage.getItem('customer_token');
         if (!token) return;
@@ -160,11 +272,19 @@ export const useAuthStore = create<AuthState>()(
           if (response.ok && data.user) {
             const currentUser = get().user;
             if (currentUser) {
+              const fullName = data.user.name || '';
+              const nameParts = fullName.split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+
               const updatedUser: User = {
                 ...currentUser,
                 customerId: data.user.customerId || currentUser.customerId,
                 name: data.user.name || currentUser.name,
+                firstName: firstName,
+                lastName: lastName,
                 phone: data.user.phone || currentUser.phone,
+                profilePicture: data.user.profilePicture || currentUser.profilePicture,
               };
               set({ user: updatedUser });
               console.log('🔄 User refreshed:', updatedUser);

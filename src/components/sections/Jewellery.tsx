@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { products } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard"; // Import the same ProductCard component
-import banner from "../../assets/cccc.webp";
+import banner from "../../assets/v.png";
 import exploreIcon from '../../assets/logoicon.png';
 
 export default function Jewellery() {

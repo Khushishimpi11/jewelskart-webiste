@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { ExchangeProvider } from "@/context/ExchangeContext";
+import { GoogleOAuthProvider } from "@react-oauth/google"; // ✅ ADD THIS IMPORT
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -17,9 +19,12 @@ import TrackOrder from "./pages/TrackOrder";
 import Profile from "./pages/Profile";
 import OrderSummary from "./pages/OrderSummary";
 import About from "./pages/About";
-
 import NotFound from "./pages/NotFound";
 import Testimonials from "./pages/Testimonials";
+
+// Policy Pages
+import TermsPage from "./pages/TermsPage";
+import RefundCancellationPage from "./pages/RefundCancellationPage";
 
 const queryClient = new QueryClient();
 
@@ -34,33 +39,44 @@ const ScrollToTop = () => {
   return null;
 };
 
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/track-order" element={<TrackOrder />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/order-summary" element={<OrderSummary />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/testimonials" element={<Testimonials />} />
-        
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <GoogleOAuthProvider clientId="328448157213-htfq8k1fe4igl4reb3vmdvfbmodu6u6l.apps.googleusercontent.com">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <ExchangeProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
+              {/* Main Pages */}
+              <Route path="/" element={<Index />} />
+              <Route path="/shop" element={<Shop />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/account" element={<Account />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/track-order" element={<TrackOrder />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/order-summary" element={<OrderSummary />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/testimonials" element={<Testimonials />} />
+              
+              {/* Policy Pages */}
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/RefundCancellationPage" element={<RefundCancellationPage/>} />
+             
+              {/* 404 Page */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ExchangeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </GoogleOAuthProvider>
 );
 
 export default App;

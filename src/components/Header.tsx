@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
+import { Menu, X, ShoppingBag, Heart, User, Search, Package, Settings, LogOut, ChevronDown, ChevronRight, Bell } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
+import NotificationBell from '@/components/NotificationBell';
 
 import logo from '@/assets/logo.png';
 
@@ -185,7 +186,7 @@ export const Header = () => {
           <div className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <img src={logo} alt="Jewelskart" className="h-28 sm:h-36 lg:h-56 w-auto" />
+              <img src={logo} alt="Jewelskart" className="h-20 sm:h-28 lg:h-40 w-auto" />
             </Link>
 
             {/* Desktop Navigation */}
@@ -199,7 +200,7 @@ export const Header = () => {
                 Home
               </Link>
 
-              {/* Shop Mega Menu - Only Featured Categories */}
+              {/* Shop Mega Menu */}
               <div
                 className="relative"
                 onMouseEnter={() => setShowShopMega(true)}
@@ -273,28 +274,38 @@ export const Header = () => {
               ))}
             </nav>
 
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-6">
-              <button className={`${textMutedColor} ${hoverColor} transition-colors`}>
+            {/* Desktop Actions - Reduced gap */}
+            <div className="hidden lg:flex items-center gap-4">
+              <button className={`${textMutedColor} ${hoverColor} transition-colors p-1`}>
                 <Search className="w-5 h-5" />
               </button>
-              <Link to="/wishlist" className={`relative ${textMutedColor} ${hoverColor} transition-colors`}>
+
+              {/* ✅ Notification Bell - Desktop */}
+              <NotificationBell />
+
+              <Link to="/wishlist" className={`relative ${textMutedColor} ${hoverColor} transition-colors p-1`}>
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">{wishlistCount}</span>
+                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">
+                    {wishlistCount}
+                  </span>
                 )}
               </Link>
-              <Link to="/cart" className={`relative ${textMutedColor} ${hoverColor} transition-colors`}>
+
+              <Link to="/cart" className={`relative ${textMutedColor} ${hoverColor} transition-colors p-1`}>
                 <ShoppingBag className="w-5 h-5" />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">{cartItemCount}</span>
+                  <span className="absolute -top-2 -right-2 w-4 h-4 bg-white text-primary text-xs flex items-center justify-center rounded-full">
+                    {cartItemCount}
+                  </span>
                 )}
               </Link>
+              
               {isAuthenticated ? (
                 <div className="relative">
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="w-10 h-10 rounded-full bg-white text-primary flex items-center justify-center font-display text-lg hover:opacity-90 transition-colors"
+                    className="w-9 h-9 rounded-full bg-white text-primary flex items-center justify-center font-display text-base hover:opacity-90 transition-colors"
                   >
                     {getInitial()}
                   </button>
@@ -304,44 +315,49 @@ export const Header = () => {
                         initial={{ opacity: 0, y: 10 }} 
                         animate={{ opacity: 1, y: 0 }} 
                         exit={{ opacity: 0, y: 10 }} 
-                        className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 shadow-lg py-2 rounded-lg -translate-x-[120px]"
+                        className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 shadow-lg py-2 rounded-lg"
                       >
-                        <Link to="/track-order" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
-                          <Package className="w-5 h-5" /> Track Order
+                        <Link to="/track-order" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                          <Package className="w-4 h-4" /> Track Order
                         </Link>
-                        <Link to="/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
-                          <User className="w-5 h-5" /> Profile
+                        <Link to="/profile" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                          <User className="w-4 h-4" /> Profile
                         </Link>
-                        <Link to="/order-summary" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
-                          <ShoppingBag className="w-5 h-5" /> Order Summary
+                        <Link to="/order-summary" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                          <ShoppingBag className="w-4 h-4" /> Order Summary
                         </Link>
-                        <Link to="/account" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-foreground hover:bg-muted transition-colors">
-                          <Settings className="w-5 h-5" /> Account
+                        <Link to="/account" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors">
+                          <Settings className="w-4 h-4" /> Account
                         </Link>
-                        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-base font-medium text-destructive hover:bg-muted transition-colors w-full">
-                          <LogOut className="w-5 h-5" /> Logout
+                        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-muted transition-colors w-full">
+                          <LogOut className="w-4 h-4" /> Logout
                         </button>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               ) : (
-                <Link to="/account" className={`${textMutedColor} ${hoverColor} transition-colors`}><User className="w-5 h-5" /></Link>
+                <Link to="/account" className={`${textMutedColor} ${hoverColor} transition-colors p-1`}>
+                  <User className="w-5 h-5" />
+                </Link>
               )}
             </div>
 
-            {/* Mobile Actions */}
-            <div className="flex lg:hidden items-center gap-3">
-              <Link to="/wishlist" className={`relative ${textMutedColor} min-h-[44px] min-w-[44px] flex items-center justify-center`}>
+            {/* Mobile Actions - Reduced gap */}
+            <div className="flex lg:hidden items-center gap-2">
+              {/* ✅ Notification Bell - Mobile */}
+              <NotificationBell />
+              
+              <Link to="/wishlist" className={`relative ${textMutedColor} min-h-[40px] min-w-[40px] flex items-center justify-center`}>
                 <Heart className="w-5 h-5" />
-                {wishlistCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-white text-primary text-[10px] flex items-center justify-center rounded-full">{wishlistCount}</span>}
+                {wishlistCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-white text-primary text-[10px] flex items-center justify-center rounded-full">{wishlistCount}</span>}
               </Link>
-              <Link to="/cart" className={`relative ${textMutedColor} min-h-[44px] min-w-[44px] flex items-center justify-center`}>
+              <Link to="/cart" className={`relative ${textMutedColor} min-h-[40px] min-w-[40px] flex items-center justify-center`}>
                 <ShoppingBag className="w-5 h-5" />
-                {cartItemCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-white text-primary text-[10px] flex items-center justify-center rounded-full">{cartItemCount}</span>}
+                {cartItemCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-white text-primary text-[10px] flex items-center justify-center rounded-full">{cartItemCount}</span>}
               </Link>
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`${textColor} min-h-[44px] min-w-[44px] flex items-center justify-center`}>
-                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`${textColor} min-h-[40px] min-w-[40px] flex items-center justify-center`}>
+                {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -414,14 +430,26 @@ export const Header = () => {
                 <div className="mt-6 space-y-1 pt-4 border-t border-border/30">
                   {isAuthenticated ? (
                     <>
-                      <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80"><User className="w-5 h-5" /> Profile</Link>
-                      <Link to="/track-order" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80"><Package className="w-5 h-5" /> Track Order</Link>
-                      <Link to="/order-summary" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80"><ShoppingBag className="w-5 h-5" /> Order Summary</Link>
-                      <Link to="/account" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80"><Settings className="w-5 h-5" /> Account Settings</Link>
-                      <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="flex items-center gap-3 py-3 min-h-[48px] text-destructive w-full"><LogOut className="w-5 h-5" /> Logout</button>
+                      <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80">
+                        <User className="w-5 h-5" /> Profile
+                      </Link>
+                      <Link to="/track-order" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80">
+                        <Package className="w-5 h-5" /> Track Order
+                      </Link>
+                      <Link to="/order-summary" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80">
+                        <ShoppingBag className="w-5 h-5" /> Order Summary
+                      </Link>
+                      <Link to="/account" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80">
+                        <Settings className="w-5 h-5" /> Account Settings
+                      </Link>
+                      <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="flex items-center gap-3 py-3 min-h-[48px] text-destructive w-full">
+                        <LogOut className="w-5 h-5" /> Logout
+                      </button>
                     </>
                   ) : (
-                    <Link to="/account" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80"><User className="w-5 h-5" /> Login / Register</Link>
+                    <Link to="/account" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 min-h-[48px] text-foreground/80">
+                      <User className="w-5 h-5" /> Login / Register
+                    </Link>
                   )}
                 </div>
               </nav>

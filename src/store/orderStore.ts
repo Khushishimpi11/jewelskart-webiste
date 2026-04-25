@@ -51,6 +51,20 @@ export interface TrackingData {
   updatedAt: string;
 }
 
+export interface ReturnRequest {
+  _id: string;
+  orderId: string;
+  orderNumber: string;
+  productName: string;
+  quantity: number;
+  reason: string;
+  requestType: 'cancel' | 'return' | 'exchange';
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  adminNote?: string;
+  refundAmount?: number;
+  createdAt: string;
+}
+
 export interface SimpleOrder {
   id: string;
   orderNumber: string;
@@ -73,6 +87,7 @@ interface OrderStore {
   isLoading: boolean;
   trackingData: TrackingData | null;
   isTrackingLoading: boolean;
+  returnRequests: ReturnRequest[];
   
   placeOrder: (cartItems: CartItem[], shippingData: any, paymentMethod: string, total: number) => Promise<string | null>;
   getOrderById: (id: string) => SimpleOrder | undefined;
@@ -81,6 +96,27 @@ interface OrderStore {
   getTrackingByOrderId: (orderId: string) => Promise<TrackingData | null>;
   resetLoading: () => void;
   clearTrackingData: () => void;
+  
+  createReturnRequest: (data: {
+    orderId: string;
+    productId?: string | null;
+    productName: string;
+    quantity: number;
+    price?: number;
+    reason: string;
+    description?: string;
+    requestType: 'cancel' | 'return' | 'exchange';
+    images?: string[];
+    video?: string | null;
+    refundDetails?: any;
+  }) => Promise<any>;
+  
+  cancelOrder: (orderId: string, reason: string) => Promise<any>;
+  cancelOrderImmediate: (orderId: string, reason: string) => Promise<any>;
+  returnOrder: (data: any) => Promise<any>;
+  exchangeOrder: (data: any) => Promise<any>;
+  fetchReturnRequests: () => Promise<void>;
+  updateOrderStatusLocally: (orderId: string, newStatus: string) => void;
 }
 
 export const useOrderStore = create<OrderStore>()((set, get) => ({
@@ -88,6 +124,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
   isLoading: false,
   trackingData: null,
   isTrackingLoading: false,
+  returnRequests: [],
 
   resetLoading: () => {
     set({ isLoading: false });
@@ -158,6 +195,139 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
     }
   },
 
+createReturnRequest: async (data) => {
+  const token = localStorage.getItem('customer_token');
+  
+  if (!token) {
+    toast.error('Please login');
+    return null;
+  }
+
+  // Prepare request body
+  const requestBody: any = {
+    orderId: data.orderId,
+    productId: data.productId,
+    productName: data.productName,
+    quantity: data.quantity,
+    price: data.price,
+    reason: data.reason,
+    description: data.description || '',
+    requestType: data.requestType,
+    images: data.images || []
+  };
+  
+  // Add refund details for return/cancel
+  if (data.requestType === 'return' || data.requestType === 'cancel') {
+    requestBody.refundDetails = data.refundDetails || { method: 'original' };
+  }
+  
+  // Add exchange details for exchange
+  if (data.requestType === 'exchange' && data.exchangeDetails) {
+    requestBody.exchangeDetails = {
+      exchangeProductId: data.exchangeDetails.exchangeProductId,
+      exchangeProductName: data.exchangeDetails.exchangeProductName,
+      exchangeProductPrice: data.exchangeDetails.exchangeProductPrice,
+      differencePaymentMethod: data.exchangeDetails.differencePaymentMethod,
+      differencePaymentDetails: data.exchangeDetails.differencePaymentDetails
+    };
+  }
+
+  console.log('📤 Sending request:', requestBody);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/returns/request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    const result = await response.json();
+    console.log('📥 Backend response:', result);
+    
+    if (response.ok) {
+      toast.success(result.message);
+      await get().fetchReturnRequests();
+      
+      if (data.requestType === 'cancel') {
+        get().updateOrderStatusLocally(data.orderId, 'Cancelled');
+        await get().fetchMyOrders();
+      }
+      
+      return result.request;
+    } else {
+      toast.error(result.message);
+      return null;
+    }
+  } catch (error: any) {
+    console.error('Return request error:', error);
+    toast.error(error.message || 'Something went wrong');
+    return null;
+  }
+},
+
+  cancelOrder: async (orderId, reason) => {
+    return await get().createReturnRequest({
+      orderId,
+      productId: null,
+      productName: "Full Order",
+      quantity: 1,
+      reason,
+      description: "Order cancellation request",
+      requestType: "cancel",
+      images: []
+    });
+  },
+
+  cancelOrderImmediate: async (orderId, reason) => {
+    get().updateOrderStatusLocally(orderId, 'Cancelled');
+    toast.success('Order cancelled successfully!');
+    return await get().cancelOrder(orderId, reason);
+  },
+
+  returnOrder: async (data) => {
+    return await get().createReturnRequest({
+      ...data,
+      requestType: "return"
+    });
+  },
+
+  exchangeOrder: async (data) => {
+    return await get().createReturnRequest({
+      ...data,
+      requestType: "exchange"
+    });
+  },
+
+  updateOrderStatusLocally: (orderId, newStatus) => {
+    set((state) => ({
+      orders: state.orders.map(order =>
+        order.id === orderId || order.orderNumber === orderId
+          ? { ...order, status: newStatus }
+          : order
+      )
+    }));
+  },
+
+  fetchReturnRequests: async () => {
+    const token = localStorage.getItem('customer_token');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/returns/my-requests`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        set({ returnRequests: data.requests });
+      }
+    } catch (error) {
+      console.error('Error fetching return requests:', error);
+    }
+  },
+
   placeOrder: async (cartItems, shippingData, paymentMethod, total) => {
     set({ isLoading: true });
     
@@ -169,12 +339,45 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       return null;
     }
 
+    let userData = null;
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        userData = JSON.parse(userStr);
+      }
+    } catch (e) {
+      console.error('Error parsing user data:', e);
+    }
+
     try {
       const orderItems = cartItems.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
         price: item.product.price,
+        productName: item.product.name,
+        productSku: item.product.sku || '',
+        productImage: item.product.image || '',
       }));
+
+      const orderData = {
+        items: orderItems,
+        shippingAddress: {
+          street: shippingData.address,
+          city: shippingData.city,
+          state: shippingData.state,
+          pincode: shippingData.zip,
+          country: 'India',
+        },
+        paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod.toUpperCase(),
+        customerPhone: shippingData.phone || '',
+        notes: '',
+        customerId: userData?.id || userData?._id,
+        userId: userData?.id || userData?._id,
+        customerName: userData?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerEmail: userData?.email || shippingData.email,
+      };
+
+      console.log('🟢 Sending order data:', orderData);
 
       const response = await fetch(`${API_BASE_URL}/orders/create`, {
         method: 'POST',
@@ -182,28 +385,16 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          items: orderItems,
-          shippingAddress: {
-            street: shippingData.address,
-            city: shippingData.city,
-            state: shippingData.state,
-            pincode: shippingData.zip,
-            country: 'India',
-          },
-          paymentMethod: paymentMethod === 'cod' ? 'COD' : paymentMethod.toUpperCase(),
-          customerPhone: shippingData.phone || '',
-          notes: '',
-        }),
+        body: JSON.stringify(orderData),
       });
 
       const data = await response.json();
+      console.log('🟢 Order response:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Order failed');
       }
 
-      // Calculate delivery date (5 days from now)
       const deliveryDate = new Date();
       deliveryDate.setDate(deliveryDate.getDate() + 5);
       
@@ -213,22 +404,21 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         year: 'numeric'
       });
 
-      // Get tracking ID from response
-      const trackingId = data.tracking?.trackingId || data.order.trackingNumber || '';
+      const trackingId = data.tracking?.trackingId || data.order?.trackingNumber || '';
 
       const newOrder: SimpleOrder = {
-        id: data.order._id,
-        orderNumber: data.order.orderNumber,
+        id: data.order?._id || data.order?.id,
+        orderNumber: data.order?.orderNumber,
         trackingNumber: trackingId,
         date: new Date().toLocaleDateString('en-IN', {
           day: 'numeric',
           month: 'long',
           year: 'numeric'
         }),
-        status: data.order.orderStatus || 'Confirmed',  // ✅ Default "Confirmed"
+        status: data.order?.orderStatus || 'Confirmed',
         total: total || 0,
-        customerName: shippingData.firstName + ' ' + shippingData.lastName,
-        customerEmail: shippingData.email,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
         customerPhone: shippingData.phone,
         items: cartItems.map(item => ({
           name: item.product.name,
@@ -256,9 +446,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         isLoading: false
       }));
       
-      toast.success(`Order confirmed! Tracking ID: ${trackingId}`);
+      toast.success(`Order confirmed! Order ID: ${data.order?.orderNumber}`);
       
-      return data.order._id;
+      return data.order?._id || data.order?.id;
       
     } catch (error: any) {
       console.error('Order error:', error);
@@ -305,7 +495,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
             month: 'long',
             year: 'numeric'
           }),
-          status: order.orderStatus || 'Confirmed',  // ✅ Default "Confirmed"
+          status: order.orderStatus || 'Confirmed',
           total: Number(order.totalAmount) || Number(order.total) || 0,
           customerName: order.customerName,
           customerEmail: order.customerEmail,

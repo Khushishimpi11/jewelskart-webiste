@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import aboutModel from '@/assets/c.jpg';
+import aboutModel from '@/assets/pp.jpeg';
 import aboutDetail from '@/assets/ring.jpeg';
 import exploreIcon from '../../assets/logoicon.png';
 

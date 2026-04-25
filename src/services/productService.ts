@@ -21,14 +21,13 @@ export interface Product {
   };
 }
 
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = "http://localhost:5000/api";
 
 export const productService = {
   // Get all products (only published ones for shop)
   async getPublishedProducts(): Promise<Product[]> {
     const response = await fetch(`${API_BASE_URL}/products`);
     const allProducts = await response.json();
-    // Filter only published products for shop
     return allProducts.filter((p: Product) => p.status === "Published");
   },
 
@@ -77,5 +76,78 @@ export const productService = {
       body: JSON.stringify({ stock, operation, note }),
     });
     return response.json();
+  },
+
+  // ✅ Get available products for exchange
+  async getAvailableProductsForExchange(token: string, category?: string, maxPrice?: number, excludeProductId?: string, search?: string): Promise<Product[]> {
+    try {
+      let url = `${API_BASE_URL}/returns/available-products`;
+      const params = new URLSearchParams();
+      if (category) params.append('category', category);
+      if (maxPrice) params.append('maxPrice', maxPrice.toString());
+      if (excludeProductId) params.append('excludeProductId', excludeProductId);
+      if (search) params.append('search', search);
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        return data.products.map((p: any) => ({
+          id: p._id || p.id,
+          name: p.name,
+          price: p.price,
+          purchasePrice: p.purchasePrice || 0,
+          category: p.category,
+          stock: p.stock,
+          description: p.description || '',
+          images: p.image ? [p.image] : (p.images || []),
+          sku: p.sku || '',
+          tags: p.tags || [],
+          status: p.status || "Published",
+          featured: p.featured,
+          bestSeller: p.bestSeller,
+          goldDetails: p.goldDetails
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching available products:', error);
+      return [];
+    }
+  },
+
+  // ✅ Get product by ID with token
+  async getProductByIdWithToken(id: string, token: string): Promise<Product | null> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.product) {
+        const p = data.product;
+        return {
+          id: p._id,
+          name: p.name,
+          price: p.price,
+          purchasePrice: p.purchasePrice || 0,
+          category: p.category,
+          stock: p.stock,
+          description: p.description || '',
+          images: p.images || [],
+          sku: p.sku,
+          tags: p.tags || [],
+          status: p.status || "Published",
+          featured: p.featured,
+          bestSeller: p.bestSeller,
+          goldDetails: p.goldDetails
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      return null;
+    }
   }
 };

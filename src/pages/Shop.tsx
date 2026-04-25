@@ -1,18 +1,32 @@
 import { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, Loader2, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, Loader2, X, RefreshCw } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { ProductCard } from '@/components/ProductCard';
 import { Slider } from '@/components/ui/slider';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useExchange } from '@/context/ExchangeContext';
 
 const API_BASE_URL = "http://localhost:5000/api";
 const PRODUCTS_PER_PAGE = 9;
 
 type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
+
+// ========== UPDATED PRODUCT INTERFACE WITH CLOUDINARY ==========
+interface CloudinaryImage {
+  url: string;
+  publicId: string;
+}
+
+interface GalleryImage {
+  url: string;
+  publicId: string;
+  alt?: string;
+}
 
 interface Product {
   _id?: string;
@@ -25,6 +39,10 @@ interface Product {
   stock: number;
   description: string;
   images: string[];
+  // ========== CLOUDINARY FIELDS ==========
+  mainImage?: CloudinaryImage;
+  galleryImages?: GalleryImage[];
+  // =======================================
   sku: string;
   tags: string[];
   status: "Published" | "Draft" | "Archived";
@@ -60,10 +78,53 @@ interface Category {
   productCount: number;
 }
 
+// ========== HELPER FUNCTION TO GET PRODUCT IMAGE ==========
+const getProductImageUrl = (product: Product): string => {
+  // Priority 1: Cloudinary mainImage
+  if (product.mainImage?.url) {
+    // Add optimization transformations for better performance
+    return product.mainImage.url.replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
+  }
+  // Priority 2: Old images array
+  if (product.images && product.images.length > 0) {
+    return product.images[0];
+  }
+  // Fallback
+  return '/placeholder-image.jpg';
+};
+
+const getAllProductImages = (product: Product): string[] => {
+  const images: string[] = [];
+  
+  // Add Cloudinary main image
+  if (product.mainImage?.url) {
+    images.push(product.mainImage.url);
+  }
+  
+  // Add Cloudinary gallery images
+  if (product.galleryImages && product.galleryImages.length > 0) {
+    product.galleryImages.forEach(img => {
+      if (img.url) images.push(img.url);
+    });
+  }
+  
+  // Add old images array (fallback)
+  if (product.images && product.images.length > 0) {
+    images.push(...product.images);
+  }
+  
+  // Remove duplicates
+  return [...new Set(images)];
+};
+
 const Shop = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { exchangeData, setExchangeData, setIsExchangeMode } = useExchange();
+  
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 100000]);
+  const [priceRange, setPriceRange] = useState([0,500000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,10 +137,36 @@ const Shop = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoryMapping, setCategoryMapping] = useState<Record<string, string>>({});
 
+  // Exchange Mode States
+  const [isExchangeMode, setIsExchangeModeLocal] = useState(false);
+  const [exchangeOrderId, setExchangeOrderId] = useState('');
+  const [exchangeReturnProductId, setExchangeReturnProductId] = useState('');
+  const [exchangeReturnProductPrice, setExchangeReturnProductPrice] = useState(0);
+  const [exchangeReturnProductName, setExchangeReturnProductName] = useState('');
+
   const categoryFromUrl = searchParams.get('category');
   const brandFromUrl = searchParams.get('brand');
 
-  // Fetch ONLY FEATURED categories from API
+  // Check for exchange mode from URL and Context
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const forExchange = params.get('for');
+    
+    if (forExchange === 'exchange' && exchangeData) {
+      setIsExchangeModeLocal(true);
+      setIsExchangeMode(true);
+      setExchangeOrderId(exchangeData.orderId);
+      setExchangeReturnProductId(exchangeData.returnProductId);
+      setExchangeReturnProductPrice(exchangeData.returnProductPrice);
+      setExchangeReturnProductName(exchangeData.returnProductName);
+      
+      toast.success(`Exchange Mode: Select a product to exchange for ${exchangeData.returnProductName}`);
+    } else {
+      setIsExchangeModeLocal(false);
+      setIsExchangeMode(false);
+    }
+  }, [location.search, exchangeData, setIsExchangeMode]);
+
   const fetchCategories = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories`);
@@ -96,8 +183,6 @@ const Shop = () => {
           mapping[cat.slug] = cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
         });
         setCategoryMapping(mapping);
-        
-        console.log("⭐ Featured categories:", featuredCategories);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -122,26 +207,21 @@ const Shop = () => {
       clearTimeout(timeoutId);
       
       if (response.ok) {
-        console.log('✅ Backend connected');
         return true;
       }
     } catch (error) {
-      console.error('❌ Backend connection failed:', error);
       return false;
     }
     return false;
   };
 
+  // ========== UPDATED FETCH PRODUCTS WITH CLOUDINARY ==========
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const isConnected = await checkBackendConnection();
       if (!isConnected) {
-        toast({ 
-          title: "Connection Error", 
-          description: "Cannot connect to backend server. Please make sure it's running on port 5000.", 
-          variant: "destructive" 
-        });
+        toast.error("Cannot connect to backend server.");
         setProducts([]);
         setLoading(false);
         return;
@@ -170,17 +250,29 @@ const Shop = () => {
         productsArray = [];
       }
       
+      // ========== NORMALIZE PRODUCTS WITH CLOUDINARY IMAGES ==========
       const normalizedProducts = productsArray
         .filter((p: Product) => p.status === "Published")
-        .map((p: Product) => ({
-          ...p,
-          price: Number(p.price),
-          purchasePrice: Number(p.purchasePrice),
-          images: p.images && p.images.length > 0 ? p.images : ['/placeholder-image.jpg']
-        }));
+        .map((p: Product) => {
+          // Get all images from Cloudinary or old format
+          const allImages = getAllProductImages(p);
+          
+          return {
+            ...p,
+            id: p._id,
+            price: Number(p.price),
+            purchasePrice: Number(p.purchasePrice),
+            // Use Cloudinary images if available, otherwise fallback
+            images: allImages.length > 0 ? allImages : ['/placeholder-image.jpg'],
+            // Keep Cloudinary fields for reference
+            mainImage: p.mainImage,
+            galleryImages: p.galleryImages,
+          };
+        });
       
       setProducts(normalizedProducts);
       
+      // Extract unique tags
       const tags = new Set<string>();
       normalizedProducts.forEach((p: Product) => {
         if (p.tags && Array.isArray(p.tags)) {
@@ -189,14 +281,9 @@ const Shop = () => {
       });
       setAllTags(Array.from(tags));
      
-      
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to load products. Please try again later.", 
-        variant: "destructive" 
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to load products.");
       setProducts([]);
     } finally {
       setLoading(false);
@@ -263,8 +350,17 @@ const Shop = () => {
     }
   }, [filteredProducts, sortBy]);
 
-  const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = sortedProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+  // Filter products for exchange mode - Only show in-stock products
+  const exchangeAvailableProducts = useMemo(() => {
+    if (!isExchangeMode) return sortedProducts;
+    // Only show products with stock > 0 and not the current product
+    return sortedProducts.filter(product => 
+      product.stock > 0 && (product._id || product.id) !== exchangeReturnProductId
+    );
+  }, [sortedProducts, isExchangeMode, exchangeReturnProductId]);
+
+  const totalPages = Math.ceil(exchangeAvailableProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = exchangeAvailableProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
 
   const toggleTag = (tag: string) => { 
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]); 
@@ -284,6 +380,9 @@ const Shop = () => {
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
 
   const getPageTitle = () => {
+    if (isExchangeMode) {
+      return 'Select Exchange Product';
+    }
     if (brandFromUrl) {
       return brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1);
     }
@@ -293,34 +392,59 @@ const Shop = () => {
     return 'Shop All';
   };
 
-// ✅ FIXED: Priority to Category, then Brand
-const getBreadcrumbs = () => {
-  const breadcrumbs = [{ label: 'Home', path: '/' }];
-  
-  // ✅ Priority 1: Category (if exists)
-  if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
-    breadcrumbs.push({ 
-      label: categoryMapping[categoryFromUrl], 
-      path: `/shop?category=${categoryFromUrl}` 
-    });
-  } 
-  // ✅ Priority 2: Brand (only if no category)
-  else if (brandFromUrl) {
-    breadcrumbs.push({ 
-      label: brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1), 
-      path: '/shop' 
-    });
-  } 
-  // ✅ Priority 3: Default
-  else {
-    breadcrumbs.push({ label: 'Shop All', path: '/shop' });
-  }
-  
-  return breadcrumbs;
-};
+  const getBreadcrumbs = () => {
+    const breadcrumbs = [{ label: 'Home', path: '/' }];
+    
+    if (isExchangeMode) {
+      breadcrumbs.push({ label: 'Order Summary', path: '/order-summary' });
+      breadcrumbs.push({ label: 'Select Exchange Product', path: '/shop' });
+    } else if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
+      breadcrumbs.push({ 
+        label: categoryMapping[categoryFromUrl], 
+        path: `/shop?category=${categoryFromUrl}` 
+      });
+    } else if (brandFromUrl) {
+      breadcrumbs.push({ 
+        label: brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1), 
+        path: '/shop' 
+      });
+    } else {
+      breadcrumbs.push({ label: 'Shop All', path: '/shop' });
+    }
+    
+    return breadcrumbs;
+  };
 
-  const getCategoryDisplayName = (categorySlug: string) => {
-    return categoryMapping[categorySlug] || categorySlug;
+  // Handle exchange product selection
+  const handleSelectForExchange = (product: Product) => {
+    const productId = product._id || product.id;
+    
+    if (!exchangeData) {
+      toast.error("Exchange data not found. Please try again.");
+      navigate('/order-summary');
+      return;
+    }
+    
+    // Update Context with selected product
+    const updatedData = {
+      ...exchangeData,
+      selectedExchangeProduct: {
+        id: productId,
+        name: product.name,
+        price: product.price,
+        image: getProductImageUrl(product),
+        sku: product.sku
+      },
+      step: 'complete' as const,
+      timestamp: Date.now()
+    };
+    
+    setExchangeData(updatedData);
+    
+    toast.success(`Selected ${product.name} for exchange`);
+    
+    // Navigate back to order summary
+    navigate('/order-summary');
   };
 
   if (loading || loadingCategories) {
@@ -346,9 +470,32 @@ const getBreadcrumbs = () => {
       <main className="pt-16 lg:pt-24">
         <InnerPageBanner 
           title={getPageTitle()} 
-          subtitle="Our Collection" 
+          subtitle={isExchangeMode ? `Exchange for ${exchangeReturnProductName || 'your item'}` : "Our Collection"} 
           breadcrumbs={getBreadcrumbs()} 
         />
+
+        {/* Exchange Mode Banner */}
+        {isExchangeMode && (
+          <div className="bg-primary/5 border-b border-primary/10 py-3 px-4">
+            <div className="container mx-auto flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-primary" />
+                <span className="text-sm text-foreground">
+                  Exchange Mode: Select a product to exchange for <strong>{exchangeReturnProductName}</strong> (₹{exchangeReturnProductPrice.toLocaleString()})
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/order-summary')}
+                className="border-primary/30 text-primary hover:bg-primary/5"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancel Exchange
+              </Button>
+            </div>
+          </div>
+        )}
 
         <section className="relative py-8 lg:py-12 overflow-hidden">
           <div className="container mx-auto px-3 sm:px-4 lg:px-8">
@@ -386,7 +533,7 @@ const getBreadcrumbs = () => {
                     </button>
                   </div>
 
-                  {/* Categories Section - ONLY FEATURED CATEGORIES */}
+                  {/* Categories Section */}
                   <div className="mb-6 lg:mb-8">
                     <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">Categories</h4>
                     <div className="space-y-2">
@@ -467,7 +614,7 @@ const getBreadcrumbs = () => {
                 {/* Sort and Count Bar */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
                   <p className="text-muted-foreground text-xs sm:text-sm">
-                    Showing {paginatedProducts.length} of {sortedProducts.length} products
+                    Showing {paginatedProducts.length} of {exchangeAvailableProducts.length} products
                   </p>
                   <select 
                     value={sortBy} 
@@ -483,13 +630,19 @@ const getBreadcrumbs = () => {
                 </div>
 
                 {/* Products Display */}
-                {sortedProducts.length === 0 ? (
+                {exchangeAvailableProducts.length === 0 ? (
                   <div className="text-center py-12 lg:py-20 flex-1 flex flex-col items-center justify-center">
                     <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-6">
                       <ShoppingBag className="w-10 h-10 text-muted-foreground" />
                     </div>
-                    <h3 className="font-display text-xl text-foreground mb-2">No products found</h3>
-                    <p className="text-muted-foreground text-sm max-w-md">No products found matching your criteria.</p>
+                    <h3 className="font-display text-xl text-foreground mb-2">
+                      {isExchangeMode ? "No products available for exchange" : "No products found"}
+                    </h3>
+                    <p className="text-muted-foreground text-sm max-w-md">
+                      {isExchangeMode 
+                        ? "All products are currently out of stock. Please check back later." 
+                        : "No products found matching your criteria."}
+                    </p>
                     <button 
                       onClick={clearFilters}
                       className="mt-6 px-6 py-3 bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center rounded-sm"
@@ -506,6 +659,7 @@ const getBreadcrumbs = () => {
                           initial={{ opacity: 0, y: 20 }} 
                           animate={{ opacity: 1, y: 0 }} 
                           transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                          className="relative group"
                         >
                           <ProductCard 
                             product={{
@@ -513,14 +667,18 @@ const getBreadcrumbs = () => {
                               name: product.name,
                               price: Number(product.price),
                               originalPrice: Number(product.purchasePrice) || undefined,
-                              image: product.images?.[0] || '/placeholder-image.jpg',
+                              images: product.images,
+                              image: getProductImageUrl(product),
                               category: product.category,
                               sku: product.sku,
                               tags: product.tags || [],
                               rating: product.reviews?.rating || 4.5,
                               reviewCount: product.reviews?.count || 0,
-                              inStock: product.stock > 0
-                            }} 
+                              stock: product.stock
+                            }}
+                            isExchangeMode={isExchangeMode}
+                            onExchangeSelect={handleSelectForExchange}
+                            isCurrentProduct={(product._id || product.id) === exchangeReturnProductId}
                           />
                         </motion.div>
                       ))}

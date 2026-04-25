@@ -4,11 +4,11 @@ import { useCartStore } from "@/store/cartStore";
 import { useWishlistStore } from "@/store/wishlistStore";
 import { toast } from "sonner";
 
-import ringHand from "@/assets/mring.jpg";
+import ringHand from "@/assets/mring.png";
 import ringBox from "@/assets/mock.png";
 import necklace from "@/assets/Chain/Chain/c1.1.jpg";
 import ring from "@/assets/Pendant/Pendant/p12.jpg";
-import model from "@/assets/mchain.jpg";
+import model from "@/assets/p.jpeg";
 import exploreIcon from "../../assets/logoicon.png"; 
 
 export const JewelrySection = () => {
@@ -102,12 +102,19 @@ export const JewelrySection = () => {
               </text>
             </svg>
 
-            <button 
-              onClick={() => navigate("/shop")}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-[#FBF5F6] backdrop-blur-md flex items-center justify-center transition-all duration-300 group-hover:bg-primary border border-white shadow-2xl cursor-pointer z-40"
-            >
-              <span className="text-[10px] md:text-[12px] font-bold tracking-[2px] md:tracking-[4px] text-center leading-tight text-gray-900 group-hover:text-white uppercase">SHOP<br/>NOW</span>
-            </button>
+           <button 
+  onClick={() => navigate("/shop")}
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+  w-[90px] h-[90px] md:w-[120px] md:h-[120px] 
+  rounded-full bg-[#FBF5F6] backdrop-blur-md 
+  flex items-center justify-center 
+  transition-all duration-300 group-hover:bg-primary 
+  border border-white shadow-2xl cursor-pointer z-40"
+>
+  <span className="text-[9px] md:text-[11px] font-bold tracking-[1.5px] md:tracking-[3px] text-center leading-tight text-gray-900 group-hover:text-white uppercase">
+    SHOP<br/>NOW
+  </span>
+</button>
           </div>
         </div>
 
