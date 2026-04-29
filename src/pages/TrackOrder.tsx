@@ -42,8 +42,29 @@ const TrackOrder = () => {
   const [copied, setCopied] = useState(false);
   const [fromOrderHistory, setFromOrderHistory] = useState(false);
   const [loadingReturn, setLoadingReturn] = useState(false);
+  const [productImagesMap, setProductImagesMap] = useState<Record<string, string>>({});
   
   const { getTrackingByTrackingId, fetchMyOrders, orders } = useOrderStore();
+
+  // Fetch product images
+  const fetchProductImage = async (productId: string) => {
+    if (productImagesMap[productId]) return productImagesMap[productId];
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success && data.product) {
+        const imageUrl = data.product.mainImage?.url || data.product.images?.[0] || '';
+        setProductImagesMap(prev => ({ ...prev, [productId]: imageUrl }));
+        return imageUrl;
+      }
+    } catch (error) {
+      console.error('Error fetching product image:', error);
+    }
+    return '';
+  };
 
   useEffect(() => {
     fetchMyOrders();
@@ -101,9 +122,17 @@ const TrackOrder = () => {
         const currentStatus = order.status || 'Confirmed';
         let requestType: string | undefined;
         
-        // Check if there's a return/exchange request
         if (returnRequest) {
           requestType = returnRequest.requestType;
+        }
+        
+        // Fetch images for all items
+        if (order.items) {
+          order.items.forEach(async (item: any) => {
+            if (item.productId) {
+              await fetchProductImage(item.productId);
+            }
+          });
         }
         
         setOrderStatus({
@@ -151,7 +180,7 @@ const TrackOrder = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ✅ RETURN TIMELINE STEPS (8 Steps)
+  // RETURN TIMELINE STEPS (8 Steps)
   const getReturnTimelineSteps = (orderDate: string) => {
     return [
       { name: 'Return Request Submitted', icon: RefreshCw, key: 'Return Requested', description: 'Your return request has been submitted' },
@@ -165,7 +194,7 @@ const TrackOrder = () => {
     ];
   };
 
-  // ✅ EXCHANGE TIMELINE STEPS (9 Steps)
+  // EXCHANGE TIMELINE STEPS (9 Steps)
   const getExchangeTimelineSteps = (orderDate: string) => {
     return [
       { name: 'Exchange Request Submitted', icon: RefreshCw, key: 'Exchange Requested', description: 'Your exchange request has been submitted' },
@@ -180,7 +209,7 @@ const TrackOrder = () => {
     ];
   };
 
-  // ✅ NORMAL ORDER TIMELINE (5 Steps)
+  // NORMAL ORDER TIMELINE (5 Steps)
   const getNormalOrderSteps = (status: string, orderDate: string) => {
     const steps = [
       { name: 'Order Confirmed', icon: CheckCircle, key: 'Confirmed', description: 'Your order has been confirmed' },
@@ -201,9 +230,8 @@ const TrackOrder = () => {
     }));
   };
 
-  // ✅ MAIN FUNCTION: Get timeline steps based on request type
+  // MAIN FUNCTION: Get timeline steps based on request type
   const getTimelineSteps = (orderStatus: string, orderDate: string, requestType?: string) => {
-    // If it's a return request
     if (requestType === 'return' || orderStatus.includes('Return')) {
       const steps = getReturnTimelineSteps(orderDate);
       const statusOrder = [
@@ -221,7 +249,6 @@ const TrackOrder = () => {
       }));
     }
     
-    // If it's an exchange request
     if (requestType === 'exchange' || orderStatus.includes('Exchange')) {
       const steps = getExchangeTimelineSteps(orderDate);
       const statusOrder = [
@@ -239,7 +266,6 @@ const TrackOrder = () => {
       }));
     }
     
-    // Normal order timeline
     return getNormalOrderSteps(orderStatus, orderDate);
   };
 
@@ -304,17 +330,15 @@ const TrackOrder = () => {
       return [
         { label: 'Home', path: '/' },
         { label: 'My Orders', path: '/order-summary' },
-        { label: 'Track Order' }
+        { label: 'Track Order', path: '/track-order' }
       ];
     } else {
       return [
         { label: 'Home', path: '/' },
-        { label: 'Track Order' }
+        { label: 'Track Order', path: '/track-order' }
       ];
     }
   };
-
-  // ✅ REMOVED: const returnSteps = getReturnTrackingSteps(); - This line was causing error
 
   return (
     <div className="min-h-screen bg-background">
@@ -436,28 +460,60 @@ const TrackOrder = () => {
                     </div>
                   )}
 
-                  {/* Order Items */}
+                  {/* ✅ ORDER ITEMS WITH SIZE AND IMAGE - FIXED */}
                   <div className="px-6 py-4 border-b border-border/30">
                     <h3 className="font-semibold text-foreground mb-3">Items</h3>
                     <div className="space-y-3">
-                      {orderStatus.items.map((item: any, idx: number) => (
-                        <div key={idx} className="flex items-center gap-4">
-                          <img 
-                            src={item.image || '/placeholder-image.jpg'} 
-                            alt={item.name || 'Product'} 
-                            className="w-16 h-16 object-cover rounded-sm border border-border/30"
-                            onError={(e) => (e.currentTarget.src = '/placeholder-image.jpg')}
-                          />
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground">{item.name || 'Product'}</p>
-                            <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
-                            {item.productSku && (
-                              <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
-                            )}
+                      {orderStatus.items.map((item: any, idx: number) => {
+                        // ✅ Get size from item
+                        const productSize = item.size || item.selectedSize || '';
+                        
+                        // ✅ Get image
+                        let productImage = productImagesMap[item.productId] || item.image || item.productImage || '';
+                        if (!productImage) {
+                          productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
+                        }
+                        
+                        return (
+                          <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                            <div className="w-16 h-16 flex-shrink-0">
+                              <img 
+                                src={productImage}
+                                alt={item.name || 'Product'}
+                                className="w-full h-full object-cover rounded-lg border border-gray-200"
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-foreground">{item.name || item.productName || 'Product'}</p>
+                              <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
+                                
+                                {/* ✅ SIZE BADGE - Added for tracking page */}
+                                {productSize && productSize !== '' ? (
+                                  <span className="text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700">
+                                    Size: {productSize}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
+                                    📏 Size: Standard
+                                  </span>
+                                )}
+                                
+                                {item.productSku && (
+                                  <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{formatPrice(item.price || 0)} each</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
+                            </div>
                           </div>
-                          <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -487,7 +543,7 @@ const TrackOrder = () => {
                   )}
                 </div>
 
-                {/* Order Timeline - Shows based on request type */}
+                {/* Order Timeline */}
                 <div className="bg-card border border-border/30 rounded-sm p-6">
                   <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">
                     {orderStatus.requestType === 'return' ? <RefreshCw className="w-5 h-5 text-purple-600" /> : 

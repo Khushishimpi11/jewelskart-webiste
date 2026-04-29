@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { ExchangeProvider } from "@/context/ExchangeContext";
-import { GoogleOAuthProvider } from "@react-oauth/google"; // ✅ ADD THIS IMPORT
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
 import ProductDetail from "./pages/ProductDetail";
@@ -26,6 +26,10 @@ import Testimonials from "./pages/Testimonials";
 import TermsPage from "./pages/TermsPage";
 import RefundCancellationPage from "./pages/RefundCancellationPage";
 
+// ✅ ADD THESE IMPORTS
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
 const queryClient = new QueryClient();
 
 // ScrollToTop component
@@ -38,7 +42,6 @@ const ScrollToTop = () => {
 
   return null;
 };
-
 
 const App = () => (
   <GoogleOAuthProvider clientId="328448157213-htfq8k1fe4igl4reb3vmdvfbmodu6u6l.apps.googleusercontent.com">
@@ -67,8 +70,12 @@ const App = () => (
               
               {/* Policy Pages */}
               <Route path="/terms" element={<TermsPage />} />
-              <Route path="/RefundCancellationPage" element={<RefundCancellationPage/>} />
-             
+              <Route path="/RefundCancellationPage" element={<RefundCancellationPage />} />
+              
+              {/* ✅ ADD FORGOT PASSWORD & RESET PASSWORD ROUTES */}
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>

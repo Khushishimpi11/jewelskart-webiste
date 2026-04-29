@@ -322,10 +322,33 @@ const ProductDetail = () => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const handleProceedToCheckout = () => {
-    handleAddToCart();
-    navigate('/checkout');
+// ✅ UPDATED: Buy Now from product detail page
+const handleProceedToCheckout = () => {
+  const productId = product._id || product.id;
+  
+  const buyNowProduct = {
+    product: {
+      id: productId,
+      name: product.name,
+      price: product.price,
+      image: getProductImageUrl(product, 0),
+      category: product.category,
+      sku: product.sku,
+      stock: product.stock
+    },
+    quantity: quantity,
+    size: selectedSize || undefined,
+    timestamp: Date.now()
   };
+  
+  navigate('/checkout', {
+    state: {
+      buyNowProduct: buyNowProduct,
+      isBuyNow: true,
+      fromBuyNow: true
+    }
+  });
+};
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();

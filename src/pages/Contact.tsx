@@ -6,39 +6,133 @@ import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Mail, Phone } from 'lucide-react';
+import { MapPin, Mail, Phone, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Contact = () => {
   const [searchParams] = useSearchParams();
   const isPartner = searchParams.get('partner') === 'true';
 
+  // Contact Form Fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  // Partner-specific fields
+  
+  // Partner Form Fields
   const [brandName, setBrandName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
   const [productType, setProductType] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [city, setCity] = useState('');
+  
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle Contact Form Submit
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !email || !message) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/contact/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          phone: phone || '',
+          subject: subject || 'General Inquiry',
+          message
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(data.message || 'Message sent successfully! We will get back to you soon.');
+        // Reset form
+        setName('');
+        setEmail('');
+        setSubject('');
+        setMessage('');
+        setPhone('');
+      } else {
+        toast.error(data.message || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      toast.error('Failed to send message. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Partner Form Submit
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!brandName || !ownerName || !email || !phone) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/contact/partner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: brandName,
+          ownerName,
+          email,
+          phone,
+          businessType: businessType || '',
+          city: city || '',
+          products: productType || '',
+          message: message || ''
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(data.message || 'Partnership application submitted! We will review and get back to you soon.');
+        // Reset form
+        setBrandName('');
+        setOwnerName('');
+        setEmail('');
+        setPhone('');
+        setProductType('');
+        setBusinessType('');
+        setCity('');
+        setMessage('');
+      } else {
+        toast.error(data.message || 'Failed to submit application. Please try again.');
+      }
+    } catch (error) {
+      console.error('Partner form error:', error);
+      toast.error('Failed to submit application. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
     if (isPartner) {
-      if (!brandName || !ownerName || !email || !phone) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-      toast.success('Partnership application submitted! We will review and get back to you soon.');
-      setBrandName(''); setOwnerName(''); setEmail(''); setPhone(''); setProductType(''); setMessage('');
+      handlePartnerSubmit(e);
     } else {
-      if (!name || !email || !message) {
-        toast.error('Please fill in all required fields');
-        return;
-      }
-      toast.success('Message sent successfully! We will get back to you soon.');
-      setName(''); setEmail(''); setSubject(''); setMessage('');
+      handleContactSubmit(e);
     }
   };
 
@@ -71,32 +165,125 @@ const Contact = () => {
                 {isPartner ? (
                   <>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input placeholder="Brand Name *" value={brandName} onChange={(e) => setBrandName(e.target.value)} className="bg-card" />
-                      <Input placeholder="Owner Name *" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="bg-card" />
+                      <Input 
+                        placeholder="Brand Name *" 
+                        value={brandName} 
+                        onChange={(e) => setBrandName(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
+                      <Input 
+                        placeholder="Owner Name *" 
+                        value={ownerName} 
+                        onChange={(e) => setOwnerName(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input type="email" placeholder="Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
-                      <Input placeholder="Phone *" value={phone} onChange={(e) => setPhone(e.target.value)} className="bg-card" />
+                      <Input 
+                        type="email" 
+                        placeholder="Email *" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
+                      <Input 
+                        placeholder="Phone *" 
+                        value={phone} 
+                        onChange={(e) => setPhone(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
                     </div>
-                    <Input placeholder="Product Type (e.g., Rings, Chains, Pendants)" value={productType} onChange={(e) => setProductType(e.target.value)} className="bg-card" />
-                    <Textarea placeholder="Tell us about your brand..." value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Input 
+                        placeholder="Business Type (e.g., Manufacturer, Wholesaler)" 
+                        value={businessType} 
+                        onChange={(e) => setBusinessType(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
+                      <Input 
+                        placeholder="City" 
+                        value={city} 
+                        onChange={(e) => setCity(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <Input 
+                      placeholder="Product Type (e.g., Rings, Chains, Pendants)" 
+                      value={productType} 
+                      onChange={(e) => setProductType(e.target.value)} 
+                      className="bg-card"
+                      disabled={isSubmitting}
+                    />
+                    <Textarea 
+                      placeholder="Tell us about your brand..." 
+                      value={message} 
+                      onChange={(e) => setMessage(e.target.value)} 
+                      className="bg-card min-h-[150px]"
+                      disabled={isSubmitting}
+                    />
                   </>
                 ) : (
                   <>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <Input placeholder="Your Name *" value={name} onChange={(e) => setName(e.target.value)} className="bg-card" />
-                      <Input type="email" placeholder="Your Email *" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-card" />
+                      <Input 
+                        placeholder="Your Name *" 
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
+                      <Input 
+                        type="email" 
+                        placeholder="Your Email *" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        className="bg-card"
+                        disabled={isSubmitting}
+                      />
                     </div>
-                    <Input placeholder="Subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-card" />
-                    <Textarea placeholder="Your Message *" value={message} onChange={(e) => setMessage(e.target.value)} className="bg-card min-h-[150px]" />
+                    <Input 
+                      placeholder="Phone (Optional)" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      className="bg-card"
+                      disabled={isSubmitting}
+                    />
+                    <Input 
+                      placeholder="Subject" 
+                      value={subject} 
+                      onChange={(e) => setSubject(e.target.value)} 
+                      className="bg-card"
+                      disabled={isSubmitting}
+                    />
+                    <Textarea 
+                      placeholder="Your Message *" 
+                      value={message} 
+                      onChange={(e) => setMessage(e.target.value)} 
+                      className="bg-card min-h-[150px]"
+                      disabled={isSubmitting}
+                    />
                   </>
                 )}
 
                 <button
                   type="submit"
-                  className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-md transition-all duration-300 hover:bg-primary/90"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto bg-primary text-white px-8 py-3 rounded-md transition-all duration-300 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isPartner ? 'Submit Application' : 'Send Message'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {isPartner ? 'Submitting...' : 'Sending...'}
+                    </>
+                  ) : (
+                    <>{isPartner ? 'Submit Application' : 'Send Message'}</>
+                  )}
                 </button>
               </form>
             </motion.div>
@@ -132,7 +319,7 @@ const Contact = () => {
                     <h3 className="font-semibold text-xl text-foreground mb-1">Email Us</h3>
                     <p className="text-muted-foreground">
                       info@jewelskart.com<br />
-                      support@jewelskart.com
+                      support@jewelskartindia.com
                     </p>
                   </div>
                 </div>

@@ -16,7 +16,7 @@ const PRODUCTS_PER_PAGE = 9;
 
 type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
 
-// ========== UPDATED PRODUCT INTERFACE WITH CLOUDINARY ==========
+// Product Interface with Cloudinary and Size Support
 interface CloudinaryImage {
   url: string;
   publicId: string;
@@ -39,10 +39,8 @@ interface Product {
   stock: number;
   description: string;
   images: string[];
-  // ========== CLOUDINARY FIELDS ==========
   mainImage?: CloudinaryImage;
   galleryImages?: GalleryImage[];
-  // =======================================
   sku: string;
   tags: string[];
   status: "Published" | "Draft" | "Archived";
@@ -78,42 +76,34 @@ interface Category {
   productCount: number;
 }
 
-// ========== HELPER FUNCTION TO GET PRODUCT IMAGE ==========
+// Helper function to get product image URL
 const getProductImageUrl = (product: Product): string => {
-  // Priority 1: Cloudinary mainImage
   if (product.mainImage?.url) {
-    // Add optimization transformations for better performance
     return product.mainImage.url.replace('/upload/', '/upload/w_400,h_400,c_fill,q_auto,f_auto/');
   }
-  // Priority 2: Old images array
   if (product.images && product.images.length > 0) {
     return product.images[0];
   }
-  // Fallback
   return '/placeholder-image.jpg';
 };
 
 const getAllProductImages = (product: Product): string[] => {
   const images: string[] = [];
   
-  // Add Cloudinary main image
   if (product.mainImage?.url) {
     images.push(product.mainImage.url);
   }
   
-  // Add Cloudinary gallery images
   if (product.galleryImages && product.galleryImages.length > 0) {
     product.galleryImages.forEach(img => {
       if (img.url) images.push(img.url);
     });
   }
   
-  // Add old images array (fallback)
   if (product.images && product.images.length > 0) {
     images.push(...product.images);
   }
   
-  // Remove duplicates
   return [...new Set(images)];
 };
 
@@ -215,7 +205,7 @@ const Shop = () => {
     return false;
   };
 
-  // ========== UPDATED FETCH PRODUCTS WITH CLOUDINARY ==========
+  // Fetch products with Cloudinary support
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -250,11 +240,10 @@ const Shop = () => {
         productsArray = [];
       }
       
-      // ========== NORMALIZE PRODUCTS WITH CLOUDINARY IMAGES ==========
+      // Normalize products with Cloudinary images and ensure ringSizes is always an array
       const normalizedProducts = productsArray
         .filter((p: Product) => p.status === "Published")
         .map((p: Product) => {
-          // Get all images from Cloudinary or old format
           const allImages = getAllProductImages(p);
           
           return {
@@ -262,11 +251,15 @@ const Shop = () => {
             id: p._id,
             price: Number(p.price),
             purchasePrice: Number(p.purchasePrice),
-            // Use Cloudinary images if available, otherwise fallback
             images: allImages.length > 0 ? allImages : ['/placeholder-image.jpg'],
-            // Keep Cloudinary fields for reference
             mainImage: p.mainImage,
             galleryImages: p.galleryImages,
+            specifications: {
+              ...p.specifications,
+              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0 
+                ? p.specifications.ringSizes 
+                : (p.category?.toLowerCase().includes('ring') ? ['Free Size'] : undefined)
+            }
           };
         });
       
@@ -415,8 +408,8 @@ const Shop = () => {
     return breadcrumbs;
   };
 
-  // Handle exchange product selection
-  const handleSelectForExchange = (product: Product) => {
+  // Handle exchange product selection with size
+  const handleSelectForExchange = (product: Product, selectedSize?: string) => {
     const productId = product._id || product.id;
     
     if (!exchangeData) {
@@ -425,15 +418,29 @@ const Shop = () => {
       return;
     }
     
-    // Update Context with selected product
+    // Check if product is a ring and size is required but not selected
+    const isRingProduct = product.category?.toLowerCase().includes('ring') || 
+                         product.tags?.some(tag => tag.toLowerCase().includes('ring'));
+    
+    if (isRingProduct && !selectedSize) {
+      toast.error("Please select a ring size before proceeding");
+      return;
+    }
+    
+    // Update Context with selected product and size
     const updatedData = {
       ...exchangeData,
       selectedExchangeProduct: {
         id: productId,
-        name: product.name,
+        name: selectedSize 
+          ? (selectedSize === 'Free Size' 
+              ? product.name 
+              : `${product.name} (Size ${selectedSize})`)
+          : product.name,
         price: product.price,
         image: getProductImageUrl(product),
-        sku: product.sku
+        sku: product.sku,
+        selectedSize: selectedSize || 'Free Size',
       },
       step: 'complete' as const,
       timestamp: Date.now()
@@ -441,7 +448,12 @@ const Shop = () => {
     
     setExchangeData(updatedData);
     
-    toast.success(`Selected ${product.name} for exchange`);
+    // Show appropriate success message
+    if (selectedSize && selectedSize !== 'Free Size') {
+      toast.success(`Selected ${product.name} - Size ${selectedSize} for exchange`);
+    } else {
+      toast.success(`Selected ${product.name} for exchange`);
+    }
     
     // Navigate back to order summary
     navigate('/order-summary');
@@ -674,7 +686,8 @@ const Shop = () => {
                               tags: product.tags || [],
                               rating: product.reviews?.rating || 4.5,
                               reviewCount: product.reviews?.count || 0,
-                              stock: product.stock
+                              stock: product.stock,
+                              specifications: product.specifications
                             }}
                             isExchangeMode={isExchangeMode}
                             onExchangeSelect={handleSelectForExchange}

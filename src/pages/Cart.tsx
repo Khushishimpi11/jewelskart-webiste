@@ -26,6 +26,15 @@ const Cart = () => {
     acc + calculateSavings(item.product.price, item.quantity), 0
   );
 
+  const getDeliveryDate = () => {
+    const date = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getDisplaySize = (item: any) => {
+    return item.size;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -61,75 +70,78 @@ const Cart = () => {
             <div className="grid lg:grid-cols-3 gap-6 lg:gap-12">
               {/* Cart Items */}
               <div className="lg:col-span-2 space-y-3 lg:space-y-4">
-                {items.map((item, index) => (
-                  <motion.div
-                    key={`${item.product.id}-${item.size}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border border-border/30 rounded-sm hover:shadow-md transition-shadow"
-                  >
-                    {/* Product Image */}
-                    <Link to={`/product/${item.product.id}`} className="flex-shrink-0 group">
-                      <div className="relative overflow-hidden rounded-sm">
-                        <img 
-                          src={item.product.image} 
-                          alt={item.product.name} 
-                          className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      </div>
-                    </Link>
+                {items.map((item, index) => {
+                  const selectedSize = getDisplaySize(item);
+                  
+                  return (
+                    <motion.div
+                      key={`${item.product.id}-${selectedSize || 'nosize'}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border border-border/30 rounded-sm hover:shadow-md transition-shadow"
+                    >
+                      {/* Product Image */}
+                      <Link to={`/product/${item.product.id}`} className="flex-shrink-0 group">
+                        <div className="relative overflow-hidden rounded-sm">
+                          <img 
+                            src={item.product.image || item.product.images?.[0]} 
+                            alt={item.product.name} 
+                            className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        </div>
+                      </Link>
 
-                    {/* Product Details */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0">
-                          <Link 
-                            to={`/product/${item.product.id}`} 
-                            className="font-display text-sm sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
-                          >
-                            {item.product.name}
-                          </Link>
-                          {item.product.category && (
-                            <p className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider mt-0.5 sm:mt-1">
-                              {item.product.category}
-                            </p>
+                      {/* Product Details */}
+                      <div className="flex-1 flex flex-col min-w-0">
+                        {/* Product Name and Price Row */}
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <Link 
+                              to={`/product/${item.product.id}`} 
+                              className="font-display text-sm sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
+                            >
+                              {item.product.name}
+                            </Link>
+                            {item.product.category && (
+                              <p className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider mt-0.5 sm:mt-1">
+                                {item.product.category}
+                              </p>
+                            )}
+                          </div>
+                          
+                          {/* Price - Right side */}
+                          <div className="text-right flex-shrink-0">
+                            <span className="font-display text-sm sm:text-lg text-primary">
+                              {formatPrice(item.product.price * item.quantity)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Size and Material */}
+                        <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 sm:mt-2">
+                          {selectedSize ? (
+                            <div className="flex items-center gap-1 text-xs sm:text-sm bg-primary/10 px-2 py-1 rounded border border-primary/20">
+                              <span className="font-medium text-primary">Size:</span>
+                              <span className="text-foreground font-semibold">
+                                {selectedSize === 'Free Size' ? 'Free Size' : selectedSize}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground bg-muted/30 px-2 py-1 rounded">
+                              <span className="font-medium">Size:</span>
+                              <span className="text-foreground">Standard</span>
+                            </div>
                           )}
                         </div>
-                        
-                        <div className="text-right flex-shrink-0">
-                          <span className="font-display text-sm sm:text-lg text-primary">
-                            {formatPrice(item.product.price * item.quantity)}
-                          </span>
-                          <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">
-                            {formatPrice(item.product.price)} each
-                          </p>
-                        </div>
-                      </div>
 
-                      {/* Specs */}
-                      <div className="grid grid-cols-2 gap-1 sm:gap-2 mt-2 sm:mt-3 text-xs sm:text-sm">
-                        {item.product.material && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-[10px] sm:text-xs">Material:</span>
-                            <span className="text-foreground font-medium truncate">{item.product.material}</span>
-                          </div>
-                        )}
-                        {item.size && (
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <span className="text-[10px] sm:text-xs">Size:</span>
-                            <span className="text-foreground font-medium">{item.size}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Quantity and Actions */}
-                      <div className="flex items-center justify-between mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border/20">
-                        <div className="flex items-center gap-2 sm:gap-4">
+                        {/* Quantity, Delivery Date, Price Each, and Remove - All in one row */}
+                        <div className="flex items-center justify-between flex-wrap gap-2 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border/20">
+                          {/* Quantity Controls */}
                           <div className="flex items-center border border-border/50 rounded-sm">
                             <button 
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.size)} 
+                              onClick={() => updateQuantity(item.product.id, item.quantity - 1, selectedSize)} 
                               className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                               disabled={item.quantity <= 1}
                             >
@@ -139,30 +151,37 @@ const Cart = () => {
                               {item.quantity}
                             </span>
                             <button 
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.size)} 
+                              onClick={() => updateQuantity(item.product.id, item.quantity + 1, selectedSize)} 
                               className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                             >
                               <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </div>
-                          
-                          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                            <Truck className="w-3 h-3" />
-                            <span>Delivery by {new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                          </div>
-                        </div>
 
-                        <button 
-                          onClick={() => removeItem(item.product.id, item.size)} 
-                          className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-xs sm:text-sm min-h-[44px] px-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="hidden sm:inline">Remove</span>
-                        </button>
+                          {/* Delivery Date - Next to quantity */}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Truck className="w-3 h-3" />
+                            <span>Delivery by {getDeliveryDate()}</span>
+                          </div>
+
+                          {/* Price Each */}
+                          <div className="text-xs sm:text-sm text-muted-foreground">
+                            {formatPrice(item.product.price)} each
+                          </div>
+
+                          {/* Remove Button */}
+                          <button 
+                            onClick={() => removeItem(item.product.id, selectedSize)} 
+                            className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-xs sm:text-sm min-h-[44px] px-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Remove</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
 
                 {/* Cart Actions */}
                 <div className="flex items-center justify-between pt-4">

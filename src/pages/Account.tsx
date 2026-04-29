@@ -326,11 +326,11 @@ const handleGoogleLogin = useGoogleLogin({
                   Sign in with Google
                 </button>
 
-                <p className="text-center text-muted-foreground text-sm">
-                  <a href="/forgot-password" className="hover:text-primary transition-colors">
-                    Forgot password?
-                  </a>
-                </p>
+               <p className="text-center text-muted-foreground text-sm">
+  <a href="/forgot-password" className="hover:text-primary transition-colors">
+    Forgot password?
+  </a>
+</p>
               </motion.form>
             ) : (
               <motion.form 

@@ -1282,53 +1282,102 @@ const OrderSummary = () => {
                         </div>
                       )}
 
-                      {/* ========== ORDER ITEMS WITH BATCH IMAGES ========== */}
-                      <div className="space-y-3 mb-4">
-                        {order.items && order.items.length > 0 ? (
-                          order.items.map((item, idx) => {
-                            const productImage = productImagesMap[item.productId];
-                            const productName = item.productName || item.name || 'Product';
-                            const productPrice = item.price || 0;
-                            const productQuantity = item.quantity || 1;
-                            const isLoading = !imagesFetched && !productImage;
-                            
-                            return (
-                              <div key={idx} className="flex items-center gap-4">
-                                <div className="w-14 h-14 flex-shrink-0">
-                                  {isLoading ? (
-                                    <div className="w-full h-full bg-gray-100 rounded-sm animate-pulse flex items-center justify-center">
-                                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                                    </div>
-                                  ) : productImage ? (
-                                    <img 
-                                      src={productImage}
-                                      alt={productName}
-                                      className="w-full h-full object-cover rounded-sm"
-                                      onError={(e) => {
-                                        e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image';
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gray-100 rounded-sm flex items-center justify-center">
-                                      <Package className="w-6 h-6 text-gray-400" />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-foreground text-sm">{productName}</p>
-                                  <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
-                                  {item.productSku && (
-                                    <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
-                                  )}
-                                </div>
-                                <span className="text-primary text-sm">{formatPrice(productPrice * productQuantity)}</span>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-muted-foreground text-sm">No items found</p>
-                        )}
-                      </div>
+                    {/* ========== ORDER ITEMS DISPLAY - FINAL WORKING VERSION ========== */}
+<div className="space-y-3 mb-4">
+  {order.items && order.items.length > 0 ? (
+    order.items.map((item, idx) => {
+      // ✅ Size from backend
+      const productSize = item.size || item.selectedSize || '';
+      
+      // ✅ Image - Priority order
+      let productImage = '';
+      
+      // Priority 1: Fetched from Product API
+      if (productImagesMap && productImagesMap[item.productId]) {
+        productImage = productImagesMap[item.productId];
+      }
+      // Priority 2: From order item
+      else if (item.productImage && item.productImage !== '') {
+        productImage = item.productImage;
+      }
+      // Priority 3: From image field
+      else if (item.image && item.image !== '') {
+        productImage = item.image;
+      }
+      // Priority 4: Colored placeholder with product name
+      else {
+        productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.productName || item.name || 'P').substring(0, 1))}`;
+      }
+      
+      const productName = item.productName || item.name || 'Product';
+      const productPrice = item.price || 0;
+      const productQuantity = item.quantity || 1;
+      const isLoading = !imagesFetched && !productImagesMap[item.productId];
+      
+      return (
+        <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+          {/* Product Image */}
+          <div className="w-16 h-16 flex-shrink-0">
+            {isLoading ? (
+              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <img 
+                src={productImage}
+                alt={productName}
+                className="w-full h-full object-cover rounded-lg border border-gray-200"
+                onError={(e) => {
+                  e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent(productName.substring(0, 1))}`;
+                }}
+              />
+            )}
+          </div>
+          
+          {/* Product Details */}
+          <div className="flex-1">
+            <p className="text-foreground text-sm font-medium">{productName}</p>
+            
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
+              
+              {/* ✅ SIZE BADGE */}
+              {productSize && productSize !== '' ? (
+                <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium">
+                   Size: {productSize}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
+                  📏 Size: Standard
+                </span>
+              )}
+              
+              {/* ✅ SKU - ADDED BACK */}
+              {item.productSku && (
+                <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
+              )}
+            </div>
+            
+            <p className="text-muted-foreground text-[11px] mt-1">
+              {formatPrice(productPrice)} each
+            </p>
+          </div>
+          
+          {/* Total Price */}
+          <div className="text-right">
+            <span className="text-primary text-sm font-semibold">
+              {formatPrice(productPrice * productQuantity)}
+            </span>
+          </div>
+        </div>
+      );
+    })
+  ) : (
+    <div className="flex items-center justify-center py-8">
+      <p className="text-muted-foreground text-sm">No items found</p>
+    </div>
+  )}
+</div>
 
                       {order.estimatedDelivery && order.status !== 'Delivered' && order.status !== 'Cancelled' && (
                         <div className="mb-4 p-3 bg-primary/5 rounded-sm">

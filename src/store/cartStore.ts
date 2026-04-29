@@ -9,12 +9,14 @@ export interface Product {
   image: string;
   category?: string;
   material?: string;
+  images?: string[];
+  stock?: number;
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
-  size?: string;
+  size?: string;  // ✅ Size stored here
 }
 
 interface CartStore {
@@ -34,19 +36,33 @@ export const useCartStore = create<CartStore>()(
       
       addItem: (product, size) => {
         set((state) => {
+          // Find existing item with same product AND same size
           const existingIndex = state.items.findIndex(
             (item) => item.product.id === product.id && item.size === size
           );
           
           if (existingIndex >= 0) {
+            // Increase quantity if exists
             const newItems = [...state.items];
             newItems[existingIndex].quantity += 1;
-            toast.success(`Added another ${product.name} to cart`);
+            if (size) {
+              toast.success(`Added another ${product.name} (Size ${size}) to cart`);
+            } else {
+              toast.success(`Added another ${product.name} to cart`);
+            }
             return { items: newItems };
           }
           
-          toast.success(`${product.name} added to cart`);
-          return { items: [...state.items, { product, quantity: 1, size }] };
+          // Add new item
+          if (size) {
+            toast.success(`${product.name} (Size ${size}) added to cart`);
+          } else {
+            toast.success(`${product.name} added to cart`);
+          }
+          
+          return { 
+            items: [...state.items, { product, quantity: 1, size }] 
+          };
         });
       },
       

@@ -12,6 +12,8 @@ export interface CartItem {
     sku?: string;
   };
   quantity: number;
+  size?: string;  // ✅ ADDED - For ring size
+  selectedSize?: string;  // ✅ ADDED - For ring size
 }
 
 export interface OrderItem {
@@ -23,6 +25,7 @@ export interface OrderItem {
   productId?: string;
   productSku?: string;
   total?: number;
+  size?: string;  // ✅ ADDED - For ring size
 }
 
 export interface ShippingAddress {
@@ -109,6 +112,7 @@ interface OrderStore {
     images?: string[];
     video?: string | null;
     refundDetails?: any;
+    exchangeDetails?: any;
   }) => Promise<any>;
   
   cancelOrder: (orderId: string, reason: string) => Promise<any>;
@@ -195,78 +199,72 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
     }
   },
 
-createReturnRequest: async (data) => {
-  const token = localStorage.getItem('customer_token');
-  
-  if (!token) {
-    toast.error('Please login');
-    return null;
-  }
-
-  // Prepare request body
-  const requestBody: any = {
-    orderId: data.orderId,
-    productId: data.productId,
-    productName: data.productName,
-    quantity: data.quantity,
-    price: data.price,
-    reason: data.reason,
-    description: data.description || '',
-    requestType: data.requestType,
-    images: data.images || []
-  };
-  
-  // Add refund details for return/cancel
-  if (data.requestType === 'return' || data.requestType === 'cancel') {
-    requestBody.refundDetails = data.refundDetails || { method: 'original' };
-  }
-  
-  // Add exchange details for exchange
-  if (data.requestType === 'exchange' && data.exchangeDetails) {
-    requestBody.exchangeDetails = {
-      exchangeProductId: data.exchangeDetails.exchangeProductId,
-      exchangeProductName: data.exchangeDetails.exchangeProductName,
-      exchangeProductPrice: data.exchangeDetails.exchangeProductPrice,
-      differencePaymentMethod: data.exchangeDetails.differencePaymentMethod,
-      differencePaymentDetails: data.exchangeDetails.differencePaymentDetails
-    };
-  }
-
-  console.log('📤 Sending request:', requestBody);
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/returns/request`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    const result = await response.json();
-    console.log('📥 Backend response:', result);
+  createReturnRequest: async (data) => {
+    const token = localStorage.getItem('customer_token');
     
-    if (response.ok) {
-      toast.success(result.message);
-      await get().fetchReturnRequests();
-      
-      if (data.requestType === 'cancel') {
-        get().updateOrderStatusLocally(data.orderId, 'Cancelled');
-        await get().fetchMyOrders();
-      }
-      
-      return result.request;
-    } else {
-      toast.error(result.message);
+    if (!token) {
+      toast.error('Please login');
       return null;
     }
-  } catch (error: any) {
-    console.error('Return request error:', error);
-    toast.error(error.message || 'Something went wrong');
-    return null;
-  }
-},
+
+    const requestBody: any = {
+      orderId: data.orderId,
+      productId: data.productId,
+      productName: data.productName,
+      quantity: data.quantity,
+      price: data.price,
+      reason: data.reason,
+      description: data.description || '',
+      requestType: data.requestType,
+      images: data.images || []
+    };
+    
+    if (data.requestType === 'return' || data.requestType === 'cancel') {
+      requestBody.refundDetails = data.refundDetails || { method: 'original' };
+    }
+    
+    if (data.requestType === 'exchange' && data.exchangeDetails) {
+      requestBody.exchangeDetails = {
+        exchangeProductId: data.exchangeDetails.exchangeProductId,
+        exchangeProductName: data.exchangeDetails.exchangeProductName,
+        exchangeProductPrice: data.exchangeDetails.exchangeProductPrice,
+        differencePaymentMethod: data.exchangeDetails.differencePaymentMethod,
+        differencePaymentDetails: data.exchangeDetails.differencePaymentDetails
+      };
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/returns/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message);
+        await get().fetchReturnRequests();
+        
+        if (data.requestType === 'cancel') {
+          get().updateOrderStatusLocally(data.orderId, 'Cancelled');
+          await get().fetchMyOrders();
+        }
+        
+        return result.request;
+      } else {
+        toast.error(result.message);
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Return request error:', error);
+      toast.error(error.message || 'Something went wrong');
+      return null;
+    }
+  },
 
   cancelOrder: async (orderId, reason) => {
     return await get().createReturnRequest({
@@ -350,14 +348,21 @@ createReturnRequest: async (data) => {
     }
 
     try {
-      const orderItems = cartItems.map(item => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-        price: item.product.price,
-        productName: item.product.name,
-        productSku: item.product.sku || '',
-        productImage: item.product.image || '',
-      }));
+      // ✅ Get size from cart item
+      const orderItems = cartItems.map(item => {
+        const itemSize = item.size || item.selectedSize || '';
+        console.log(`📦 Cart item: ${item.product.name}, Size: "${itemSize}"`);
+        
+        return {
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          productName: item.product.name,
+          productSku: item.product.sku || '',
+          productImage: item.product.image || '',
+          size: itemSize  // ✅ Send size to backend
+        };
+      });
 
       const orderData = {
         items: orderItems,
@@ -377,8 +382,6 @@ createReturnRequest: async (data) => {
         customerEmail: userData?.email || shippingData.email,
       };
 
-      console.log('🟢 Sending order data:', orderData);
-
       const response = await fetch(`${API_BASE_URL}/orders/create`, {
         method: 'POST',
         headers: {
@@ -389,7 +392,6 @@ createReturnRequest: async (data) => {
       });
 
       const data = await response.json();
-      console.log('🟢 Order response:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Order failed');
@@ -406,6 +408,7 @@ createReturnRequest: async (data) => {
 
       const trackingId = data.tracking?.trackingId || data.order?.trackingNumber || '';
 
+      // ✅ Store size in local order
       const newOrder: SimpleOrder = {
         id: data.order?._id || data.order?.id,
         orderNumber: data.order?.orderNumber,
@@ -427,6 +430,7 @@ createReturnRequest: async (data) => {
           image: item.product.image,
           productId: item.product.id,
           productSku: item.product.sku,
+          size: item.size || item.selectedSize || '',  // ✅ Store size
           total: item.product.price * item.quantity,
         })),
         shippingAddress: {
@@ -507,6 +511,7 @@ createReturnRequest: async (data) => {
             image: item.productImage || item.image || '/placeholder-image.jpg',
             productId: item.productId,
             productSku: item.productSku,
+            size: item.size || '',  // ✅ Get size from backend
             total: (Number(item.price) || 0) * (Number(item.quantity) || 1),
           })),
           shippingAddress: {
