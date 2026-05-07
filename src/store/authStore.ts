@@ -20,7 +20,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean | string>;
   register: (email: string, password: string, name: string, phone?: string) => Promise<boolean>;
   googleLogin: (accessToken: string) => Promise<boolean>;
   logout: () => void;
@@ -152,51 +152,78 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-  googleLogin: async (accessToken: string) => {
-  set({ isLoading: true });
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential: accessToken }),
-    });
+      googleLogin: async (accessToken: string) => {
+        set({ isLoading: true });
+        try {
+          const response = await fetch(`${API_BASE_URL}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: accessToken }),
+          });
 
-    const data = await response.json();
+          const data = await response.json();
 
-    if (!response.ok) {
-      toast.error(data.message || 'Google login failed');
-      set({ isLoading: false });
-      return false;
-    }
+          console.log('🔍 RAW GOOGLE LOGIN RESPONSE:', JSON.stringify(data, null, 2));
 
-    const fullName = data.user.name || '';
-    const nameParts = fullName.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || '';
+          if (!response.ok) {
+            toast.error(data.message || 'Google login failed');
+            set({ isLoading: false });
+            return false;
+          }
 
-    const user: User = {
-      id: data.user.id,
-      customerId: data.user.customerId,
-      email: data.user.email,
-      firstName: firstName,
-      lastName: lastName,
-      name: data.user.name,
-      phone: data.user.phone || '',
-      profilePicture: data.user.profilePicture || '',
-      isGoogleUser: true,
-    };
+          // Get name from response - check different possible field names
+          let fullName = '';
+          let firstName = '';
+          let lastName = '';
+          
+          // Try to get name from different possible response structures
+          if (data.user.name) {
+            fullName = data.user.name;
+          } else if (data.user.firstName && data.user.lastName) {
+            fullName = `${data.user.firstName} ${data.user.lastName}`;
+            firstName = data.user.firstName;
+            lastName = data.user.lastName;
+          } else if (data.user.given_name && data.user.family_name) {
+            fullName = `${data.user.given_name} ${data.user.family_name}`;
+            firstName = data.user.given_name;
+            lastName = data.user.family_name;
+          } else if (data.user.email) {
+            fullName = data.user.email.split('@')[0];
+          }
+          
+          // If first/last name not set from above, split fullName
+          if (!firstName && !lastName && fullName) {
+            const nameParts = fullName.split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+          }
 
-    localStorage.setItem('customer_token', data.token);
-    set({ user, isAuthenticated: true, isLoading: false });
-    toast.success('Google login successful!');
-    return true;
-  } catch (error) {
-    console.error('Google login error:', error);
-    toast.error('Network error. Please try again.');
-    set({ isLoading: false });
-    return false;
-  }
-},
+          const user: User = {
+            id: data.user.id || data.user._id,
+            customerId: data.user.customerId,
+            email: data.user.email,
+            firstName: data.user.firstName || firstName,
+            lastName: data.user.lastName || lastName,
+            name: data.user.name || fullName,
+            phone: data.user.phone || '',
+            profilePicture: data.user.profilePicture || data.user.picture || '',
+            isGoogleUser: true,
+          };
+
+          console.log('✅ Processed user object:', user);
+
+          localStorage.setItem('customer_token', data.token);
+          set({ user, isAuthenticated: true, isLoading: false });
+          toast.success('Google login successful!');
+          return true;
+        } catch (error) {
+          console.error('Google login error:', error);
+          toast.error('Network error. Please try again.');
+          set({ isLoading: false });
+          return false;
+        }
+      },
+      
       logout: () => {
         localStorage.removeItem('customer_token');
         localStorage.removeItem('customer_storage');

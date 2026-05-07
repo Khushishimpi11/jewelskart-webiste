@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, ShoppingBag, Eye, RefreshCw, ChevronDown } from 'lucide-react';
+import { Heart, ShoppingBag, Eye, RefreshCw, ChevronDown, Check } from 'lucide-react';
 import { Product } from '@/data/products';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -26,22 +26,21 @@ export const ProductCard = ({
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
   const addToCart = useCartStore((state) => state.addItem);
   const navigate = useNavigate();
-  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } =
-    useWishlistStore();
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
 
   const inWishlist = isInWishlist(product.id);
   const isOutOfStock = product.stock === 0;
   
   const productImage = product.images?.[0] || product.image || '/placeholder-image.jpg';
 
-  // Check if product is a ring
+  // ✅ Check if product is a ring
   const isRingProduct = useMemo(() => {
     return product.category?.toLowerCase().includes('ring') || 
            product.tags?.some(tag => tag.toLowerCase().includes('ring')) ||
            (product.specifications?.ringSizes && product.specifications.ringSizes.length > 0);
   }, [product]);
 
-  // Available ring sizes from backend, or default to Free Size
+  // ✅ Available ring sizes (only for rings)
   const availableSizes = useMemo(() => {
     if (product.specifications?.ringSizes && product.specifications.ringSizes.length > 0) {
       return product.specifications.ringSizes;
@@ -52,25 +51,34 @@ export const ProductCard = ({
     return [];
   }, [product, isRingProduct]);
 
-  // Auto-select Free Size if only one option
-  useMemo(() => {
-    if (isRingProduct && availableSizes.length === 1 && availableSizes[0] === 'Free Size') {
-      setSelectedSize('Free Size');
-    }
+  // ✅ Check if ring has only Free Size (auto-select case)
+  const hasOnlyFreeSize = useMemo(() => {
+    return isRingProduct && availableSizes.length === 1 && availableSizes[0] === 'Free Size';
   }, [isRingProduct, availableSizes]);
 
-  // ✅ Handle add to cart - adds to cart store
+  // ✅ Check if ring has multiple sizes
+  const hasMultipleSizes = useMemo(() => {
+    return isRingProduct && availableSizes.length > 1;
+  }, [isRingProduct, availableSizes]);
+
+  // ✅ Auto-select Free Size for rings if only one option
+  useEffect(() => {
+    if (hasOnlyFreeSize) {
+      setSelectedSize('Free Size');
+    }
+  }, [hasOnlyFreeSize]);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (isRingProduct && !selectedSize) {
+    // ✅ Only check size for ring products with multiple sizes
+    if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
     }
     
     const sizeToPass = isRingProduct ? selectedSize : undefined;
-    
     addToCart(product, sizeToPass);
     
     if (isRingProduct && selectedSize && selectedSize !== 'Free Size') {
@@ -80,11 +88,11 @@ export const ProductCard = ({
     }
   };
 
-  // ✅ Handle Buy Now - goes to checkout with only this product
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (isRingProduct && !selectedSize) {
+    // ✅ Only check size for ring products with multiple sizes
+    if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
@@ -93,7 +101,6 @@ export const ProductCard = ({
     const sizeToPass = isRingProduct ? selectedSize : undefined;
     const productId = product._id || product.id;
     
-    // Create buy now product object
     const buyNowProduct = {
       product: {
         id: productId,
@@ -109,7 +116,6 @@ export const ProductCard = ({
       timestamp: Date.now()
     };
     
-    // Navigate to checkout with buy now data
     navigate('/checkout', {
       state: {
         buyNowProduct: buyNowProduct,
@@ -121,24 +127,49 @@ export const ProductCard = ({
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    const productId = product._id || product.id;
+    
+    const wishlistProduct = {
+      id: productId,
+      name: product.name,
+      price: product.price,
+      image: productImage,
+      category: product.category,
+      originalPrice: product.purchasePrice,
+      stock: product.stock,
+      sku: product.sku,
+      isRingProduct: isRingProduct,
+      availableSizes: isRingProduct ? availableSizes : undefined,
+      selectedSize: isRingProduct ? selectedSize : undefined
+    };
+    
     if (inWishlist) {
-      removeFromWishlist(product.id);
+      removeFromWishlist(productId);
       toast.success('Removed from wishlist');
     } else {
-      addToWishlist(product);
-      toast.success('Added to wishlist');
+      // ✅ Only check size for ring products with multiple sizes
+      if (hasMultipleSizes && !selectedSize) {
+        toast.error('Please select a ring size first');
+        setShowSizeDropdown(true);
+        return;
+      }
+      addToWishlist(wishlistProduct, selectedSize);
     }
   };
 
   const handleCardClick = () => {
     if (isExchangeMode) return;
-    navigate(`/product/${product.id}`);
+    // ✅ Pass selected size only for ring products
+    navigate(`/product/${product.id}`, {
+      state: isRingProduct && selectedSize ? { selectedSize: selectedSize } : {}
+    });
   };
 
   const handleExchangeSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (isRingProduct && !selectedSize) {
+    if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
@@ -157,7 +188,6 @@ export const ProductCard = ({
     }).format(price);
   };
 
-  // Exchange Mode Render
   if (isExchangeMode) {
     return (
       <motion.div
@@ -180,25 +210,21 @@ export const ProductCard = ({
               e.currentTarget.src = '/placeholder-image.jpg';
             }}
           />
-
           {isOutOfStock && (
             <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500 text-white text-[10px] sm:text-xs font-body tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
               OUT OF STOCK
             </span>
           )}
-
           {isCurrentProduct && (
             <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-500 text-white text-[10px] sm:text-xs font-body tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-full z-10">
               CURRENT
             </span>
           )}
         </div>
-
         <div className="pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
           <h3 className="font-[Montserrat,sans-serif] text-base sm:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {product.name}
           </h3>
-
           <div className="flex items-center gap-2">
             <span className="font-body text-sm sm:text-base text-primary font-medium">
               {formatPrice(product.price)}
@@ -209,9 +235,9 @@ export const ProductCard = ({
               </span>
             )}
           </div>
-
-          {/* Size Selector for Exchange Mode */}
-          {isRingProduct && !isCurrentProduct && !isOutOfStock && (
+          
+          {/* Exchange Mode - Size Selector */}
+          {hasMultipleSizes && !isCurrentProduct && !isOutOfStock && (
             <div className="relative mt-2">
               <button
                 onClick={(e) => {
@@ -225,7 +251,6 @@ export const ProductCard = ({
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
               </button>
-              
               {showSizeDropdown && (
                 <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-sm shadow-lg">
                   <div className={`grid ${availableSizes.length > 4 ? 'grid-cols-4' : 'grid-cols-' + availableSizes.length} gap-1 p-2`}>
@@ -252,12 +277,21 @@ export const ProductCard = ({
               )}
             </div>
           )}
-
+          
+          {/* Exchange Mode - Only Free Size (No Arrow) */}
+          {hasOnlyFreeSize && !isCurrentProduct && !isOutOfStock && (
+            <div className="relative mt-2">
+              <div className="w-full px-3 py-2 text-sm border border-border rounded-sm bg-background flex items-center justify-between">
+                <span className="text-foreground">Free Size</span>
+              </div>
+            </div>
+          )}
+          
           <button
             onClick={handleExchangeSelect}
-            disabled={isCurrentProduct || isOutOfStock || (isRingProduct && !selectedSize)}
+            disabled={isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)}
             className={`w-full mt-1 sm:mt-2 py-2.5 sm:py-2 text-xs min-h-[44px] rounded-sm transition-all flex items-center justify-center gap-2 ${
-              isCurrentProduct || isOutOfStock || (isRingProduct && !selectedSize)
+              isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : 'bg-primary text-white hover:bg-primary/90'
             }`}
@@ -267,7 +301,7 @@ export const ProductCard = ({
               ? 'Current Product' 
               : isOutOfStock 
               ? 'Out of Stock' 
-              : isRingProduct && !selectedSize
+              : hasMultipleSizes && !selectedSize
               ? 'Select Size First'
               : 'Select for Exchange'}
           </button>
@@ -276,7 +310,7 @@ export const ProductCard = ({
     );
   }
 
-  // ✅ Normal Mode Render - Updated with Buy Now
+  // ✅ Normal Mode Render
   return (
     <motion.div
       className="group product-card relative cursor-pointer"
@@ -298,19 +332,16 @@ export const ProductCard = ({
             e.currentTarget.src = '/placeholder-image.jpg';
           }}
         />
-
         {product.originalPrice && (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-primary text-primary-foreground text-[10px] sm:text-xs font-body tracking-wider px-2 sm:px-3 py-0.5 sm:py-1">
             SALE
           </span>
         )}
-
         {isOutOfStock && (
           <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500 text-white text-[10px] sm:text-xs font-body tracking-wider px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
             OUT OF STOCK
           </span>
         )}
-
         {!isOutOfStock && (
           <motion.div
             className="absolute inset-0 bg-primary/50 backdrop-blur-sm flex items-center justify-center gap-2 sm:gap-3"
@@ -333,12 +364,12 @@ export const ProductCard = ({
           </motion.div>
         )}
       </div>
-
+      
       <div className="pt-3 sm:pt-4 space-y-1.5 sm:space-y-2">
         <h3 className="font-[Montserrat,sans-serif] text-base sm:text-lg font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
           {product.name}
         </h3>
-
+        
         <div className="flex items-center gap-2">
           <span className="font-body text-sm sm:text-base text-primary font-medium">
             {formatPrice(product.price)}
@@ -349,9 +380,9 @@ export const ProductCard = ({
             </span>
           )}
         </div>
-
-        {/* Size Selector for Normal Mode */}
-        {isRingProduct && !isOutOfStock && (
+        
+        {/* ✅ Ring Product with Multiple Sizes - Dropdown with Arrow */}
+        {hasMultipleSizes && !isOutOfStock && (
           <div className="relative mt-2">
             <button
               onClick={(e) => {
@@ -365,7 +396,6 @@ export const ProductCard = ({
               </span>
               <ChevronDown className={`w-4 h-4 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
             </button>
-            
             {showSizeDropdown && (
               <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-sm shadow-lg">
                 <div className={`grid ${availableSizes.length > 4 ? 'grid-cols-4' : 'grid-cols-' + availableSizes.length} gap-1 p-2`}>
@@ -392,32 +422,41 @@ export const ProductCard = ({
             )}
           </div>
         )}
-
-        {/* ✅ TWO BUTTONS: Add to Cart and Buy Now */}
-        <div className="flex gap-2 mt-1 sm:mt-2">
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || (isRingProduct && !selectedSize)}
-            className={`flex-1 py-2.5 sm:py-2 text-xs min-h-[44px] rounded-sm transition-all ${
-              isOutOfStock || (isRingProduct && !selectedSize)
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-500 text-white hover:bg-gray-600'
-            }`}
-          >
-            🛒 Add to Cart
-          </button>
-          <button
-            onClick={handleBuyNow}
-            disabled={isOutOfStock || (isRingProduct && !selectedSize)}
-            className={`flex-1 py-2.5 sm:py-2 text-xs min-h-[44px] rounded-sm transition-all ${
-              isOutOfStock || (isRingProduct && !selectedSize)
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary/90'
-            }`}
-          >
-            🔥 Buy Now
-          </button>
-        </div>
+        
+        {/* ✅ Ring Product with Only Free Size - Static Box (NO ARROW) */}
+        {hasOnlyFreeSize && !isOutOfStock && (
+          <div className="relative mt-2">
+            <div className="w-full px-3 py-2 text-sm border border-border rounded-sm bg-background flex items-center justify-between">
+              <span className="text-foreground">Free Size</span>
+            </div>
+          </div>
+        )}
+        
+        {/* ✅ Non-Ring Products - Static Box (NO ARROW) */}
+        {!isRingProduct && !isOutOfStock && (
+          <div className="relative mt-2">
+            <div className="w-full px-3 py-2 text-sm border border-border rounded-sm bg-background flex items-center justify-between">
+              <span className="text-foreground">Free Size</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Buy Now Button */}
+        <button
+          onClick={handleBuyNow}
+          disabled={isOutOfStock || (hasMultipleSizes && !selectedSize)}
+          className={`w-full mt-2 py-2.5 text-sm font-medium rounded-sm transition-all ${
+            isOutOfStock || (hasMultipleSizes && !selectedSize)
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              : 'btn-gold-outline'
+          }`}
+        >
+          {isOutOfStock 
+            ? 'Out of Stock' 
+            : hasMultipleSizes && !selectedSize 
+            ? 'Select Size First'
+            : 'Buy Now'}
+        </button>
       </div>
     </motion.div>
   );

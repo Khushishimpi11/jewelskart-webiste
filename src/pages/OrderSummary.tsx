@@ -1283,28 +1283,26 @@ const OrderSummary = () => {
                       )}
 
                     {/* ========== ORDER ITEMS DISPLAY - FINAL WORKING VERSION ========== */}
+{/* ========== ORDER ITEMS DISPLAY - UPDATED WITH FREE SIZE ========== */}
 <div className="space-y-3 mb-4">
   {order.items && order.items.length > 0 ? (
     order.items.map((item, idx) => {
-      // ✅ Size from backend
+      // ✅ Size from backend - show Free Size if no size
       const productSize = item.size || item.selectedSize || '';
+      const displaySize = (!productSize || productSize === '') ? 'Free Size' : productSize;
       
       // ✅ Image - Priority order
       let productImage = '';
       
-      // Priority 1: Fetched from Product API
       if (productImagesMap && productImagesMap[item.productId]) {
         productImage = productImagesMap[item.productId];
       }
-      // Priority 2: From order item
       else if (item.productImage && item.productImage !== '') {
         productImage = item.productImage;
       }
-      // Priority 3: From image field
       else if (item.image && item.image !== '') {
         productImage = item.image;
       }
-      // Priority 4: Colored placeholder with product name
       else {
         productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.productName || item.name || 'P').substring(0, 1))}`;
       }
@@ -1341,18 +1339,11 @@ const OrderSummary = () => {
             <div className="flex flex-wrap items-center gap-2 mt-1">
               <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
               
-              {/* ✅ SIZE BADGE */}
-              {productSize && productSize !== '' ? (
-                <span className="inline-flex items-center gap-1 text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700 font-medium">
-                   Size: {productSize}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
-                  📏 Size: Standard
-                </span>
-              )}
+              {/* ✅ SIZE BADGE - Always show Free Size if no size */}
+              <span className="inline-flex items-center gap-1 text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary font-medium">
+                {displaySize === 'Free Size' ? ' Free Size' : `Size: ${displaySize}`}
+              </span>
               
-              {/* ✅ SKU - ADDED BACK */}
               {item.productSku && (
                 <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
               )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, Check, Truck, RotateCcw, Shield, Award, Star, X, Loader2 } from 'lucide-react';
 import { Header } from '@/components/Header';
@@ -36,10 +36,8 @@ interface Product {
   stock: number;
   description: string;
   images: string[];
-  // ========== CLOUDINARY FIELDS ==========
   mainImage?: CloudinaryImage;
   galleryImages?: GalleryImage[];
-  // =======================================
   sku: string;
   tags: string[];
   status: "Published" | "Draft" | "Archived";
@@ -78,51 +76,33 @@ interface Product {
 
 // ========== HELPER FUNCTIONS FOR CLOUDINARY IMAGES ==========
 const getProductImageUrl = (product: Product, index: number = 0): string => {
-  // Priority 1: Cloudinary mainImage
   if (product.mainImage?.url && index === 0) {
     return product.mainImage.url.replace('/upload/', '/upload/w_800,h_800,c_limit,q_auto,f_auto/');
   }
-  
-  // Priority 2: Cloudinary gallery images
   if (product.galleryImages && product.galleryImages.length > index) {
     return product.galleryImages[index].url.replace('/upload/', '/upload/w_800,h_800,c_limit,q_auto,f_auto/');
   }
-  
-  // Priority 3: Old images array
   if (product.images && product.images.length > index) {
     return product.images[index];
   }
-  
-  // Fallback
   return '/placeholder-image.jpg';
 };
 
 const getAllProductImages = (product: Product): string[] => {
   const images: string[] = [];
-  
-  // Add Cloudinary main image
-  if (product.mainImage?.url) {
-    images.push(product.mainImage.url);
-  }
-  
-  // Add Cloudinary gallery images
+  if (product.mainImage?.url) images.push(product.mainImage.url);
   if (product.galleryImages && product.galleryImages.length > 0) {
     product.galleryImages.forEach(img => {
       if (img.url) images.push(img.url);
     });
   }
-  
-  // Add old images array (fallback)
-  if (product.images && product.images.length > 0) {
-    images.push(...product.images);
-  }
-  
-  // Remove duplicates
+  if (product.images && product.images.length > 0) images.push(...product.images);
   return [...new Set(images)];
 };
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -140,9 +120,33 @@ const ProductDetail = () => {
     title: '',
     comment: ''
   });
+  const [isInCart, setIsInCart] = useState(false);
 
   const addToCart = useCartStore((state) => state.addItem);
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
+  
+  // Get cart items to check if product is in cart
+  const cartItems = useCartStore((state) => state.items);
+
+  // ✅ Get selected size from navigation state (passed from ProductCard)
+  useEffect(() => {
+    const passedSize = location.state?.selectedSize;
+    if (passedSize) {
+      setSelectedSize(passedSize);
+      console.log("✅ Size received from product card:", passedSize);
+    }
+  }, [location.state]);
+
+  // ✅ Check if product is already in cart
+  useEffect(() => {
+    if (product) {
+      const productId = product._id || product.id;
+      const exists = cartItems.some(
+        (item) => item.product.id === productId
+      );
+      setIsInCart(exists);
+    }
+  }, [product, cartItems]);
 
   useEffect(() => {
     if (id) {
@@ -160,7 +164,6 @@ const ProductDetail = () => {
       const data = await response.json();
       const productData = data.product || data;
       
-      // ========== NORMALIZE PRODUCT WITH CLOUDINARY IMAGES ==========
       const allImages = getAllProductImages(productData);
       
       const normalizedProduct = {
@@ -168,7 +171,6 @@ const ProductDetail = () => {
         price: Number(productData.price),
         purchasePrice: Number(productData.purchasePrice),
         images: allImages.length > 0 ? allImages : ['/placeholder-image.jpg'],
-        // Keep Cloudinary fields
         mainImage: productData.mainImage,
         galleryImages: productData.galleryImages,
       };
@@ -185,7 +187,6 @@ const ProductDetail = () => {
     }
   };
 
-  // Clean DOM after render
   useEffect(() => {
     if (product) {
       const timer = setTimeout(() => {
@@ -296,25 +297,43 @@ const ProductDetail = () => {
     for (let i = 0; i < quantity; i++) {
       addToCart(cartProduct, selectedSize || undefined);
     }
-    toast.success(`Added ${quantity} ${product.name} to cart`);
+    
+    if (selectedSize && selectedSize !== 'Free Size') {
+      toast.success(`Added ${quantity} ${product.name} (Size ${selectedSize}) to cart`);
+    } else {
+      toast.success(`Added ${quantity} ${product.name} to cart`);
+    }
+    
+    // Update cart status
+    setIsInCart(true);
   };
 
   const handleWishlistToggle = () => {
+    const productId = product._id || product.id || '';
+    
     const wishlistProduct = {
-      id: product._id || product.id || '',
+      id: productId,
       name: product.name,
       price: product.price,
       image: getProductImageUrl(product, 0),
       category: product.category,
-      originalPrice: product.purchasePrice
+      originalPrice: product.purchasePrice,
+      stock: product.stock,
+      sku: product.sku,
+      isRingProduct: isRingProduct(),
+      availableSizes: getRingSizes(),
+      selectedSize: selectedSize || undefined
     };
     
     if (inWishlist) {
-      removeFromWishlist(product._id || product.id || '');
+      removeFromWishlist(productId);
       toast.success('Removed from wishlist');
     } else {
-      addToWishlist(wishlistProduct);
-      toast.success('Added to wishlist');
+      if (isRingProduct() && !selectedSize) {
+        toast.error('Please select a ring size first');
+        return;
+      }
+      addToWishlist(wishlistProduct, selectedSize);
     }
   };
 
@@ -322,33 +341,38 @@ const ProductDetail = () => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-// ✅ UPDATED: Buy Now from product detail page
-const handleProceedToCheckout = () => {
-  const productId = product._id || product.id;
-  
-  const buyNowProduct = {
-    product: {
-      id: productId,
-      name: product.name,
-      price: product.price,
-      image: getProductImageUrl(product, 0),
-      category: product.category,
-      sku: product.sku,
-      stock: product.stock
-    },
-    quantity: quantity,
-    size: selectedSize || undefined,
-    timestamp: Date.now()
-  };
-  
-  navigate('/checkout', {
-    state: {
-      buyNowProduct: buyNowProduct,
-      isBuyNow: true,
-      fromBuyNow: true
+  // ✅ UPDATED: Buy Now from product detail page with selected size
+  const handleProceedToCheckout = () => {
+    const productId = product._id || product.id;
+    
+    if (isRingProduct() && !selectedSize) {
+      toast.error('Please select a ring size first');
+      return;
     }
-  });
-};
+    
+    const buyNowProduct = {
+      product: {
+        id: productId,
+        name: product.name,
+        price: product.price,
+        image: getProductImageUrl(product, 0),
+        category: product.category,
+        sku: product.sku,
+        stock: product.stock
+      },
+      quantity: quantity,
+      size: selectedSize || undefined,
+      timestamp: Date.now()
+    };
+    
+    navigate('/checkout', {
+      state: {
+        buyNowProduct: buyNowProduct,
+        isBuyNow: true,
+        fromBuyNow: true
+      }
+    });
+  };
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -378,7 +402,6 @@ const handleProceedToCheckout = () => {
     return ["5", "6", "7", "8", "9", "10", "11", "12"];
   };
 
-  // Format price function
   const formatPrice = (price: number) => {
     const num = Math.round(Number(price));
     if (isNaN(num)) return '₹0';
@@ -576,7 +599,6 @@ const handleProceedToCheckout = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Review Form Modal */}
       <AnimatePresence>
         {showReviewForm && (
           <>
@@ -623,7 +645,6 @@ const handleProceedToCheckout = () => {
         )}
       </AnimatePresence>
 
-      {/* Thank You Popup */}
       <AnimatePresence>
         {showThankYouPopup && (
           <>
@@ -648,7 +669,7 @@ const handleProceedToCheckout = () => {
 
         <div className="container mx-auto px-4 lg:px-8 py-8 lg:py-12">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
-            {/* Image Gallery - UPDATED FOR CLOUDINARY */}
+            {/* Image Gallery */}
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
               <div className="relative aspect-square overflow-hidden rounded-sm border border-border/30">
                 <AnimatePresence mode="wait">
@@ -697,7 +718,6 @@ const handleProceedToCheckout = () => {
                 </div>
               </div>
 
-              {/* PRICE - WITH PROTECTION CLASS */}
               <div className="price-container-fixed flex items-center gap-3">
                 <span className="font-display text-3xl text-foreground">
                   {formatPrice(product.price)}
@@ -710,17 +730,48 @@ const handleProceedToCheckout = () => {
 
               <p className="text-muted-foreground leading-relaxed">{product.description || "No description available."}</p>
 
+              {/* ✅ Ring Size Selector with pre-selected size from ProductCard */}
               {isRingProduct() ? (
                 <div>
-                  <label className="block text-foreground text-sm font-medium mb-3">Ring Size</label>
+                  <label className="block text-foreground text-sm font-medium mb-3">
+                    Select Ring Size <span className="text-red-500">*</span>
+                  </label>
                   <div className="flex flex-wrap gap-2">
-                    {getRingSizes().map((size) => (<button key={size} onClick={() => setSelectedSize(size)} className={`w-12 h-12 border flex items-center justify-center transition-all ${selectedSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50 text-foreground hover:border-primary'}`}>{size}</button>))}
+                    {getRingSizes().map((size) => (
+                      <button 
+                        key={size} 
+                        onClick={() => setSelectedSize(size)} 
+                        className={`w-12 h-12 border flex items-center justify-center transition-all ${
+                          selectedSize === size 
+                            ? 'border-primary bg-primary text-primary-foreground' 
+                            : 'border-border/50 text-foreground hover:border-primary'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
                   </div>
+                  {selectedSize && (
+                    <p className="text-xs text-primary mt-2">
+                      ✓ Selected size: {selectedSize}
+                    </p>
+                  )}
+                  {!selectedSize && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      ⚠️ Please select a size before adding to cart
+                    </p>
+                  )}
                 </div>
               ) : (
-                <div className="flex items-center gap-3 p-4 border border-border/30 rounded-sm">
-                  <div className="bg-primary/10 px-4 py-2 rounded-sm"><span className="flex items-center gap-2 text-sm font-medium text-foreground"><Check className="w-4 h-4 text-primary" /> Free Size</span></div>
-                  <span className="text-sm text-muted-foreground">This product comes in one universal size that fits all.</span>
+                <div className="flex items-center gap-3 p-4 bg-primary/10 border border-primary/20 rounded-sm">
+                  <div className="bg-primary/20 px-4 py-2 rounded-sm">
+                    <span className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <Check className="w-4 h-4" /> Free Size
+                    </span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    This product comes in one universal size that fits all.
+                  </span>
                 </div>
               )}
 
@@ -733,9 +784,39 @@ const handleProceedToCheckout = () => {
                 </div>
               </div>
 
+              {/* ✅ Updated: Show "Go to Cart" if product already in cart */}
               <div className="flex items-center gap-4">
-                <button onClick={handleAddToCart} disabled={product.stock === 0} className={`flex-1 bg-primary text-primary-foreground transition-colors flex items-center justify-center gap-2 py-4 text-base font-medium ${product.stock === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/90'}`}><ShoppingBag className="w-5 h-5" />{product.stock === 0 ? 'OUT OF STOCK' : 'ADD TO CART'}</button>
-                <button onClick={handleWishlistToggle} className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all ${inWishlist ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50 text-foreground hover:border-primary'}`}><Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} /></button>
+                {isInCart ? (
+                  <Link 
+                    to="/cart" 
+                    className="flex-1 bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 py-4 text-base font-medium rounded-md"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    GO TO CART
+                  </Link>
+                ) : (
+                  <button 
+                    onClick={handleAddToCart} 
+                    disabled={product.stock === 0 || (isRingProduct() && !selectedSize)} 
+                    className={`flex-1 transition-colors flex items-center justify-center gap-2 py-4 text-base font-medium rounded-md ${
+                      product.stock === 0 || (isRingProduct() && !selectedSize) 
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    }`}
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    {product.stock === 0 ? 'OUT OF STOCK' : (isRingProduct() && !selectedSize ? 'SELECT SIZE FIRST' : 'ADD TO CART')}
+                  </button>
+                )}
+                
+                <button 
+                  onClick={handleWishlistToggle} 
+                  className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all ${
+                    inWishlist ? 'border-primary bg-primary text-primary-foreground' : 'border-border/50 text-foreground hover:border-primary'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4">
@@ -745,7 +826,17 @@ const handleProceedToCheckout = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground"><RotateCcw className="w-5 h-5 text-primary flex-shrink-0" /><span>Return: {product.additionalInfo?.returns || '7 Days'}</span></div>
               </div>
 
-              <button onClick={handleProceedToCheckout} disabled={product.stock === 0} className={`w-full transition-colors py-4 text-base tracking-widest font-medium ${product.stock === 0 ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}>PROCEED TO CHECKOUT</button>
+              <button 
+                onClick={handleProceedToCheckout} 
+                disabled={product.stock === 0 || (isRingProduct() && !selectedSize)} 
+                className={`w-full transition-colors py-4 text-base tracking-widest font-medium rounded-md ${
+                  product.stock === 0 || (isRingProduct() && !selectedSize) 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                }`}
+              >
+                {isRingProduct() && !selectedSize ? 'SELECT SIZE FIRST' : 'PROCEED TO CHECKOUT'}
+              </button>
 
               <div className="border border-border/30 p-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-2"><Shield className="w-4 h-4 text-primary" /><span className="text-sm text-foreground">Guaranteed Safe Checkout</span></div>
@@ -789,7 +880,8 @@ const handleProceedToCheckout = () => {
                       images: p.images,
                       category: p.category, 
                       sku: p.sku, 
-                      tags: p.tags 
+                      tags: p.tags,
+                      specifications: p.specifications
                     }} 
                   />
                 ))}

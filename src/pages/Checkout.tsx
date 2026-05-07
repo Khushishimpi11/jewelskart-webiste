@@ -23,7 +23,7 @@ declare global {
 const Checkout = () => {
   const location = useLocation();
   const { isAuthenticated, isLoading: authLoading, login, register, user } = useAuthStore();
-  const { items: cartItems, getTotal, clearCart } = useCartStore();
+  const { items: cartItems, clearCart } = useCartStore();
   const { isLoading: orderLoading, resetLoading } = useOrderStore();
   const navigate = useNavigate();
   
@@ -35,28 +35,40 @@ const Checkout = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
   
-  // ✅ Check if coming from Buy Now
-  const isBuyNow = location.state?.isBuyNow || false;
-  const buyNowProduct = location.state?.buyNowProduct || null;
-  
-  // ✅ Determine checkout items (Buy Now vs Cart)
   const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
+  const [isBuyNow, setIsBuyNow] = useState(false);
   
+  // ✅ FIXED: Read items from location.state or cart
   useEffect(() => {
-    if (isBuyNow && buyNowProduct) {
-      // Buy Now case: Only show one product
+    console.log("🔍 Checkout mounted - Location state:", location.state);
+    
+    // Priority 1: Items from Cart page (via navigate state)
+    if (location.state?.fromCart && location.state?.selectedItems) {
+      setCheckoutItems(location.state.selectedItems);
+      setIsBuyNow(false);
+      console.log("✅ Cart Mode - Items from state:", location.state.selectedItems.length);
+      return;
+    }
+    
+    // Priority 2: Buy Now from Product Card
+    if (location.state?.isBuyNow && location.state?.buyNowProduct) {
+      const buyNowProduct = location.state.buyNowProduct;
       setCheckoutItems([{
         product: buyNowProduct.product,
         quantity: buyNowProduct.quantity || 1,
         size: buyNowProduct.size
       }]);
-      console.log("✅ Buy Now Mode - Single product:", buyNowProduct.product.name);
-    } else {
-      // Cart case: Show all cart items
-      setCheckoutItems(cartItems);
-      console.log("✅ Cart Mode - Items:", cartItems.length);
+      setIsBuyNow(true);
+      console.log("✅ Buy Now Mode - Single product");
+      return;
     }
-  }, [isBuyNow, buyNowProduct, cartItems]);
+    
+    // Priority 3: Fallback to cart store
+    setCheckoutItems(cartItems);
+    setIsBuyNow(false);
+    console.log("✅ Fallback to cart store - Items:", cartItems.length);
+    
+  }, [location.state, cartItems]);
   
   // Auth form states
   const [loginEmail, setLoginEmail] = useState('');
@@ -89,20 +101,19 @@ const Checkout = () => {
     };
   }, [resetLoading]);
 
-  // ✅ Updated cart empty check - respect buy now and order completed
+  // ✅ FIXED: NO REDIRECT - Just log and stay on page
   useEffect(() => {
-    console.log("🛒 Checkout Check:", { 
-      checkoutItemsLength: checkoutItems.length, 
+    console.log("🛒 Checkout Status:", { 
+      itemsCount: checkoutItems.length, 
       currentStep, 
-      isOrderCompleted,
-      isBuyNow
+      isBuyNow,
+      isOrderCompleted
     });
     
-    if (checkoutItems.length === 0 && currentStep !== 'confirmation' && !isOrderCompleted && !isBuyNow) {
-      console.log("🚨 Redirecting to cart");
-      navigate('/cart');
-    }
-  }, [checkoutItems, navigate, currentStep, isOrderCompleted, isBuyNow]);
+    // Do NOT redirect - let user see checkout page even if empty
+    // The empty state will be shown in the summary section
+    
+  }, [checkoutItems, currentStep, isBuyNow, isOrderCompleted]);
 
   useEffect(() => {
     if (isAuthenticated && currentStep === 'login') {
@@ -192,7 +203,6 @@ const Checkout = () => {
     setCurrentStep('summary');
   };
 
-  // ✅ Updated order creation - uses checkoutItems instead of cartItems
   const handleCODOrder = async () => {
     setIsPlacingOrder(true);
     
@@ -265,7 +275,6 @@ const Checkout = () => {
       setIsOrderCompleted(true);
       setCurrentStep('confirmation');
       
-      // Clear cart only if not from buy now (since buy now doesn't use cart)
       if (!isBuyNow) {
         setTimeout(() => {
           clearCart();
@@ -281,7 +290,6 @@ const Checkout = () => {
     }
   };
 
-  // ✅ Updated Razorpay handler
   const handleRazorpayPayment = async () => {
     setIsProcessingPayment(true);
     
@@ -405,7 +413,6 @@ const Checkout = () => {
               setIsOrderCompleted(true);
               setCurrentStep('confirmation');
               
-              // Clear cart only if not from buy now
               if (!isBuyNow) {
                 setTimeout(() => {
                   clearCart();
@@ -461,35 +468,12 @@ const Checkout = () => {
     }
   };
 
-  // ✅ Calculate totals from checkoutItems
   const subtotal = checkoutItems.reduce(
     (total, item) => total + item.product.price * item.quantity,
     0
   );
   const shipping = subtotal >= 5000 ? 0 : 250;
   const total = subtotal + shipping;
-
-  // ✅ Updated empty check
-  if (!isOrderCompleted && currentStep !== 'confirmation' && checkoutItems.length === 0 && !isBuyNow) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-20 lg:pt-24">
-          <InnerPageBanner
-            title="Checkout"
-            breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Checkout' }]}
-          />
-          <div className="container mx-auto px-4 lg:px-8 py-20 text-center">
-            <h2 className="font-display text-2xl text-foreground mb-4">Your cart is empty</h2>
-            <Link to="/shop" className="bg-primary text-white px-6 py-3 rounded-md inline-block">
-              Continue Shopping
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   if (authLoading) {
     return (
@@ -593,6 +577,15 @@ const Checkout = () => {
             {/* Shipping Step */}
             {currentStep === 'shipping' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <div className="bg-primary/10 p-3 rounded-sm text-center">
+                  <p className="text-sm text-foreground">
+                    {checkoutItems.length === 0 ? (
+                      <span className="text-amber-600">No items in your order. <Link to="/shop" className="text-primary underline">Continue Shopping</Link></span>
+                    ) : (
+                      `You have ${checkoutItems.length} item(s) in your order`
+                    )}
+                  </p>
+                </div>
                 <h2 className="font-display text-2xl text-foreground">Shipping Details</h2>
                 <form onSubmit={handleShippingSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -610,26 +603,41 @@ const Checkout = () => {
                     <Input placeholder="PIN Code" value={shippingData.zip} onChange={(e) => setShippingData({ ...shippingData, zip: e.target.value })} className="bg-card" />
                     <Input placeholder="Country" value={shippingData.country} disabled className="bg-card opacity-60" />
                   </div>
-                  <button type="submit" className="w-full bg-primary text-white py-3 rounded-md">Continue to Summary</button>
+                  <button 
+                    type="submit" 
+                    disabled={checkoutItems.length === 0}
+                    className={`w-full py-3 rounded-md ${checkoutItems.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
+                  >
+                    Continue to Summary
+                  </button>
                 </form>
               </motion.div>
             )}
 
-            {/* Summary Step - Updated to show checkoutItems */}
+            {/* Summary Step */}
             {currentStep === 'summary' && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <h2 className="font-display text-2xl text-foreground">Order Summary</h2>
                 <div className="bg-card p-6 border border-border/30 rounded-sm space-y-4">
-                  {checkoutItems.map((item, idx) => (
-                    <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-center gap-4">
-                      <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm" />
-                      <div className="flex-1">
-                        <p className="text-foreground">{item.product.name}</p>
-                        <p className="text-muted-foreground text-sm">Qty: {item.quantity}{item.size && ` • Size: ${item.size}`}</p>
-                      </div>
-                      <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
+                  {checkoutItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No items in your order</p>
+                      <Link to="/shop" className="text-primary hover:underline">
+                        Continue Shopping
+                      </Link>
                     </div>
-                  ))}
+                  ) : (
+                    checkoutItems.map((item, idx) => (
+                      <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-center gap-4">
+                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm" />
+                        <div className="flex-1">
+                          <p className="text-foreground">{item.product.name}</p>
+                          <p className="text-muted-foreground text-sm">Qty: {item.quantity}{item.size && ` • Size: ${item.size}`}</p>
+                        </div>
+                        <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="bg-card p-6 border border-border/30 rounded-sm">
                   <h3 className="font-display text-lg text-foreground mb-2">Shipping Address</h3>
@@ -656,7 +664,13 @@ const Checkout = () => {
                 </div>
                 <div className="flex gap-4">
                   <button onClick={() => setCurrentStep('shipping')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2"><ChevronLeft className="w-4 h-4" /> Back</button>
-                  <button onClick={() => setCurrentStep('payment')} className="flex-1 bg-primary text-white py-3 rounded-md">Proceed to Payment</button>
+                  <button 
+                    onClick={() => setCurrentStep('payment')} 
+                    disabled={checkoutItems.length === 0}
+                    className={`flex-1 py-3 rounded-md ${checkoutItems.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary text-white'}`}
+                  >
+                    Proceed to Payment
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -708,7 +722,6 @@ const Checkout = () => {
                       </div>
                     </div>
                   )}
-                  
                   {paymentMethod === 'cod' && (
                     <div className="text-center py-4">
                       <p className="text-foreground mb-2">Pay when your order arrives</p>
@@ -723,7 +736,7 @@ const Checkout = () => {
                   </button>
                   <button
                     onClick={handlePlaceOrder}
-                    disabled={isPlacingOrder || orderLoading || isProcessingPayment}
+                    disabled={isPlacingOrder || orderLoading || isProcessingPayment || checkoutItems.length === 0}
                     className="flex-1 bg-primary text-white py-3 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {(isPlacingOrder || orderLoading || isProcessingPayment) ? (

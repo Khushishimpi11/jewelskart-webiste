@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { 
   Package, CheckCircle, Truck, Home, Clock, Loader2, 
   Search, Copy, Check, Calendar, ArrowLeft, RefreshCw,
-  XCircle, AlertTriangle, Mail, Phone, MapPin, DollarSign, Settings
+  XCircle, Mail, Phone, MapPin, DollarSign, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +35,7 @@ interface ReturnRequestInfo {
 const TrackOrder = () => {
   const location = useLocation();
   const { token } = useAuthStore();
-  const [trackingId, setTrackingId] = useState('');
+  const [searchId, setSearchId] = useState('');
   const [orderStatus, setOrderStatus] = useState<any>(null);
   const [returnRequest, setReturnRequest] = useState<ReturnRequestInfo | null>(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -43,6 +43,8 @@ const TrackOrder = () => {
   const [fromOrderHistory, setFromOrderHistory] = useState(false);
   const [loadingReturn, setLoadingReturn] = useState(false);
   const [productImagesMap, setProductImagesMap] = useState<Record<string, string>>({});
+  const [isOrdersLoaded, setIsOrdersLoaded] = useState(false);
+  const [pendingSearchId, setPendingSearchId] = useState<string | null>(null);
   
   const { getTrackingByTrackingId, fetchMyOrders, orders } = useOrderStore();
 
@@ -66,9 +68,14 @@ const TrackOrder = () => {
     return '';
   };
 
+  // Fetch orders on mount
   useEffect(() => {
-    fetchMyOrders();
-  }, []);
+    const loadOrders = async () => {
+      await fetchMyOrders();
+      setIsOrdersLoaded(true);
+    };
+    loadOrders();
+  }, [fetchMyOrders]);
 
   // Fetch return request for the order
   const fetchReturnRequest = async (orderId: string) => {
@@ -92,96 +99,166 @@ const TrackOrder = () => {
     }
   };
 
-  useEffect(() => {
-    if (location.state?.fromOrderHistory === true) {
-      setFromOrderHistory(true);
-    } else if (location.state?.trackingId) {
-      const referrer = document.referrer;
-      if (referrer.includes('/order-summary')) {
-        setFromOrderHistory(true);
-      } else {
-        setFromOrderHistory(false);
-      }
-      const id = location.state.trackingId;
-      setTrackingId(id);
-      handleTrackFromId(id);
-    } else {
-      setFromOrderHistory(false);
+  // Search order by ID (works with both Tracking ID and Order ID)
+  const searchOrder = async (id: string) => {
+    if (!id) {
+      toast.error('Please enter an ID');
+      return;
     }
-  }, [location.state]);
 
-  const handleTrackFromId = async (id: string) => {
     setIsTracking(true);
+    setOrderStatus(null);
+    setReturnRequest(null);
     
+    // First try as Tracking ID
     const tracking = await getTrackingByTrackingId(id);
     
-    if (tracking) {
-      const order = orders.find(o => o.id === tracking.orderId);
+    if (tracking && tracking.orderId) {
+      const order = orders.find(o => o.id === tracking.orderId || o.orderNumber === tracking.orderNumber);
       
       if (order) {
-        const currentStatus = order.status || 'Confirmed';
-        let requestType: string | undefined;
-        
-        if (returnRequest) {
-          requestType = returnRequest.requestType;
-        }
-        
-        // Fetch images for all items
-        if (order.items) {
-          order.items.forEach(async (item: any) => {
-            if (item.productId) {
-              await fetchProductImage(item.productId);
-            }
-          });
-        }
-        
-        setOrderStatus({
-          id: order.id,
-          orderNumber: order.orderNumber,
-          trackingId: tracking.trackingId,
-          status: currentStatus,
-          date: order.date,
-          estimatedDelivery: order.estimatedDelivery,
-          items: order.items || [],
-          shippingAddress: order.shippingAddress,
-          total: order.total || 0,
-          paymentMethod: order.paymentMethod,
-          requestType: requestType,
-          steps: getTimelineSteps(currentStatus, order.date, requestType),
-        });
-        
-        await fetchReturnRequest(order.id);
-        
-        toast.success(`Tracking ID ${tracking.trackingId} found!`);
-      } else {
-        toast.error('Order details not found');
-        setOrderStatus(null);
+        await displayOrderDetails(order, tracking.trackingId);
+        toast.success(`Order found!`);
+        setIsTracking(false);
+        return;
       }
+    }
+    
+    // If not found as Tracking ID, try as Order ID
+    const foundOrder = orders.find(o => o.orderNumber === id || o.id === id);
+    
+    if (foundOrder) {
+      const trackingNumber = foundOrder.trackingNumber;
+      if (trackingNumber) {
+        await displayOrderDetails(foundOrder, trackingNumber);
+      } else {
+        await displayOrderDetails(foundOrder, null);
+      }
+      toast.success(`Order #${id} found!`);
     } else {
-      toast.error('No order found with this Tracking ID');
+      toast.error('No order found with this Tracking ID or Order ID');
       setOrderStatus(null);
     }
+    
     setIsTracking(false);
+  };
+
+  const displayOrderDetails = async (order: any, trackingId: string | null) => {
+    const currentStatus = order.status || 'Confirmed';
+    let requestType: string | undefined;
+    
+    if (returnRequest) {
+      requestType = returnRequest.requestType;
+    }
+    
+    // Fetch images for all items
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        if (item.productId) {
+          await fetchProductImage(item.productId);
+        }
+      }
+    }
+    
+    // Calculate estimated delivery date if not present
+    let estimatedDelivery = order.estimatedDelivery;
+    if (!estimatedDelivery && order.date) {
+      const deliveryDate = new Date(order.date);
+      deliveryDate.setDate(deliveryDate.getDate() + 7);
+      estimatedDelivery = deliveryDate.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+    
+    setOrderStatus({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      trackingId: trackingId || 'N/A',
+      status: currentStatus,
+      date: order.date,
+      estimatedDelivery: estimatedDelivery,
+      items: order.items || [],
+      shippingAddress: order.shippingAddress,
+      total: order.total || 0,
+      paymentMethod: order.paymentMethod,
+      requestType: requestType,
+      steps: getTimelineSteps(currentStatus, order.date, requestType),
+    });
+    
+    await fetchReturnRequest(order.id);
   };
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trackingId) {
-      toast.error('Please enter a Tracking ID');
+    if (!searchId.trim()) {
+      toast.error('Please enter a Tracking ID or Order ID');
       return;
     }
-    await handleTrackFromId(trackingId);
+    await searchOrder(searchId.trim());
   };
 
-  const copyTrackingId = () => {
-    navigator.clipboard.writeText(trackingId);
+  const copyId = () => {
+    navigator.clipboard.writeText(searchId);
     setCopied(true);
-    toast.success('Tracking ID copied!');
+    toast.success('ID copied!');
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // RETURN TIMELINE STEPS (8 Steps)
-  const getReturnTimelineSteps = (orderDate: string) => {
+  // Handle URL params and state on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    let idParam = urlParams.get('id');
+    
+    // Also support ?order= and ?tracking= for backward compatibility
+    if (!idParam) idParam = urlParams.get('order');
+    if (!idParam) idParam = urlParams.get('tracking');
+    
+    if (idParam) {
+      setSearchId(idParam);
+      
+      if (isOrdersLoaded && orders.length > 0) {
+        searchOrder(idParam);
+      } else {
+        setPendingSearchId(idParam);
+      }
+      setFromOrderHistory(true);
+    } else if (location.state?.fromOrderHistory === true) {
+      setFromOrderHistory(true);
+    } else if (location.state?.trackingId) {
+      const id = location.state.trackingId;
+      setSearchId(id);
+      if (isOrdersLoaded && orders.length > 0) {
+        searchOrder(id);
+      } else {
+        setPendingSearchId(id);
+      }
+      setFromOrderHistory(true);
+    } else if (location.state?.orderNumber) {
+      const orderNumber = location.state.orderNumber;
+      setSearchId(orderNumber);
+      if (isOrdersLoaded && orders.length > 0) {
+        searchOrder(orderNumber);
+      } else {
+        setPendingSearchId(orderNumber);
+      }
+      setFromOrderHistory(true);
+    } else {
+      setFromOrderHistory(false);
+    }
+  }, [location.state, orders, isOrdersLoaded]);
+
+  // When orders are loaded, search for pending ID
+  useEffect(() => {
+    if (isOrdersLoaded && pendingSearchId) {
+      searchOrder(pendingSearchId);
+      setPendingSearchId(null);
+    }
+  }, [isOrdersLoaded, pendingSearchId]);
+
+  // RETURN TIMELINE STEPS
+  const getReturnTimelineSteps = () => {
     return [
       { name: 'Return Request Submitted', icon: RefreshCw, key: 'Return Requested', description: 'Your return request has been submitted' },
       { name: 'Under Review', icon: Clock, key: 'Return Under Review', description: 'Admin is reviewing your request' },
@@ -194,8 +271,8 @@ const TrackOrder = () => {
     ];
   };
 
-  // EXCHANGE TIMELINE STEPS (9 Steps)
-  const getExchangeTimelineSteps = (orderDate: string) => {
+  // EXCHANGE TIMELINE STEPS
+  const getExchangeTimelineSteps = () => {
     return [
       { name: 'Exchange Request Submitted', icon: RefreshCw, key: 'Exchange Requested', description: 'Your exchange request has been submitted' },
       { name: 'Under Review', icon: Clock, key: 'Exchange Under Review', description: 'Admin is reviewing your request' },
@@ -209,7 +286,7 @@ const TrackOrder = () => {
     ];
   };
 
-  // NORMAL ORDER TIMELINE (5 Steps)
+  // NORMAL ORDER TIMELINE
   const getNormalOrderSteps = (status: string, orderDate: string) => {
     const steps = [
       { name: 'Order Confirmed', icon: CheckCircle, key: 'Confirmed', description: 'Your order has been confirmed' },
@@ -230,16 +307,16 @@ const TrackOrder = () => {
     }));
   };
 
-  // MAIN FUNCTION: Get timeline steps based on request type
-  const getTimelineSteps = (orderStatus: string, orderDate: string, requestType?: string) => {
-    if (requestType === 'return' || orderStatus.includes('Return')) {
-      const steps = getReturnTimelineSteps(orderDate);
+  // Get timeline steps based on request type
+  const getTimelineSteps = (orderStatusStr: string, orderDate: string, requestType?: string) => {
+    if (requestType === 'return' || orderStatusStr.includes('Return')) {
+      const steps = getReturnTimelineSteps();
       const statusOrder = [
         'Return Requested', 'Return Under Review', 'Return Approved', 
         'Return Pickup Scheduled', 'Return Picked Up', 'Return Quality Check',
         'Return Refund Initiated', 'Return Refund Completed'
       ];
-      const currentIndex = statusOrder.findIndex(s => orderStatus.includes(s));
+      const currentIndex = statusOrder.findIndex(s => orderStatusStr.includes(s));
       
       return steps.map((step, index) => ({
         ...step,
@@ -249,14 +326,14 @@ const TrackOrder = () => {
       }));
     }
     
-    if (requestType === 'exchange' || orderStatus.includes('Exchange')) {
-      const steps = getExchangeTimelineSteps(orderDate);
+    if (requestType === 'exchange' || orderStatusStr.includes('Exchange')) {
+      const steps = getExchangeTimelineSteps();
       const statusOrder = [
         'Exchange Requested', 'Exchange Under Review', 'Exchange Approved',
         'Exchange Pickup Scheduled', 'Exchange Picked Up', 'Exchange Quality Check',
         'Exchange Replacement Processing', 'Exchange Shipped', 'Exchange Delivered'
       ];
-      const currentIndex = statusOrder.findIndex(s => orderStatus.includes(s));
+      const currentIndex = statusOrder.findIndex(s => orderStatusStr.includes(s));
       
       return steps.map((step, index) => ({
         ...step,
@@ -266,7 +343,7 @@ const TrackOrder = () => {
       }));
     }
     
-    return getNormalOrderSteps(orderStatus, orderDate);
+    return getNormalOrderSteps(orderStatusStr, orderDate);
   };
 
   const formatPrice = (price: number) => {
@@ -285,9 +362,7 @@ const TrackOrder = () => {
       return new Date(dateString).toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric'
       });
     } catch {
       return dateString;
@@ -340,13 +415,29 @@ const TrackOrder = () => {
     }
   };
 
+  // Show loading while orders are being fetched
+  if (!isOrdersLoaded && !orderStatus && pendingSearchId === null) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16 lg:pt-24">
+          <div className="container mx-auto px-4 lg:px-8 py-20 text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading your orders...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-16 lg:pt-24">
         <InnerPageBanner
           title="Track Your Order"
-          subtitle="Enter Tracking ID"
+          subtitle="Enter Tracking ID or Order ID"
           breadcrumbs={getBreadcrumbs()}
         />
 
@@ -367,9 +458,9 @@ const TrackOrder = () => {
               <form onSubmit={handleTrack} className="flex gap-3">
                 <input
                   type="text"
-                  placeholder="Enter Tracking ID (e.g., TRK123456)"
-                  value={trackingId}
-                  onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
+                  placeholder="Enter Tracking ID or Order ID"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value.toUpperCase())}
                   className="flex-1 p-3 bg-background border border-border/30 rounded-sm focus:border-primary focus:outline-none text-foreground"
                 />
                 <button
@@ -383,7 +474,7 @@ const TrackOrder = () => {
               </form>
               
               <p className="text-xs text-muted-foreground mt-3">
-                Enter the Tracking ID you received in your order confirmation
+                Enter your Tracking ID (e.g., TRK123456) or Order ID to track your order
               </p>
             </motion.div>
 
@@ -398,22 +489,25 @@ const TrackOrder = () => {
                   <div className="bg-muted/30 px-6 py-4 border-b border-border/30">
                     <div className="flex flex-wrap justify-between items-center gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">TRACKING ID</p>
+                        <p className="text-sm text-muted-foreground">ORDER NUMBER</p>
                         <div className="flex items-center gap-2">
                           <p className="font-mono text-lg font-semibold text-primary">
-                            {orderStatus.trackingId}
+                            {orderStatus.orderNumber}
                           </p>
                           <button
-                            onClick={copyTrackingId}
+                            onClick={() => {
+                              navigator.clipboard.writeText(orderStatus.orderNumber);
+                              toast.success('Order number copied!');
+                            }}
                             className="p-1 hover:bg-primary/10 rounded transition-colors"
                           >
-                            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+                            <Copy className="w-4 h-4 text-muted-foreground" />
                           </button>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">ORDER NUMBER</p>
-                        <p className="text-sm font-medium text-foreground">{orderStatus.orderNumber}</p>
+                        <p className="text-sm text-muted-foreground">TRACKING ID</p>
+                        <p className="text-sm font-medium text-foreground font-mono">{orderStatus.trackingId}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">ORDER DATE</p>
@@ -460,60 +554,59 @@ const TrackOrder = () => {
                     </div>
                   )}
 
-                  {/* ✅ ORDER ITEMS WITH SIZE AND IMAGE - FIXED */}
+                  {/* ORDER ITEMS */}
                   <div className="px-6 py-4 border-b border-border/30">
                     <h3 className="font-semibold text-foreground mb-3">Items</h3>
                     <div className="space-y-3">
-                      {orderStatus.items.map((item: any, idx: number) => {
-                        // ✅ Get size from item
-                        const productSize = item.size || item.selectedSize || '';
-                        
-                        // ✅ Get image
-                        let productImage = productImagesMap[item.productId] || item.image || item.productImage || '';
-                        if (!productImage) {
-                          productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
-                        }
-                        
-                        return (
-                          <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-16 h-16 flex-shrink-0">
-                              <img 
-                                src={productImage}
-                                alt={item.name || 'Product'}
-                                className="w-full h-full object-cover rounded-lg border border-gray-200"
-                                onError={(e) => {
-                                  e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
-                                }}
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-foreground">{item.name || item.productName || 'Product'}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-1">
-                                <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
-                                
-                                {/* ✅ SIZE BADGE - Added for tracking page */}
-                                {productSize && productSize !== '' ? (
-                                  <span className="text-xs bg-green-100 px-2 py-0.5 rounded-full text-green-700">
-                                    Size: {productSize}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
-                                    📏 Size: Standard
-                                  </span>
-                                )}
-                                
-                                {item.productSku && (
-                                  <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
-                                )}
+                      {orderStatus.items && orderStatus.items.length > 0 ? (
+                        orderStatus.items.map((item: any, idx: number) => {
+                          const productSize = item.size || item.selectedSize || '';
+                          
+                          let productImage = productImagesMap[item.productId] || item.image || item.productImage || '';
+                          if (!productImage) {
+                            productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
+                          }
+                          
+                          return (
+                            <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                              <div className="w-16 h-16 flex-shrink-0">
+                                <img 
+                                  src={productImage}
+                                  alt={item.name || 'Product'}
+                                  className="w-full h-full object-cover rounded-lg border border-gray-200"
+                                  onError={(e) => {
+                                    e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
+                                  }}
+                                />
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">{formatPrice(item.price || 0)} each</p>
+                              <div className="flex-1">
+                                <p className="font-medium text-foreground">{item.name || item.productName || 'Product'}</p>
+                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                  <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
+                                  {productSize && productSize !== '' ? (
+                                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary">
+                                      Size: {productSize}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary">
+                                      Free Size
+                                    </span>
+                                  )}
+                                  {item.productSku && (
+                                    <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">{formatPrice(item.price || 0)} each</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">No items found</p>
+                      )}
                     </div>
                   </div>
 
@@ -565,7 +658,7 @@ const TrackOrder = () => {
                           }`}>
                             <Icon className="w-5 h-5" />
                           </div>
-                          <div className="flex-1 pt-1">
+                          <div className="flex-1">
                             <h4 className={`font-semibold ${step.completed ? 'text-foreground' : 'text-muted-foreground'}`}>
                               {step.name}
                             </h4>
@@ -627,9 +720,9 @@ const TrackOrder = () => {
             {!orderStatus && !isTracking && (
               <div className="text-center py-16 bg-card border border-border/30 rounded-sm">
                 <Package className="w-20 h-20 mx-auto mb-4 text-primary/30" />
-                <h3 className="text-xl text-foreground mb-2">Enter Tracking ID</h3>
+                <h3 className="text-xl text-foreground mb-2">Track Your Order</h3>
                 <p className="text-muted-foreground">
-                  Enter your tracking ID to track your order
+                  Enter your Tracking ID or Order ID to track your order
                 </p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                   <Link 

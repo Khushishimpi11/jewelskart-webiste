@@ -8,6 +8,7 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Account = () => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -19,6 +20,11 @@ const Account = () => {
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Password visibility states
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
   const { 
@@ -32,28 +38,26 @@ const Account = () => {
     isLoading 
   } = useAuthStore();
 
-  // ✅ UPDATED Google Login Handler - Fixed token issue
-// Google Login Handler - UPDATED
-const handleGoogleLogin = useGoogleLogin({
-  onSuccess: async (tokenResponse) => {
-    console.log("Google Success:", tokenResponse);
-    const success = await googleLogin(tokenResponse.access_token);
-    if (success) {
-      toast.success('Successfully signed in with Google!');
-      navigate('/');
-    } else {
-      toast.error('Google sign in failed. Please try again.');
-    }
-  },
-  onError: (error) => {
-    console.log("Google error:", error);
-    toast.error('Google sign in failed');
-  },
-});
-  // Function to handle button click with logging
+  // Google Login Handler
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      console.log("Google Success:", tokenResponse);
+      const success = await googleLogin(tokenResponse.access_token);
+      if (success) {
+        toast.success('Successfully signed in with Google!');
+        navigate('/');
+      } else {
+        toast.error('Google sign in failed. Please try again.');
+      }
+    },
+    onError: (error) => {
+      console.log("Google error:", error);
+      toast.error('Google sign in failed');
+    },
+  });
+
   const handleGoogleButtonClick = () => {
     console.log("🔵 Google Sign-In button clicked!");
-    console.log("🔵 Opening Google popup...");
     handleGoogleLogin();
   };
 
@@ -63,10 +67,23 @@ const handleGoogleLogin = useGoogleLogin({
       toast.error('Please fill in all fields');
       return;
     }
-    const success = await login(loginEmail, loginPassword);
-    if (success) {
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    const result = await login(loginEmail, loginPassword);
+    
+    if (result === true) {
       toast.success('Welcome back!');
       navigate('/');
+    } else if (result === 'user_not_found') {
+      toast.error('No account found with this email address');
+    } else if (result === 'invalid_password') {
+      toast.error('Incorrect password. Please try again.');
     } else {
       toast.error('Invalid credentials. Please try again.');
     }
@@ -91,6 +108,13 @@ const handleGoogleLogin = useGoogleLogin({
       return;
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+    if (!emailRegex.test(registerEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     // Phone number validation (if provided)
     if (registerPhone && !/^\d{10}$/.test(registerPhone)) {
       toast.error('Please enter a valid 10-digit phone number');
@@ -104,7 +128,6 @@ const handleGoogleLogin = useGoogleLogin({
       passwordLength: registerPassword.length
     });
     
-    // Pass name and phone as separate parameters
     const success = await register(registerEmail, registerPassword, registerName, registerPhone);
     
     if (success) {
@@ -145,6 +168,41 @@ const handleGoogleLogin = useGoogleLogin({
     setIsUpdating(false);
   };
 
+  // Helper function to get display name
+  const getDisplayName = () => {
+    if (!user) return 'User';
+    
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user.name) {
+      return user.name;
+    }
+    if (user.firstName) {
+      return user.firstName;
+    }
+    if (user.email) {
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
+  // Helper function to get initial for avatar
+  const getInitial = () => {
+    if (!user) return 'U';
+    
+    if (user.firstName && user.firstName[0]) {
+      return user.firstName[0].toUpperCase();
+    }
+    if (user.name && user.name[0]) {
+      return user.name[0].toUpperCase();
+    }
+    if (user.email && user.email[0]) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
   if (isAuthenticated && user) {
     return (
       <div className="min-h-screen bg-background">
@@ -161,15 +219,17 @@ const handleGoogleLogin = useGoogleLogin({
                 {user.profilePicture ? (
                   <img 
                     src={user.profilePicture} 
-                    alt={user.name || user.email}
+                    alt={getDisplayName()}
                     className="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-display text-3xl mx-auto mb-4">
-                    {(user.name || user.email).charAt(0).toUpperCase()}
+                    {getInitial()}
                   </div>
                 )}
-                <h2 className="font-display text-xl text-foreground">{user.name || `${user.firstName} ${user.lastName}`}</h2>
+                <h2 className="font-display text-xl text-foreground">
+                  {getDisplayName()}
+                </h2>
                 <p className="text-muted-foreground text-sm">{user.email}</p>
                 {user.isGoogleUser && (
                   <p className="text-xs text-green-600 mt-1">Connected with Google</p>
@@ -273,15 +333,27 @@ const handleGoogleLogin = useGoogleLogin({
                   required
                   autoComplete="email"
                 />
-                <Input 
-                  type="password" 
-                  placeholder="Password" 
-                  value={loginPassword} 
-                  onChange={(e) => setLoginPassword(e.target.value)} 
-                  className="bg-background" 
-                  required
-                  autoComplete="current-password"
-                />
+                
+                {/* Password field with eye icon */}
+                <div className="relative">
+                  <Input 
+                    type={showLoginPassword ? "text" : "password"}
+                    placeholder="Password" 
+                    value={loginPassword} 
+                    onChange={(e) => setLoginPassword(e.target.value)} 
+                    className="bg-background pr-10" 
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -326,11 +398,11 @@ const handleGoogleLogin = useGoogleLogin({
                   Sign in with Google
                 </button>
 
-               <p className="text-center text-muted-foreground text-sm">
-  <a href="/forgot-password" className="hover:text-primary transition-colors">
-    Forgot password?
-  </a>
-</p>
+                <p className="text-center text-muted-foreground text-sm">
+                  <a href="/forgot-password" className="hover:text-primary transition-colors">
+                    Forgot password?
+                  </a>
+                </p>
               </motion.form>
             ) : (
               <motion.form 
@@ -365,25 +437,48 @@ const handleGoogleLogin = useGoogleLogin({
                   pattern="\d{10}"
                   maxLength={10}
                 />
-                <Input 
-                  type="password" 
-                  placeholder="Password * (min 6 characters)" 
-                  value={registerPassword} 
-                  onChange={(e) => setRegisterPassword(e.target.value)} 
-                  className="bg-background" 
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                />
-                <Input 
-                  type="password" 
-                  placeholder="Confirm Password *" 
-                  value={registerConfirmPassword} 
-                  onChange={(e) => setRegisterConfirmPassword(e.target.value)} 
-                  className="bg-background" 
-                  required
-                  autoComplete="new-password"
-                />
+                
+                {/* Password field with eye icon for registration */}
+                <div className="relative">
+                  <Input 
+                    type={showRegisterPassword ? "text" : "password"}
+                    placeholder="Password * (min 6 characters)" 
+                    value={registerPassword} 
+                    onChange={(e) => setRegisterPassword(e.target.value)} 
+                    className="bg-background pr-10" 
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                
+                {/* Confirm Password field with eye icon */}
+                <div className="relative">
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password *" 
+                    value={registerConfirmPassword} 
+                    onChange={(e) => setRegisterConfirmPassword(e.target.value)} 
+                    className="bg-background pr-10" 
+                    required
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                
                 <button
                   type="submit"
                   disabled={isLoading}

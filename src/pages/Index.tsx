@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { HeroSection } from '@/components/sections/HeroSection';
@@ -16,6 +17,19 @@ import Jewellery from '@/components/sections/Jewellery';
 import { PartnerSection } from '@/components/sections/PartnerSection';
 
 const Index = () => {
+  // Add this code for auto-refresh when images are updated from admin panel
+  useEffect(() => {
+    const handleImageUpdate = (event: MessageEvent) => {
+      if (event.data?.type === 'IMAGE_UPDATED') {
+        console.log('Images updated, refreshing page...');
+        window.location.reload();
+      }
+    };
+    
+    window.addEventListener('message', handleImageUpdate);
+    return () => window.removeEventListener('message', handleImageUpdate);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
