@@ -258,20 +258,35 @@ export const Header = () => {
                 </AnimatePresence>
               </div>
 
-              {[
-                { name: 'About', path: '/about' },
-                { name: 'Contact Us', path: '/contact' },
-              ].map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                    location.pathname === link.path ? textColor : `${textMutedColor} ${hoverColor}`
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
+              {/* About Us Link */}
+              <Link
+                to="/about"
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  location.pathname === '/about' ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                About Us
+              </Link>
+
+              {/* Testimonials Link */}
+              <Link
+                to="/testimonials"
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  location.pathname === '/testimonials' ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                Testimonials
+              </Link>
+
+              {/* Contact Us Link */}
+              <Link
+                to="/contact"
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
+                  location.pathname === '/contact' ? textColor : `${textMutedColor} ${hoverColor}`
+                }`}
+              >
+                Contact Us
+              </Link>
             </nav>
 
             {/* Desktop Actions - Reduced gap */}
@@ -424,8 +439,20 @@ export const Header = () => {
                   )}
                 </AnimatePresence>
 
-                <Link to="/about" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">About</Link>
-                <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">Contact Us</Link>
+                {/* About Us - Mobile */}
+                <Link to="/about" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">
+                  About Us
+                </Link>
+
+                {/* Testimonials - Mobile */}
+                <Link to="/testimonials" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">
+                  Testimonials
+                </Link>
+
+                {/* Contact Us - Mobile */}
+                <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="block py-3 min-h-[48px] font-body text-base tracking-wider border-b border-border/20 text-foreground/80">
+                  Contact Us
+                </Link>
 
                 <div className="mt-6 space-y-1 pt-4 border-t border-border/30">
                   {isAuthenticated ? (

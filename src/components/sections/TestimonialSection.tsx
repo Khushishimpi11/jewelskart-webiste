@@ -1,29 +1,54 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTestimonialSection } from '@/services/sectionImageService';
+import { Star } from 'lucide-react';
 import exploreIcon from '../../assets/logoicon.png';
-// Default images - IMPORT THESE
 import defaultTestimonialImg from '@/assets/e.jpeg';
 import defaultAvatar1 from '@/assets/testimonial-avatar1.jpg';
 import defaultAvatar2 from '@/assets/testimonial-avatar2.jpg';
 import defaultAvatar4 from '@/assets/testimonial-avatar4.jpg';
 
-interface Testimonial {
+const API_BASE_URL = "http://localhost:5000/api";
+
+// Types for API reviews
+interface ApiReview {
+  _id: string;
+  customerName: string;
+  rating: number;
+  comment: string;
+  productName: string;
+  helpful: number;
+  images?: { url: string }[];
+}
+
+// Types for CMS testimonials
+interface CmsTestimonial {
   name: string;
   location: string;
   text: string;
   avatar: string;
 }
 
-interface TestimonialData {
+interface CmsTestimonialData {
   rightImageUrl: string;
   badgeText: string;
   title: string;
-  testimonials: Testimonial[];
+  testimonials: CmsTestimonial[];
 }
 
-// ✅ DEFAULT DATA (jab tak CMS se data na aaye)
-const DEFAULT_DATA: TestimonialData = {
+// Type for display (union of both)
+interface DisplayTestimonial {
+  id: string;
+  name: string;
+  location: string;
+  text: string;
+  avatar: string;
+  rating?: number;
+  productName?: string;
+  isFromApi: boolean;
+}
+
+// ✅ DEFAULT DUMMY DATA (jab tak koi data na ho)
+const DEFAULT_CMS_DATA: CmsTestimonialData = {
   rightImageUrl: defaultTestimonialImg,
   badgeText: 'CUSTOMER VOICES',
   title: 'Our Customers Speak For Us',
@@ -49,72 +74,192 @@ const DEFAULT_DATA: TestimonialData = {
   ],
 };
 
+// Default API reviews (dummy data for when API fails)
+const DEFAULT_API_REVIEWS: ApiReview[] = [
+  {
+    _id: '1',
+    customerName: 'Priya Sharma',
+    rating: 5,
+    comment: 'The craftsmanship of Jewelskart is truly exceptional. Every piece I have purchased feels like a work of art. The attention to detail and the quality of materials used is unmatched.',
+    productName: 'Diamond Ring',
+    helpful: 12,
+  },
+  {
+    _id: '2',
+    customerName: 'Ananya Patel',
+    rating: 5,
+    comment: 'I ordered a custom pendant for my anniversary and it exceeded all expectations. The design team understood exactly what I wanted and delivered perfection.',
+    productName: 'Gold Pendant',
+    helpful: 8,
+  },
+  {
+    _id: '3',
+    customerName: 'Meera Krishnan',
+    rating: 4,
+    comment: 'Jewelskart has become my go-to destination for all jewellery needs. From daily wear rings to special occasion necklaces, every piece is beautifully crafted.',
+    productName: 'Earrings Set',
+    helpful: 5,
+  },
+];
+
 export const TestimonialSection = () => {
-  const [data, setData] = useState<TestimonialData | null>(null);
+  // State for CMS data (section images, badges, etc.)
+  const [cmsData, setCmsData] = useState<CmsTestimonialData | null>(null);
+  
+  // State for API reviews
+  const [apiReviews, setApiReviews] = useState<ApiReview[]>([]);
+  
+  // Combined display data (prioritize API reviews, fallback to CMS)
+  const [displayTestimonials, setDisplayTestimonials] = useState<DisplayTestimonial[]>([]);
+  
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [usingDefault, setUsingDefault] = useState(false);
+  const [usingApiReviews, setUsingApiReviews] = useState(false);
 
+  // Load both CMS and API data
   useEffect(() => {
-    loadTestimonialData();
+    loadAllData();
   }, []);
 
-  const loadTestimonialData = async () => {
+  const loadAllData = async () => {
+    setLoading(true);
+    
+    // Load CMS data (from sectionImageService)
+    await loadCmsData();
+    
+    // Load API reviews
+    await loadApiReviews();
+    
+    setLoading(false);
+  };
+
+  const loadCmsData = async () => {
     try {
-      const testimonialData = await getTestimonialSection();
+      // Try to import the service dynamically to avoid errors if not available
+      let testimonialData = null;
+      try {
+        const { getTestimonialSection } = await import('@/services/sectionImageService');
+        testimonialData = await getTestimonialSection();
+      } catch (serviceError) {
+        console.log('Section image service not available, using default CMS data');
+      }
       
-      // ✅ Agar CMS se data nahi aaya toh default use karo
-      if (!testimonialData || !testimonialData.testimonials || testimonialData.testimonials.length === 0) {
-        console.log('No CMS data, using default testimonials');
-        setData(DEFAULT_DATA);
-        setUsingDefault(true);
-      } else {
-        setData(testimonialData);
+      if (testimonialData && testimonialData.testimonials && testimonialData.testimonials.length > 0) {
+        setCmsData(testimonialData);
         setUsingDefault(false);
+      } else {
+        setCmsData(DEFAULT_CMS_DATA);
+        setUsingDefault(true);
       }
     } catch (error) {
-      console.error('Error loading testimonial data:', error);
-      // ✅ Error pe bhi default data dikhao
-      setData(DEFAULT_DATA);
+      console.error('Error loading CMS data:', error);
+      setCmsData(DEFAULT_CMS_DATA);
       setUsingDefault(true);
-    } finally {
-      setLoading(false);
     }
   };
 
+  const loadApiReviews = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/reviews/top?limit=5`);
+      const data = await response.json();
+      
+      if (data.success && data.reviews && data.reviews.length > 0) {
+        setApiReviews(data.reviews);
+        setUsingApiReviews(true);
+      } else {
+        // Use default API reviews
+        setApiReviews(DEFAULT_API_REVIEWS);
+        setUsingApiReviews(false);
+      }
+    } catch (error) {
+      console.error('Error fetching API reviews:', error);
+      // Use default API reviews on error
+      setApiReviews(DEFAULT_API_REVIEWS);
+      setUsingApiReviews(false);
+    }
+  };
+
+  // Combine data for display
   useEffect(() => {
-    if (!data?.testimonials || data.testimonials.length === 0) return;
+    const combined: DisplayTestimonial[] = [];
+    
+    // First try to use API reviews (they are from real customers)
+    if (apiReviews.length > 0) {
+      apiReviews.forEach((review, index) => {
+        combined.push({
+          id: review._id,
+          name: review.customerName,
+          location: 'Verified Buyer',
+          text: review.comment,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(review.customerName)}&background=8B5E3C&color=fff`,
+          rating: review.rating,
+          productName: review.productName,
+          isFromApi: true,
+        });
+      });
+    }
+    
+    // If API reviews are not enough (less than 3), add CMS testimonials
+    if (combined.length < 3 && cmsData?.testimonials) {
+      cmsData.testimonials.slice(0, 3 - combined.length).forEach((testimonial, index) => {
+        combined.push({
+          id: `cms-${index}`,
+          name: testimonial.name,
+          location: testimonial.location,
+          text: testimonial.text,
+          avatar: testimonial.avatar,
+          isFromApi: false,
+        });
+      });
+    }
+    
+    setDisplayTestimonials(combined);
+  }, [apiReviews, cmsData]);
+
+  useEffect(() => {
+    if (displayTestimonials.length === 0) return;
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % data.testimonials.length);
+      setCurrent((prev) => (prev + 1) % displayTestimonials.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, [data?.testimonials]);
+  }, [displayTestimonials.length]);
 
   if (loading) {
     return (
       <section className="py-12 sm:py-16 md:py-20 lg:py-32 bg-[#FFF] overflow-hidden relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-16 text-center">
-          <p>Loading testimonials...</p>
+          <div className="animate-pulse">
+            <p className="text-gray-400">Loading testimonials...</p>
+          </div>
         </div>
       </section>
     );
   }
 
-  // ✅ Ab data hamesha rahega (default ya CMS se)
-  if (!data || !data.testimonials || data.testimonials.length === 0) {
+  // Use CMS data for UI elements (images, badges, title)
+  const currentCmsData = cmsData || DEFAULT_CMS_DATA;
+  
+  // Get current testimonial to display
+  const currentTestimonial = displayTestimonials[current] || displayTestimonials[0];
+  
+  if (!currentTestimonial || displayTestimonials.length === 0) {
     return null;
   }
 
-  const t = data.testimonials[current];
-
   return (
     <section className="py-12 sm:py-16 md:py-20 lg:py-32 bg-[#FFF] overflow-hidden relative">
-      {/* ✅ Optional: Show badge if using default data */}
+      {/* Debug badge (optional - shows if using default data) */}
       {/* {usingDefault && (
         <div className="absolute top-4 right-4 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded z-50">
           Using Default Data
         </div>
       )} */}
+      {!usingApiReviews && apiReviews.length === DEFAULT_API_REVIEWS.length && (
+        <div className="absolute top-4 left-4 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded z-50">
+          Demo Reviews
+        </div>
+      )}
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 md:gap-12 lg:gap-20 items-center">
@@ -135,12 +280,12 @@ export const TestimonialSection = () => {
                     className="w-3 h-3 sm:w-4 sm:h-4 object-contain" 
                   />
                   <span className="text-[9px] sm:text-[10px] md:text-[11px] tracking-[0.3em] sm:tracking-[0.5em] uppercase font-semibold text-white">
-                    {data.badgeText}
+                    {currentCmsData.badgeText}
                   </span>
                 </div>
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-[#1a1a1a] leading-[1.2] text-center lg:text-left px-2 sm:px-0">
-                {data.title}
+                {currentCmsData.title}
               </h2>
             </motion.div>
 
@@ -160,8 +305,17 @@ export const TestimonialSection = () => {
                     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                     className="px-2 sm:px-4 md:pl-6"
                   >
+                    {/* Rating stars for API reviews */}
+                    {currentTestimonial.rating && (
+                      <div className="flex gap-1 mb-3 justify-center lg:justify-start">
+                        {[1,2,3,4,5].map(i => (
+                          <Star key={i} className={`w-4 h-4 ${i <= currentTestimonial.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                        ))}
+                      </div>
+                    )}
+                    
                     <p className="text-gray-600 text-sm sm:text-base md:text-lg font-light leading-relaxed text-center lg:text-left">
-                      {t.text}
+                      {currentTestimonial.text}
                     </p>
 
                     <div className="text-4xl sm:text-5xl font-serif mt-2 sm:mt-1 flex justify-center lg:justify-end max-w-2xl mx-auto lg:mx-0 opacity-30 text-primary">
@@ -170,18 +324,25 @@ export const TestimonialSection = () => {
 
                     <div className="flex items-center justify-center lg:justify-start gap-3 sm:gap-4 mt-4 sm:mt-6">
                       <img
-                        src={t.avatar}
-                        alt={t.name}
+                        src={currentTestimonial.avatar}
+                        alt={currentTestimonial.name}
                         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-primary/30"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48';
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentTestimonial.name)}&background=8B5E3C&color=fff`;
                         }}
                       />
                       <div className="text-center lg:text-left">
                         <span className="font-semibold tracking-tight text-primary text-sm sm:text-base">
-                          — {t.name},
+                          — {currentTestimonial.name},
                         </span>
-                        <span className="text-gray-400 ml-1 sm:ml-2 text-xs sm:text-sm font-light">{t.location}</span>
+                        <span className="text-gray-400 ml-1 sm:ml-2 text-xs sm:text-sm font-light">
+                          {currentTestimonial.location}
+                        </span>
+                        {currentTestimonial.productName && currentTestimonial.isFromApi && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Reviewed for: {currentTestimonial.productName}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -192,7 +353,7 @@ export const TestimonialSection = () => {
               <div className="flex items-center justify-center lg:justify-start gap-4 sm:gap-6 mt-6 sm:mt-8 px-2 sm:px-4 md:pl-6">
                 <span className="text-xs font-bold tracking-tighter text-primary">0{current + 1}</span>
                 <div className="flex gap-2 sm:gap-3">
-                  {data.testimonials.map((_, idx) => (
+                  {displayTestimonials.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setCurrent(idx)}
@@ -204,7 +365,7 @@ export const TestimonialSection = () => {
                     </button>
                   ))}
                 </div>
-                <span className="text-xs font-bold tracking-tighter text-gray-400">0{data.testimonials.length}</span>
+                <span className="text-xs font-bold tracking-tighter text-gray-400">0{displayTestimonials.length}</span>
               </div>
             </div>
           </div>
@@ -220,7 +381,7 @@ export const TestimonialSection = () => {
             <div className="relative group mx-auto max-w-[320px] sm:max-w-[400px] md:max-w-[440px] lg:max-w-[480px]">
               <div className="overflow-hidden rounded-t-[180px] sm:rounded-t-[220px] md:rounded-t-[260px] lg:rounded-t-[280px] h-[350px] sm:h-[400px] md:h-[450px] lg:h-[500px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] relative z-10 border-[8px] sm:border-[10px] md:border-[12px] border-primary/20">
                 <img
-                  src={data.rightImageUrl}
+                  src={currentCmsData.rightImageUrl}
                   alt="Customer wearing jewelry"
                   className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
                 />
