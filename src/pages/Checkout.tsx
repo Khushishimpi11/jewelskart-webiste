@@ -1,0 +1,791 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Check, ChevronLeft, Loader2, Copy } from 'lucide-react';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { InnerPageBanner } from '@/components/InnerPageBanner';
+import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { useOrderStore } from '@/store/orderStore';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+
+type Step = 'login' | 'shipping' | 'summary' | 'payment' | 'confirmation';
+type PaymentMethod = 'cod' | 'online';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+const Checkout = () => {
+  const location = useLocation();
+  const { isAuthenticated, isLoading: authLoading, login, register, user } = useAuthStore();
+  const { items: cartItems, clearCart } = useCartStore();
+  const { isLoading: orderLoading, resetLoading } = useOrderStore();
+  const navigate = useNavigate();
+  
+  const [currentStep, setCurrentStep] = useState<Step>('shipping');
+  const [orderId, setOrderId] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isOrderCompleted, setIsOrderCompleted] = useState(false);
+  
+  const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
+  const [isBuyNow, setIsBuyNow] = useState(false);
+  
+  // ✅ FIXED: Read items from location.state or cart
+  useEffect(() => {
+    console.log("🔍 Checkout mounted - Location state:", location.state);
+    
+    // Priority 1: Items from Cart page (via navigate state)
+    if (location.state?.fromCart && location.state?.selectedItems) {
+      setCheckoutItems(location.state.selectedItems);
+      setIsBuyNow(false);
+      console.log("✅ Cart Mode - Items from state:", location.state.selectedItems.length);
+      return;
+    }
+    
+    // Priority 2: Buy Now from Product Card
+    if (location.state?.isBuyNow && location.state?.buyNowProduct) {
+      const buyNowProduct = location.state.buyNowProduct;
+      setCheckoutItems([{
+        product: buyNowProduct.product,
+        quantity: buyNowProduct.quantity || 1,
+        size: buyNowProduct.size
+      }]);
+      setIsBuyNow(true);
+      console.log("✅ Buy Now Mode - Single product");
+      return;
+    }
+    
+    // Priority 3: Fallback to cart store
+    setCheckoutItems(cartItems);
+    setIsBuyNow(false);
+    console.log("✅ Fallback to cart store - Items:", cartItems.length);
+    
+  }, [location.state, cartItems]);
+  
+  // Auth form states
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
+  const [registerFirstName, setRegisterFirstName] = useState('');
+  const [registerLastName, setRegisterLastName] = useState('');
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
+  const [authLoading2, setAuthLoading2] = useState(false);
+  
+  const [shippingData, setShippingData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    country: 'India',
+  });
+  
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('online');
+
+  useEffect(() => {
+    return () => {
+      resetLoading();
+    };
+  }, [resetLoading]);
+
+  // ✅ FIXED: NO REDIRECT - Just log and stay on page
+  useEffect(() => {
+    console.log("🛒 Checkout Status:", { 
+      itemsCount: checkoutItems.length, 
+      currentStep, 
+      isBuyNow,
+      isOrderCompleted
+    });
+    
+    // Do NOT redirect - let user see checkout page even if empty
+    // The empty state will be shown in the summary section
+    
+  }, [checkoutItems, currentStep, isBuyNow, isOrderCompleted]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentStep === 'login') {
+      setCurrentStep('shipping');
+    }
+  }, [isAuthenticated, currentStep]);
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setCurrentStep('login');
+    }
+  }, [authLoading, isAuthenticated]);
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Order ID copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail || !loginPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    setAuthLoading2(true);
+    const success = await login(loginEmail, loginPassword);
+    setAuthLoading2(false);
+    if (success) {
+      toast.success('Logged in successfully!');
+      setCurrentStep('shipping');
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registerEmail || !registerPassword || !registerFirstName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    if (registerPassword !== registerConfirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (registerPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setAuthLoading2(true);
+    const success = await register(registerEmail, registerPassword, registerFirstName, registerLastName);
+    setAuthLoading2(false);
+    if (success) {
+      toast.success('Account created! Continuing checkout...');
+      setCurrentStep('shipping');
+    }
+  };
+
+  const handleShippingSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shippingData.firstName || !shippingData.email || !shippingData.address || !shippingData.phone) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    setCurrentStep('summary');
+  };
+
+  const handleCODOrder = async () => {
+    setIsPlacingOrder(true);
+    
+    try {
+      const authUser = user;
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+      
+      const subtotal = checkoutItems.reduce(
+        (total, item) => total + item.product.price * item.quantity,
+        0
+      );
+      const shipping = subtotal >= 5000 ? 0 : 250;
+      const total = subtotal + shipping;
+      
+      const orderData = {
+        items: checkoutItems.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          size: item.size,
+          name: item.product.name,
+          image: item.product.image
+        })),
+        shippingAddress: {
+          street: shippingData.address,
+          city: shippingData.city,
+          state: shippingData.state,
+          pincode: shippingData.zip,
+          country: shippingData.country
+        },
+        paymentMethod: 'COD',
+        customerPhone: shippingData.phone,
+        customerId: authUser?.id || authUser?._id,
+        userId: authUser?.id || authUser?._id,
+        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerEmail: authUser?.email || shippingData.email,
+        totalAmount: total,
+        subtotal: subtotal,
+        shippingCharge: shipping,
+        tax: 0,
+        discount: 0,
+        notes: ""
+      };
+      
+      console.log('📦 Creating COD order:', orderData);
+      
+      const response = await fetch(`${API_BASE_URL}/orders/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to place order");
+      }
+      
+      const newOrderId = data.order?._id || data.order?.id;
+      const newOrderNumber = data.order?.orderNumber || newOrderId;
+      
+      setOrderNumber(newOrderNumber);
+      setOrderId(newOrderId);
+      
+      toast.success("Order placed successfully!");
+      
+      setIsOrderCompleted(true);
+      setCurrentStep('confirmation');
+      
+      if (!isBuyNow) {
+        setTimeout(() => {
+          clearCart();
+        }, 100);
+      }
+      
+    } catch (error: any) {
+      console.error('Order error:', error);
+      toast.error(error.message || 'Something went wrong! Please try again.');
+    } finally {
+      setIsPlacingOrder(false);
+      resetLoading();
+    }
+  };
+
+  const handleRazorpayPayment = async () => {
+    setIsProcessingPayment(true);
+    
+    try {
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error("Failed to load payment gateway. Please try again.");
+      }
+
+      const authUser = user;
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+      
+      const subtotal = checkoutItems.reduce(
+        (total, item) => total + item.product.price * item.quantity,
+        0
+      );
+      const shipping = subtotal >= 5000 ? 0 : 250;
+      const total = subtotal + shipping;
+      
+      const orderData = {
+        items: checkoutItems.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          size: item.size,
+          name: item.product.name,
+          image: item.product.image
+        })),
+        shippingAddress: {
+          street: shippingData.address,
+          city: shippingData.city,
+          state: shippingData.state,
+          pincode: shippingData.zip,
+          country: shippingData.country
+        },
+        paymentMethod: 'ONLINE',
+        customerPhone: shippingData.phone,
+        customerId: authUser?.id || authUser?._id,
+        userId: authUser?.id || authUser?._id,
+        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerEmail: authUser?.email || shippingData.email,
+        totalAmount: total,
+        subtotal: subtotal,
+        shippingCharge: shipping,
+        tax: 0,
+        discount: 0,
+        notes: ""
+      };
+      
+      console.log('📦 Creating ONLINE order:', orderData);
+      
+      const orderResponse = await fetch(`${API_BASE_URL}/orders/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+      
+      const orderResult = await orderResponse.json();
+      
+      if (!orderResponse.ok) {
+        throw new Error(orderResult.message || "Failed to create order");
+      }
+      
+      const newOrderId = orderResult.order?._id || orderResult.order?.id;
+      const newOrderNumber = orderResult.order?.orderNumber || newOrderId;
+      
+      setOrderId(newOrderId);
+      setOrderNumber(newOrderNumber);
+      
+      const razorpayResponse = await fetch(`${API_BASE_URL}/payment/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: total,
+          currency: "INR",
+          orderId: newOrderId,
+          type: "order_payment"
+        })
+      });
+      
+      const razorpayData = await razorpayResponse.json();
+      
+      if (!razorpayData.success) {
+        throw new Error(razorpayData.message || "Failed to create payment order");
+      }
+      
+      const options = {
+        key: razorpayData.key_id,
+        amount: razorpayData.amount,
+        currency: razorpayData.currency,
+        name: "JewelsKart",
+        description: `Payment for Order ${newOrderNumber}`,
+        order_id: razorpayData.order_id,
+        handler: async (response: any) => {
+          try {
+            const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify-payment`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                order_id: response.razorpay_order_id,
+                payment_id: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                orderId: newOrderId
+              })
+            });
+            
+            const verifyData = await verifyResponse.json();
+            
+            if (verifyData.success) {
+              toast.success("Payment successful! Order confirmed.");
+              
+              setIsOrderCompleted(true);
+              setCurrentStep('confirmation');
+              
+              if (!isBuyNow) {
+                setTimeout(() => {
+                  clearCart();
+                }, 100);
+              }
+              
+              setIsProcessingPayment(false);
+            } else {
+              throw new Error("Payment verification failed");
+            }
+          } catch (error) {
+            console.error("Verification error:", error);
+            toast.error("Payment verification failed. Please contact support.");
+            setIsProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: orderData.customerName,
+          email: orderData.customerEmail,
+          contact: shippingData.phone
+        },
+        theme: { color: "#F37254" },
+        modal: {
+          ondismiss: () => {
+            toast.error("Payment cancelled");
+            setIsProcessingPayment(false);
+          }
+        }
+      };
+      
+      const razorpay = new window.Razorpay(options);
+      
+      razorpay.on('payment.failed', (response: any) => {
+        console.error("Payment failed:", response.error);
+        toast.error(response.error.description || "Payment failed. Please try again.");
+        setIsProcessingPayment(false);
+      });
+      
+      razorpay.open();
+      
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast.error(error.message || "Something went wrong. Please try again.");
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handlePlaceOrder = async () => {
+    if (paymentMethod === 'cod') {
+      await handleCODOrder();
+    } else {
+      await handleRazorpayPayment();
+    }
+  };
+
+  const subtotal = checkoutItems.reduce(
+    (total, item) => total + item.product.price * item.quantity,
+    0
+  );
+  const shipping = subtotal >= 5000 ? 0 : 250;
+  const total = subtotal + shipping;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="pt-16 lg:pt-24">
+        <InnerPageBanner
+          title={isBuyNow ? "Checkout (Buy Now)" : "Checkout"}
+          subtitle="Secure Checkout"
+          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Cart', path: '/cart' }, { label: 'Checkout' }]}
+        />
+
+        <div className="container mx-auto px-4 lg:px-8 py-8">
+          {currentStep !== 'confirmation' && (
+            <div className="flex items-center justify-center gap-2 mb-12">
+              {(['login', 'shipping', 'summary', 'payment'] as Step[]).map((step) => {
+                const stepOrder = ['login', 'shipping', 'summary', 'payment'];
+                const currentIndex = stepOrder.indexOf(currentStep);
+                const isActive = stepOrder.indexOf(step) <= currentIndex;
+                const isCurrent = currentStep === step;
+                
+                if (step === 'login' && isAuthenticated) return null;
+                
+                return (
+                  <div key={step} className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors ${
+                        isActive ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {isActive && currentIndex > stepOrder.indexOf(step) ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        stepOrder.indexOf(step) + 1
+                      )}
+                    </div>
+                    <span className={`ml-2 text-sm hidden sm:block ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {step === 'login' ? 'Account' : step.charAt(0).toUpperCase() + step.slice(1)}
+                    </span>
+                    {step !== 'payment' && (
+                      <div className={`w-8 lg:w-16 h-px mx-2 ${isActive ? 'bg-primary' : 'bg-muted'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="max-w-2xl mx-auto">
+            {/* Login Step */}
+            {currentStep === 'login' && !isAuthenticated && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <h2 className="font-display text-2xl text-foreground text-center">Sign in to continue</h2>
+                <div className="flex mb-4">
+                  {(['login', 'register'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setAuthTab(tab)}
+                      className={`flex-1 py-3 text-center text-sm uppercase tracking-wider transition-colors ${
+                        authTab === tab ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground border border-border/30'
+                      }`}
+                    >
+                      {tab === 'login' ? 'Sign In' : 'Register'}
+                    </button>
+                  ))}
+                </div>
+                {authTab === 'login' && (
+                  <form onSubmit={handleLogin} className="bg-card p-6 border border-border/30 space-y-4">
+                    <Input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="bg-background" required />
+                    <Input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="bg-background" required />
+                    <button type="submit" className="w-full bg-primary text-white py-3 rounded-md" disabled={authLoading2}>
+                      {authLoading2 ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Sign In & Continue'}
+                    </button>
+                  </form>
+                )}
+                {authTab === 'register' && (
+                  <form onSubmit={handleRegister} className="bg-card p-6 border border-border/30 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input placeholder="First Name *" value={registerFirstName} onChange={(e) => setRegisterFirstName(e.target.value)} className="bg-background" required />
+                      <Input placeholder="Last Name" value={registerLastName} onChange={(e) => setRegisterLastName(e.target.value)} className="bg-background" />
+                    </div>
+                    <Input type="email" placeholder="Email *" value={registerEmail} onChange={(e) => setRegisterEmail(e.target.value)} className="bg-background" required />
+                    <Input type="password" placeholder="Password *" value={registerPassword} onChange={(e) => setRegisterPassword(e.target.value)} className="bg-background" required />
+                    <Input type="password" placeholder="Confirm Password *" value={registerConfirmPassword} onChange={(e) => setRegisterConfirmPassword(e.target.value)} className="bg-background" required />
+                    <button type="submit" className="w-full bg-primary text-white py-3 rounded-md" disabled={authLoading2}>
+                      {authLoading2 ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Create Account & Continue'}
+                    </button>
+                  </form>
+                )}
+              </motion.div>
+            )}
+
+            {/* Shipping Step */}
+            {currentStep === 'shipping' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <div className="bg-primary/10 p-3 rounded-sm text-center">
+                  <p className="text-sm text-foreground">
+                    {checkoutItems.length === 0 ? (
+                      <span className="text-amber-600">No items in your order. <Link to="/shop" className="text-primary underline">Continue Shopping</Link></span>
+                    ) : (
+                      `You have ${checkoutItems.length} item(s) in your order`
+                    )}
+                  </p>
+                </div>
+                <h2 className="font-display text-2xl text-foreground">Shipping Details</h2>
+                <form onSubmit={handleShippingSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input placeholder="First Name *" value={shippingData.firstName} onChange={(e) => setShippingData({ ...shippingData, firstName: e.target.value })} className="bg-card" required />
+                    <Input placeholder="Last Name" value={shippingData.lastName} onChange={(e) => setShippingData({ ...shippingData, lastName: e.target.value })} className="bg-card" />
+                  </div>
+                  <Input type="email" placeholder="Email *" value={shippingData.email} onChange={(e) => setShippingData({ ...shippingData, email: e.target.value })} className="bg-card" required />
+                  <Input placeholder="Phone *" value={shippingData.phone} onChange={(e) => setShippingData({ ...shippingData, phone: e.target.value })} className="bg-card" required />
+                  <Input placeholder="Address *" value={shippingData.address} onChange={(e) => setShippingData({ ...shippingData, address: e.target.value })} className="bg-card" required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input placeholder="City" value={shippingData.city} onChange={(e) => setShippingData({ ...shippingData, city: e.target.value })} className="bg-card" />
+                    <Input placeholder="State" value={shippingData.state} onChange={(e) => setShippingData({ ...shippingData, state: e.target.value })} className="bg-card" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input placeholder="PIN Code" value={shippingData.zip} onChange={(e) => setShippingData({ ...shippingData, zip: e.target.value })} className="bg-card" />
+                    <Input placeholder="Country" value={shippingData.country} disabled className="bg-card opacity-60" />
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={checkoutItems.length === 0}
+                    className={`w-full py-3 rounded-md ${checkoutItems.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary text-white hover:bg-primary/90'}`}
+                  >
+                    Continue to Summary
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Summary Step */}
+            {currentStep === 'summary' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <h2 className="font-display text-2xl text-foreground">Order Summary</h2>
+                <div className="bg-card p-6 border border-border/30 rounded-sm space-y-4">
+                  {checkoutItems.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No items in your order</p>
+                      <Link to="/shop" className="text-primary hover:underline">
+                        Continue Shopping
+                      </Link>
+                    </div>
+                  ) : (
+                    checkoutItems.map((item, idx) => (
+                      <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-center gap-4">
+                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm" />
+                        <div className="flex-1">
+                          <p className="text-foreground">{item.product.name}</p>
+                          <p className="text-muted-foreground text-sm">Qty: {item.quantity}{item.size && ` • Size: ${item.size}`}</p>
+                        </div>
+                        <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="bg-card p-6 border border-border/30 rounded-sm">
+                  <h3 className="font-display text-lg text-foreground mb-2">Shipping Address</h3>
+                  <p className="text-muted-foreground text-sm">
+                    {shippingData.firstName} {shippingData.lastName}<br />
+                    {shippingData.address}<br />
+                    {shippingData.city}, {shippingData.state} {shippingData.zip}<br />
+                    {shippingData.country}
+                  </p>
+                </div>
+                <div className="bg-card p-6 border border-border/30 rounded-sm space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-foreground">{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span className="text-foreground">{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                  </div>
+                  <div className="border-t border-border/30 pt-3 flex justify-between">
+                    <span className="font-display text-lg text-foreground">Total</span>
+                    <span className="font-display text-xl text-primary">{formatPrice(total)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={() => setCurrentStep('shipping')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2"><ChevronLeft className="w-4 h-4" /> Back</button>
+                  <button 
+                    onClick={() => setCurrentStep('payment')} 
+                    disabled={checkoutItems.length === 0}
+                    className={`flex-1 py-3 rounded-md ${checkoutItems.length === 0 ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary text-white'}`}
+                  >
+                    Proceed to Payment
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Payment Step */}
+            {currentStep === 'payment' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <h2 className="font-display text-2xl text-foreground">Payment Method</h2>
+                <div className="flex border border-border/30 rounded-sm overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('online')}
+                    className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${
+                      paymentMethod === 'online' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+                    }`}
+                  >
+                    💳 Pay Online (Razorpay)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${
+                      paymentMethod === 'cod' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'
+                    }`}
+                  >
+                    💵 Cash on Delivery
+                  </button>
+                </div>
+                
+                <div className="bg-card p-6 border border-border/30 rounded-sm">
+                  {paymentMethod === 'online' && (
+                    <div className="text-center py-4">
+                      <div className="mb-4">
+                        <img 
+                          src="https://razorpay.com/assets/razorpay-glyph.svg" 
+                          alt="Razorpay" 
+                          className="h-8 mx-auto mb-2"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                        <p className="text-foreground font-medium">Pay securely with Razorpay</p>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          Cards • UPI • NetBanking • Wallet
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                        <span>🔒 100% Secure</span>
+                        <span>⚡ Instant Payment</span>
+                        <span>🛡️ PCI Compliant</span>
+                      </div>
+                    </div>
+                  )}
+                  {paymentMethod === 'cod' && (
+                    <div className="text-center py-4">
+                      <p className="text-foreground mb-2">Pay when your order arrives</p>
+                      <p className="text-muted-foreground text-sm">No additional charges for COD</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-4">
+                  <button onClick={() => setCurrentStep('summary')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isPlacingOrder || orderLoading || isProcessingPayment || checkoutItems.length === 0}
+                    className="flex-1 bg-primary text-white py-3 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {(isPlacingOrder || orderLoading || isProcessingPayment) ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      `Complete Order • ${formatPrice(total)}`
+                    )}
+                  </button>
+                </div>
+                
+                <p className="text-muted-foreground text-xs text-center">
+                  By placing this order, you agree to our terms and conditions
+                </p>
+              </motion.div>
+            )}
+
+            {/* Confirmation Step */}
+            {currentStep === 'confirmation' && (
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
+                <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center mx-auto mb-6">
+                  <Check className="w-10 h-10 text-primary-foreground" />
+                </div>
+                <h1 className="font-display text-3xl text-foreground mb-4">Thank You for Your Order!</h1>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <p className="text-muted-foreground">Order Number:</p>
+                  <p className="font-mono font-semibold text-primary text-lg">{orderNumber}</p>
+                  <button
+                    onClick={() => copyToClipboard(orderNumber)}
+                    className="p-1 hover:bg-primary/10 rounded transition-colors"
+                  >
+                    <Copy className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+                <p className="text-muted-foreground mb-8">A confirmation has been sent to {shippingData.email}</p>
+                <div className="flex gap-4 justify-center flex-wrap">
+                  <Link to="/order-summary" className="border border-primary text-primary px-6 py-3 rounded-md">View Orders</Link>
+                  <Link to="/shop" className="bg-primary text-white px-6 py-3 rounded-md">Continue Shopping</Link>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Checkout;
