@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import aboutModel from '@/assets/pp.jpeg';
 import aboutDetail from '@/assets/ring.jpeg';
-import exploreIcon from '../../assets/logoicon.png';
+import exploreIcon from '@/assets/logoicon.png';
 
 interface CounterProps {
   end: number;
@@ -59,7 +59,7 @@ export const AboutSection = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-16 lg:gap-24 items-center">
-          
+
           {/* Left: Text Content - Responsive alignment (Center on mobile, Left on desktop) */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -70,13 +70,13 @@ export const AboutSection = () => {
           >
             <div className="flex justify-center lg:justify-start">
               <span className="inline-flex items-center bg-primary text-white px-4 py-1.5 font-body text-[10px] sm:text-xs tracking-widest uppercase rounded-full shadow-sm mb-4 sm:mb-6">
-  <img
-    src={exploreIcon}
-    alt="Explore"
-    className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
-  />
-  Jewelskart As Unique As You
-</span>
+                <img
+                  src={exploreIcon}
+                  alt="Explore"
+                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
+                />
+                Jewelskart As Unique As You
+              </span>
             </div>
 
             <h2 className="font-display text-2xl sm:text-4xl md:text-5xl text-foreground leading-[1.2] mb-4 sm:mb-6">
@@ -88,7 +88,7 @@ export const AboutSection = () => {
             </p>
 
             {/* Stats Row - Desktop sizes maintained */}
-           <div ref={ref} className="grid grid-cols-3 gap-3 sm:gap-4 mb-10">
+            <div ref={ref} className="grid grid-cols-3 gap-3 sm:gap-4 mb-10">
               <AnimatedCounter end={20} suffix="+" label="Branches" inView={isInView} />
               <AnimatedCounter end={200} suffix="+" label="Designs" inView={isInView} />
               <AnimatedCounter end={3} suffix="M" label="Clients" inView={isInView} />
@@ -115,12 +115,12 @@ export const AboutSection = () => {
           >
             {/* Max-width 550px for desktop kept here */}
             <div className="relative w-full max-w-[280px] sm:max-w-[480px] lg:max-w-[550px]">
-              
+
               {/* Gold Border */}
-              <div 
-                className="absolute -inset-3 lg:-inset-4 border-[1.5px] pointer-events-none" 
-                style={{ 
-                  borderColor: '#C5A059', 
+              <div
+                className="absolute -inset-3 lg:-inset-4 border-[1.5px] pointer-events-none"
+                style={{
+                  borderColor: '#C5A059',
                   borderRadius: '1000px 1000px 0 0',
                   borderBottomLeftRadius: '10px',
                   borderBottomRightRadius: '10px'
@@ -128,7 +128,7 @@ export const AboutSection = () => {
               />
 
               {/* Main Image */}
-              <div 
+              <div
                 className="relative overflow-hidden aspect-[4/5] z-10 shadow-sm"
                 style={{ borderRadius: '1000px 1000px 0 0' }}
               >
