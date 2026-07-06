@@ -184,11 +184,6 @@ const getProductImageUrl = (product: Product, index: number = 0): string => {
   const imageUrl = allImages[index];
   console.log(`📸 Returning image ${index + 1}:`, imageUrl);
   
-  // If it's a Cloudinary URL, optimize it
-  if (imageUrl && imageUrl.includes('cloudinary.com')) {
-    return imageUrl.replace('/upload/', '/upload/w_800,h_800,c_limit,q_auto,f_auto/');
-  }
-  
   return imageUrl || '/placeholder-image.jpg';
 };
 
@@ -1170,10 +1165,8 @@ const ProductDetail = () => {
               {galleryImages.length > 1 && (
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {galleryImages.map((img, idx) => {
-                    // Get thumbnail URL (smaller size)
-                    const thumbUrl = img.includes('cloudinary.com') 
-                      ? img.replace('/upload/', '/upload/w_80,h_80,c_fill,q_auto,f_auto/')
-                      : img;
+                    // Get thumbnail URL (original size)
+                    const thumbUrl = img;
                     
                     return (
                       <button 

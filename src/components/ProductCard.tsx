@@ -220,7 +220,7 @@ export const ProductCard = ({
             }}
           />
           {isOutOfStock && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-medium tracking-wider px-3 py-1 rounded-full z-10">
+            <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10">
               OUT OF STOCK
             </span>
           )}
@@ -339,19 +339,17 @@ export const ProductCard = ({
           }}
         />
         
-        {/* SALE Badge */}
-        {product.originalPrice && (
-          <span className="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10">
-            SALE
-          </span>
-        )}
-        
         {/* OUT OF STOCK Badge */}
         {isOutOfStock && (
-          <span className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-            <span className="bg-red-500 text-white text-sm font-bold px-6 py-2 rounded-full rotate-[-15deg]">
-              OUT OF STOCK
-            </span>
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10">
+            OUT OF STOCK
+          </span>
+        )}
+
+        {/* SALE Badge */}
+        {product.originalPrice && (
+          <span className={`absolute bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 ${isOutOfStock ? 'top-8' : 'top-2'} left-2`}>
+            SALE
           </span>
         )}
 
@@ -398,7 +396,7 @@ export const ProductCard = ({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-2">
+      <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2">
         {/* Product Name */}
         <h3 className="font-medium text-gray-800 text-sm sm:text-base line-clamp-2 group-hover:text-primary transition-colors">
           {product.name}
@@ -406,11 +404,11 @@ export const ProductCard = ({
 
         {/* Price */}
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-primary">
+          <span className="text-base sm:text-lg font-bold text-primary">
             {formatPrice(product.price)}
           </span>
           {product.originalPrice && (
-            <span className="text-sm text-gray-400 line-through">
+            <span className="text-xs text-gray-400 line-through">
               {formatPrice(product.originalPrice)}
             </span>
           )}
@@ -482,7 +480,7 @@ export const ProductCard = ({
         <button
           onClick={handleBuyNow}
           disabled={isOutOfStock || (hasMultipleSizes && !selectedSize)}
-          className={`w-full py-2.5 text-sm font-medium rounded-lg transition-all ${
+          className={`w-full py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
             isOutOfStock || (hasMultipleSizes && !selectedSize)
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
               : 'bg-primary text-white hover:bg-primary/90'

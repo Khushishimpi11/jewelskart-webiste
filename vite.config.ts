@@ -7,8 +7,8 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const envMode = env.VITE_ENV_MODE || "development";
-  const apiUrl = envMode === "production"
+  const isProduction = mode === "production" || env.VITE_ENV_MODE === "production";
+  const apiUrl = isProduction
     ? "https://jewelskart-backend-gt7z.onrender.com/api"
     : "http://localhost:5000/api";
   

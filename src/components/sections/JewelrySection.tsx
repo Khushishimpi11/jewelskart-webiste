@@ -12,19 +12,19 @@ import ringBox from "@/assets/mock.png";
 import model from "@/assets/ppp.png";
 import exploreIcon from "../../assets/logoicon.png"; 
 
-export const JewelrySection = () => {
+interface JewelrySectionProps {
+  products?: any[];
+  isLoading?: boolean;
+}
+
+export const JewelrySection = ({ products: propProducts, isLoading = false }: JewelrySectionProps) => {
   const navigate = useNavigate();
   const addToCart = useCartStore((s) => s.addItem);
   const addToWishlist = useWishlistStore((s) => s.addItem);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Get products - using same isJewelry flag as Jewellery component
-    const bottomProducts = products.filter(product => 
-    product.isBestSeller === true || 
-    product.isSpecial === true 
-    
-  );
+  const bottomProducts = propProducts || [];
 
   // Auto-slide effect
   useEffect(() => {
@@ -111,12 +111,16 @@ export const JewelrySection = () => {
     window.scrollTo(0, 0);
   };
 
-  if (bottomProducts.length === 0) {
+  if (isLoading) {
     return (
-      <section className="w-full bg-[#f3e9dc] py-16 px-6 text-center text-gray-600">
-        No products available
+      <section className="w-full py-16 text-center text-muted-foreground bg-[#FBF5F6]">
+        <div className="animate-pulse">Loading jewelry products...</div>
       </section>
     );
+  }
+
+  if (bottomProducts.length === 0) {
+    return null;
   }
 
   return (

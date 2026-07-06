@@ -8,12 +8,17 @@ import { ProductCard } from "@/components/ProductCard";
 import banner from "../../assets/vvv.png";
 import exploreIcon from '../../assets/logoicon.png';
 
-export default function Jewellery() {
+interface JewelleryProps {
+  products?: any[];
+  isLoading?: boolean;
+}
+
+export default function Jewellery({ products: propProducts, isLoading = false }: JewelleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const navigate = useNavigate();
 
-  const jewelryProducts = products.filter(product => product.isJewelry === true);
+  const jewelryProducts = propProducts || [];
 
   useEffect(() => {
     if (jewelryProducts.length <= 2 || isPaused) return;
@@ -25,18 +30,24 @@ export default function Jewellery() {
     return () => clearInterval(interval);
   }, [jewelryProducts.length, isPaused]);
 
-  if (jewelryProducts.length === 0) {
+  if (isLoading) {
     return (
-      <section className="w-full bg-[#f3e9dc] py-16 px-6 text-center text-gray-600">
-        No jewelry products available
+      <section className="w-full py-16 text-center text-muted-foreground bg-white">
+        <div className="animate-pulse">Loading limited collection products...</div>
       </section>
     );
   }
 
-  const visibleProducts = [
-    jewelryProducts[currentIndex % jewelryProducts.length],
-    jewelryProducts[(currentIndex + 1) % jewelryProducts.length]
-  ];
+  if (jewelryProducts.length === 0) {
+    return null;
+  }
+
+  const visibleProducts = jewelryProducts.length === 1
+    ? [jewelryProducts[0]]
+    : [
+        jewelryProducts[currentIndex % jewelryProducts.length],
+        jewelryProducts[(currentIndex + 1) % jewelryProducts.length]
+      ];
 
   // Animation variants for smoother transitions
   const cardVariants = {

@@ -11,8 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useExchange } from '@/context/ExchangeContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
-const PRODUCTS_PER_PAGE = 9;
+// PRODUCTS_PER_PAGE will be dynamically controlled inside the component for responsive rendering.
 
 type SortOption = 'default' | 'price-low-high' | 'price-high-low' | 'name-a-z' | 'name-z-a';
 
@@ -89,32 +88,56 @@ const getProductImageUrl = (product: Product): string => {
 
 const getAllProductImages = (product: Product): string[] => {
   const images: string[] = [];
-  
+
   if (product.mainImage?.url) {
     images.push(product.mainImage.url);
   }
-  
+
   if (product.galleryImages && product.galleryImages.length > 0) {
     product.galleryImages.forEach(img => {
       if (img.url) images.push(img.url);
     });
   }
-  
+
   if (product.images && product.images.length > 0) {
     images.push(...product.images);
   }
-  
+
   return [...new Set(images)];
 };
 
+const AVAILABLE_TAGS = [
+  { value: 'signature', label: 'Signature' },
+  { value: 'jewellery', label: 'Jewellery' },
+  { value: 'limited-edition', label: 'Limited Edition' },
+  { value: 'bestseller', label: 'Bestseller' },
+  { value: 'premium-pick', label: 'Premium Pick' }
+];
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 const Shop = () => {
+  const [productsPerPage, setProductsPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 6 : 9;
+    }
+    return 9;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setProductsPerPage(window.innerWidth < 768 ? 6 : 9);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { exchangeData, setExchangeData, setIsExchangeMode } = useExchange();
-  
+
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0,500000]);
+  const [priceRange, setPriceRange] = useState([0, 500000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -122,7 +145,7 @@ const Shop = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [allTags, setAllTags] = useState<string[]>([]);
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoryMapping, setCategoryMapping] = useState<Record<string, string>>({});
@@ -141,7 +164,7 @@ const Shop = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const forExchange = params.get('for');
-    
+
     if (forExchange === 'exchange' && exchangeData) {
       setIsExchangeModeLocal(true);
       setIsExchangeMode(true);
@@ -149,7 +172,7 @@ const Shop = () => {
       setExchangeReturnProductId(exchangeData.returnProductId);
       setExchangeReturnProductPrice(exchangeData.returnProductPrice);
       setExchangeReturnProductName(exchangeData.returnProductName);
-      
+
       toast.success(`Exchange Mode: Select a product to exchange for ${exchangeData.returnProductName}`);
     } else {
       setIsExchangeModeLocal(false);
@@ -161,13 +184,13 @@ const Shop = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories`);
       const data = await response.json();
-      
+
       if (data.success && data.categories) {
         const featuredCategories = data.categories.filter(
           (cat: Category) => cat.isActive === true && cat.featured === true
         );
         setCategories(featuredCategories);
-        
+
         const mapping: Record<string, string> = {};
         featuredCategories.forEach((cat: Category) => {
           mapping[cat.slug] = cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
@@ -185,7 +208,7 @@ const Shop = () => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
+
       const response = await fetch(`${API_BASE_URL}/health`, {
         signal: controller.signal,
         mode: 'cors',
@@ -193,9 +216,9 @@ const Shop = () => {
           'Content-Type': 'application/json',
         }
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         return true;
       }
@@ -224,13 +247,13 @@ const Shop = () => {
         },
         mode: 'cors',
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       let productsArray = [];
       if (data.products && Array.isArray(data.products)) {
         productsArray = data.products;
@@ -239,13 +262,13 @@ const Shop = () => {
       } else {
         productsArray = [];
       }
-      
+
       // Normalize products with Cloudinary images and ensure ringSizes is always an array
       const normalizedProducts = productsArray
         .filter((p: Product) => p.status === "Published")
         .map((p: Product) => {
           const allImages = getAllProductImages(p);
-          
+
           return {
             ...p,
             id: p._id,
@@ -256,15 +279,15 @@ const Shop = () => {
             galleryImages: p.galleryImages,
             specifications: {
               ...p.specifications,
-              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0 
-                ? p.specifications.ringSizes 
+              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
+                ? p.specifications.ringSizes
                 : (p.category?.toLowerCase().includes('ring') ? ['Free Size'] : undefined)
             }
           };
         });
-      
+
       setProducts(normalizedProducts);
-      
+
       // Extract unique tags
       const tags = new Set<string>();
       normalizedProducts.forEach((p: Product) => {
@@ -273,7 +296,7 @@ const Shop = () => {
         }
       });
       setAllTags(Array.from(tags));
-     
+
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error(error instanceof Error ? error.message : "Failed to load products.");
@@ -290,45 +313,45 @@ const Shop = () => {
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  const handlePageChange = (page: number) => { 
-    setCurrentPage(page); 
-    scrollToTop(); 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    scrollToTop();
   };
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
-    
+
     if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
       const categoryDisplayName = categoryMapping[categoryFromUrl];
-      filtered = filtered.filter((product) => 
+      filtered = filtered.filter((product) =>
         product.category?.toLowerCase() === categoryDisplayName?.toLowerCase()
       );
     }
-    
+
     if (brandFromUrl && brandFromUrl.toLowerCase() === 'jewelskart') {
-      filtered = filtered.filter((product) => 
+      filtered = filtered.filter((product) =>
         product.brand?.toLowerCase() === 'jewelskart original'
       );
     }
-    
+
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter((product) => 
-        selectedCategories.some(cat => 
+      filtered = filtered.filter((product) =>
+        selectedCategories.some(cat =>
           product.category?.toLowerCase() === cat.toLowerCase()
         )
       );
     }
-    
-    filtered = filtered.filter((product) => 
+
+    filtered = filtered.filter((product) =>
       product.price >= priceRange[0] && product.price <= priceRange[1]
     );
-    
+
     if (selectedTags.length > 0) {
-      filtered = filtered.filter((product) => 
+      filtered = filtered.filter((product) =>
         product.tags && product.tags.some((t) => selectedTags.includes(t))
       );
     }
-    
+
     return filtered;
   }, [products, categoryFromUrl, brandFromUrl, selectedCategories, priceRange, selectedTags, categoryMapping]);
 
@@ -347,27 +370,27 @@ const Shop = () => {
   const exchangeAvailableProducts = useMemo(() => {
     if (!isExchangeMode) return sortedProducts;
     // Only show products with stock > 0 and not the current product
-    return sortedProducts.filter(product => 
+    return sortedProducts.filter(product =>
       product.stock > 0 && (product._id || product.id) !== exchangeReturnProductId
     );
   }, [sortedProducts, isExchangeMode, exchangeReturnProductId]);
 
-  const totalPages = Math.ceil(exchangeAvailableProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = exchangeAvailableProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+  const totalPages = Math.ceil(exchangeAvailableProducts.length / productsPerPage);
+  const paginatedProducts = exchangeAvailableProducts.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
 
-  const toggleTag = (tag: string) => { 
-    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]); 
-    setCurrentPage(1); 
-    scrollToTop(); 
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+    setCurrentPage(1);
+    scrollToTop();
   };
 
-  const clearFilters = () => { 
-    setSelectedCategories([]); 
-    setSelectedTags([]); 
-    setPriceRange([0, 100000]); 
-    setSortBy('default'); 
-    setCurrentPage(1); 
-    scrollToTop(); 
+  const clearFilters = () => {
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setPriceRange([0, 100000]);
+    setSortBy('default');
+    setCurrentPage(1);
+    scrollToTop();
   };
 
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
@@ -387,55 +410,55 @@ const Shop = () => {
 
   const getBreadcrumbs = () => {
     const breadcrumbs = [{ label: 'Home', path: '/' }];
-    
+
     if (isExchangeMode) {
       breadcrumbs.push({ label: 'Order Summary', path: '/order-summary' });
       breadcrumbs.push({ label: 'Select Exchange Product', path: '/shop' });
     } else if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
-      breadcrumbs.push({ 
-        label: categoryMapping[categoryFromUrl], 
-        path: `/shop?category=${categoryFromUrl}` 
+      breadcrumbs.push({
+        label: categoryMapping[categoryFromUrl],
+        path: `/shop?category=${categoryFromUrl}`
       });
     } else if (brandFromUrl) {
-      breadcrumbs.push({ 
-        label: brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1), 
-        path: '/shop' 
+      breadcrumbs.push({
+        label: brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1),
+        path: '/shop'
       });
     } else {
       breadcrumbs.push({ label: 'Shop All', path: '/shop' });
     }
-    
+
     return breadcrumbs;
   };
 
   // Handle exchange product selection with size
   const handleSelectForExchange = (product: Product, selectedSize?: string) => {
     const productId = product._id || product.id;
-    
+
     if (!exchangeData) {
       toast.error("Exchange data not found. Please try again.");
       navigate('/order-summary');
       return;
     }
-    
+
     // Check if product is a ring and size is required but not selected
-    const isRingProduct = product.category?.toLowerCase().includes('ring') || 
-                         product.tags?.some(tag => tag.toLowerCase().includes('ring'));
-    
+    const isRingProduct = product.category?.toLowerCase().includes('ring') ||
+      product.tags?.some(tag => tag.toLowerCase().includes('ring'));
+
     if (isRingProduct && !selectedSize) {
       toast.error("Please select a ring size before proceeding");
       return;
     }
-    
+
     // Update Context with selected product and size
     const updatedData = {
       ...exchangeData,
       selectedExchangeProduct: {
         id: productId,
-        name: selectedSize 
-          ? (selectedSize === 'Free Size' 
-              ? product.name 
-              : `${product.name} (Size ${selectedSize})`)
+        name: selectedSize
+          ? (selectedSize === 'Free Size'
+            ? product.name
+            : `${product.name} (Size ${selectedSize})`)
           : product.name,
         price: product.price,
         image: getProductImageUrl(product),
@@ -445,16 +468,16 @@ const Shop = () => {
       step: 'complete' as const,
       timestamp: Date.now()
     };
-    
+
     setExchangeData(updatedData);
-    
+
     // Show appropriate success message
     if (selectedSize && selectedSize !== 'Free Size') {
       toast.success(`Selected ${product.name} - Size ${selectedSize} for exchange`);
     } else {
       toast.success(`Selected ${product.name} for exchange`);
     }
-    
+
     // Navigate back to order summary
     navigate('/order-summary');
   };
@@ -480,10 +503,10 @@ const Shop = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-16 lg:pt-24">
-        <InnerPageBanner 
-          title={getPageTitle()} 
-          subtitle={isExchangeMode ? `Exchange for ${exchangeReturnProductName || 'your item'}` : "Our Collection"} 
-          breadcrumbs={getBreadcrumbs()} 
+        <InnerPageBanner
+          title={getPageTitle()}
+          subtitle={isExchangeMode ? `Exchange for ${exchangeReturnProductName || 'your item'}` : "Our Collection"}
+          breadcrumbs={getBreadcrumbs()}
         />
 
         {/* Exchange Mode Banner */}
@@ -511,10 +534,10 @@ const Shop = () => {
 
         <section className="relative py-8 lg:py-12 overflow-hidden">
           <div className="container mx-auto px-3 sm:px-4 lg:px-8">
-            
+
             {/* Mobile Filter Toggle */}
-            <button 
-              onClick={() => setShowFilters(!showFilters)} 
+            <button
+              onClick={() => setShowFilters(!showFilters)}
               className="lg:hidden flex items-center justify-between gap-2 mb-4 text-foreground min-h-[44px] w-full bg-card px-4 py-3 border border-border/30 rounded-sm"
             >
               <div className="flex items-center gap-2">
@@ -530,15 +553,15 @@ const Shop = () => {
             </button>
 
             {/* Main Grid */}
-            <div className="lg:grid lg:grid-cols-4 lg:gap-8">
-              
+            <div className="lg:grid lg:grid-cols-4 lg:gap-8 lg:items-start">
+
               {/* Filters Sidebar */}
               <div className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'} mb-6 lg:mb-0`}>
                 <div className="bg-card p-4 sm:p-6 rounded-sm border border-border/30 sticky top-28">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="font-display text-base lg:text-lg text-foreground">Filters</h3>
-                    <button 
-                      onClick={clearFilters} 
+                    <button
+                      onClick={clearFilters}
                       className="text-primary text-sm hover:underline min-h-[44px] flex items-center"
                     >
                       Clear All
@@ -560,14 +583,13 @@ const Shop = () => {
                         <div className="space-y-1 ml-2">
                           {categories.length > 0 ? (
                             categories.map((cat) => (
-                              <a 
-                                key={cat._id} 
+                              <a
+                                key={cat._id}
                                 href={`/shop?brand=jewelskart&category=${cat.slug}`}
-                                className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${
-                                  brandFromUrl === 'jewelskart' && categoryFromUrl === cat.slug 
-                                    ? 'text-primary font-semibold' 
+                                className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${brandFromUrl === 'jewelskart' && categoryFromUrl === cat.slug
+                                    ? 'text-primary font-semibold'
                                     : 'text-muted-foreground hover:text-primary'
-                                }`}
+                                  }`}
                               >
                                 {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
                               </a>
@@ -583,13 +605,13 @@ const Shop = () => {
                   {/* Price Range Section */}
                   <div className="mb-6 lg:mb-8">
                     <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">Price Range</h4>
-                    <Slider 
-                      value={priceRange} 
-                      onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }} 
-                      min={0} 
-                      max={100000} 
-                      step={500} 
-                      className="mb-4" 
+                    <Slider
+                      value={priceRange}
+                      onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }}
+                      min={0}
+                      max={100000}
+                      step={500}
+                      className="mb-4"
                     />
                     <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
                       <span>{formatPrice(priceRange[0])}</span>
@@ -598,26 +620,23 @@ const Shop = () => {
                   </div>
 
                   {/* Tags Section */}
-                  {allTags.length > 0 && (
-                    <div>
-                      <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {allTags.map((tag) => (
-                          <button 
-                            key={tag} 
-                            onClick={() => toggleTag(tag)} 
-                            className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${
-                              selectedTags.includes(tag) 
-                                ? 'bg-primary text-primary-foreground border-primary' 
-                                : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
+                  <div>
+                    <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {AVAILABLE_TAGS.map((tag) => (
+                        <button
+                          key={tag.value}
+                          onClick={() => toggleTag(tag.value)}
+                          className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${selectedTags.includes(tag.value)
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
                             }`}
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
+                        >
+                          {tag.label}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
@@ -628,9 +647,9 @@ const Shop = () => {
                   <p className="text-muted-foreground text-xs sm:text-sm">
                     Showing {paginatedProducts.length} of {exchangeAvailableProducts.length} products
                   </p>
-                  <select 
-                    value={sortBy} 
-                    onChange={(e) => { setSortBy(e.target.value as SortOption); setCurrentPage(1); }} 
+                  <select
+                    value={sortBy}
+                    onChange={(e) => { setSortBy(e.target.value as SortOption); setCurrentPage(1); }}
                     className="bg-background border border-border/50 px-3 py-2 text-sm text-foreground rounded-sm focus:outline-none focus:border-primary w-full sm:w-auto min-h-[44px]"
                   >
                     <option value="default">Default sorting</option>
@@ -651,11 +670,11 @@ const Shop = () => {
                       {isExchangeMode ? "No products available for exchange" : "No products found"}
                     </h3>
                     <p className="text-muted-foreground text-sm max-w-md">
-                      {isExchangeMode 
-                        ? "All products are currently out of stock. Please check back later." 
+                      {isExchangeMode
+                        ? "All products are currently out of stock. Please check back later."
                         : "No products found matching your criteria."}
                     </p>
-                    <button 
+                    <button
                       onClick={clearFilters}
                       className="mt-6 px-6 py-3 bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center rounded-sm"
                     >
@@ -666,14 +685,14 @@ const Shop = () => {
                   <>
                     <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 auto-rows-fr">
                       {paginatedProducts.map((product, index) => (
-                        <motion.div 
-                          key={product._id || product.id || `product-${index}`} 
-                          initial={{ opacity: 0, y: 20 }} 
-                          animate={{ opacity: 1, y: 0 }} 
+                        <motion.div
+                          key={product._id || product.id || `product-${index}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Math.min(index * 0.05, 0.5) }}
                           className="relative group"
                         >
-                          <ProductCard 
+                          <ProductCard
                             product={{
                               id: product._id || product.id || `product-${index}`,
                               name: product.name,
@@ -700,9 +719,9 @@ const Shop = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="flex items-center justify-center gap-1 sm:gap-2 mt-8 sm:mt-12">
-                        <button 
-                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))} 
-                          disabled={currentPage === 1} 
+                        <button
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
                           className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -719,22 +738,21 @@ const Shop = () => {
                             pageNum = currentPage - 2 + i;
                           }
                           return (
-                            <button 
-                              key={pageNum} 
-                              onClick={() => handlePageChange(pageNum)} 
-                              className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors rounded-sm ${
-                                currentPage === pageNum 
-                                  ? 'bg-primary text-primary-foreground border-primary' 
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors rounded-sm ${currentPage === pageNum
+                                  ? 'bg-primary text-primary-foreground border-primary'
                                   : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
-                              }`}
+                                }`}
                             >
                               {pageNum}
                             </button>
                           );
                         })}
-                        <button 
-                          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} 
-                          disabled={currentPage === totalPages} 
+                        <button
+                          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
                           className="w-10 h-10 min-h-[44px] min-w-[44px] border border-border/50 flex items-center justify-center text-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-sm"
                         >
                           <ChevronRight className="w-4 h-4" />
