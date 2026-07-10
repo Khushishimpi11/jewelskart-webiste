@@ -149,6 +149,7 @@ const Shop = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoryMapping, setCategoryMapping] = useState<Record<string, string>>({});
+  const [totalProducts, setTotalProducts] = useState(0); // true total from server
 
   // Exchange Mode States
   const [isExchangeMode, setIsExchangeModeLocal] = useState(false);
@@ -228,7 +229,9 @@ const Shop = () => {
     return false;
   };
 
-  // Fetch products with Cloudinary support
+  // Fetch all published products — server applies status filter, we do the rest client-side
+  // Using limit=all so the 100-product cap is bypassed while keeping the existing
+  // filter/sort/pagination UX completely intact.
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -240,13 +243,14 @@ const Shop = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/products`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/products?status=Published&limit=all`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -254,21 +258,21 @@ const Shop = () => {
 
       const data = await response.json();
 
-      let productsArray = [];
+      let productsArray: Product[] = [];
       if (data.products && Array.isArray(data.products)) {
         productsArray = data.products;
       } else if (Array.isArray(data)) {
         productsArray = data;
-      } else {
-        productsArray = [];
       }
 
-      // Normalize products with Cloudinary images and ensure ringSizes is always an array
+      // Track real total from server metadata
+      setTotalProducts(data.total ?? productsArray.length);
+
+      // Normalize: add Cloudinary images, ensure ringSizes is always an array
       const normalizedProducts = productsArray
-        .filter((p: Product) => p.status === "Published")
+        .filter((p: Product) => p.status === "Published") // safety guard
         .map((p: Product) => {
           const allImages = getAllProductImages(p);
-
           return {
             ...p,
             id: p._id,
@@ -279,16 +283,19 @@ const Shop = () => {
             galleryImages: p.galleryImages,
             specifications: {
               ...p.specifications,
-              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
-                ? p.specifications.ringSizes
-                : (p.category?.toLowerCase().includes('ring') ? ['Free Size'] : undefined)
-            }
+              ringSizes:
+                p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
+                  ? p.specifications.ringSizes
+                  : p.category?.toLowerCase().includes('ring')
+                  ? ['Free Size']
+                  : undefined,
+            },
           };
         });
 
       setProducts(normalizedProducts);
 
-      // Extract unique tags
+      // Extract unique tags from the full product list
       const tags = new Set<string>();
       normalizedProducts.forEach((p: Product) => {
         if (p.tags && Array.isArray(p.tags)) {
