@@ -149,7 +149,6 @@ const Shop = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoryMapping, setCategoryMapping] = useState<Record<string, string>>({});
-  const [totalProducts, setTotalProducts] = useState(0); // true total from server
 
   // Exchange Mode States
   const [isExchangeMode, setIsExchangeModeLocal] = useState(false);
@@ -229,9 +228,7 @@ const Shop = () => {
     return false;
   };
 
-  // Fetch all published products — server applies status filter, we do the rest client-side
-  // Using limit=all so the 100-product cap is bypassed while keeping the existing
-  // filter/sort/pagination UX completely intact.
+  // Fetch products with Cloudinary support
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -243,14 +240,13 @@ const Shop = () => {
         return;
       }
 
-      const response = await fetch(
-        `${API_BASE_URL}/products?status=Published&limit=all`,
-        {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          mode: 'cors',
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/products`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -258,21 +254,21 @@ const Shop = () => {
 
       const data = await response.json();
 
-      let productsArray: Product[] = [];
+      let productsArray = [];
       if (data.products && Array.isArray(data.products)) {
         productsArray = data.products;
       } else if (Array.isArray(data)) {
         productsArray = data;
+      } else {
+        productsArray = [];
       }
 
-      // Track real total from server metadata
-      setTotalProducts(data.total ?? productsArray.length);
-
-      // Normalize: add Cloudinary images, ensure ringSizes is always an array
+      // Normalize products with Cloudinary images and ensure ringSizes is always an array
       const normalizedProducts = productsArray
-        .filter((p: Product) => p.status === "Published") // safety guard
+        .filter((p: Product) => p.status === "Published")
         .map((p: Product) => {
           const allImages = getAllProductImages(p);
+
           return {
             ...p,
             id: p._id,
@@ -283,19 +279,16 @@ const Shop = () => {
             galleryImages: p.galleryImages,
             specifications: {
               ...p.specifications,
-              ringSizes:
-                p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
-                  ? p.specifications.ringSizes
-                  : p.category?.toLowerCase().includes('ring')
-                  ? ['Free Size']
-                  : undefined,
-            },
+              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
+                ? p.specifications.ringSizes
+                : (p.category?.toLowerCase().includes('ring') ? ['Free Size'] : undefined)
+            }
           };
         });
 
       setProducts(normalizedProducts);
 
-      // Extract unique tags from the full product list
+      // Extract unique tags
       const tags = new Set<string>();
       normalizedProducts.forEach((p: Product) => {
         if (p.tags && Array.isArray(p.tags)) {
@@ -594,8 +587,8 @@ const Shop = () => {
                                 key={cat._id}
                                 href={`/shop?brand=jewelskart&category=${cat.slug}`}
                                 className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${brandFromUrl === 'jewelskart' && categoryFromUrl === cat.slug
-                                    ? 'text-primary font-semibold'
-                                    : 'text-muted-foreground hover:text-primary'
+                                  ? 'text-primary font-semibold'
+                                  : 'text-muted-foreground hover:text-primary'
                                   }`}
                               >
                                 {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
@@ -635,8 +628,8 @@ const Shop = () => {
                           key={tag.value}
                           onClick={() => toggleTag(tag.value)}
                           className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${selectedTags.includes(tag.value)
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
                             }`}
                         >
                           {tag.label}
@@ -749,8 +742,8 @@ const Shop = () => {
                               key={pageNum}
                               onClick={() => handlePageChange(pageNum)}
                               className={`w-10 h-10 min-h-[44px] min-w-[44px] border flex items-center justify-center text-sm transition-colors rounded-sm ${currentPage === pageNum
-                                  ? 'bg-primary text-primary-foreground border-primary'
-                                  : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'border-border/50 text-foreground hover:border-primary hover:text-primary'
                                 }`}
                             >
                               {pageNum}

@@ -16,7 +16,7 @@ export interface Product {
   bestSeller?: boolean;
   goldDetails?: {
     weight: number;
-    purity: "22K" | "18K" | "24K";
+    purity: "9K" | "10K" | "14K" | "18K" | "21K" | "22K" | "23K" | "24K";
     makingCharge: number;
   };
 }
