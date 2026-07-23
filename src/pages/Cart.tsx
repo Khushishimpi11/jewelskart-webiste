@@ -122,6 +122,16 @@ const Cart = () => {
   const shipping = selectedTotal >= 5000 ? 0 : (selectedTotal > 0 ? 250 : 0);
   const finalTotal = selectedTotal + shipping;
 
+  // GST breakdown for selected items
+  const selectedCartItems = items.filter(item => selectedItems.has(getItemKey(item)));
+  const gstTotal = selectedCartItems.reduce((sum, item) => {
+    const gst = item.product.gst ?? 3;
+    const itemTotal = item.product.price * item.quantity;
+    const gstAmount = itemTotal - (itemTotal / (1 + gst / 100));
+    return sum + gstAmount;
+  }, 0);
+  const totalExclGst = selectedTotal - gstTotal;
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
@@ -262,6 +272,9 @@ const Cart = () => {
                           <span className={`font-display text-sm sm:text-lg ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
                             {formatPrice(item.product.price * item.quantity)}
                           </span>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Incl. {item.product.gst ?? 3}% GST
+                          </p>
                         </div>
                       </div>
 
@@ -358,8 +371,12 @@ const Cart = () => {
                 
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground font-medium">{formatPrice(selectedTotal)}</span>
+                    <span className="text-muted-foreground">Product Price (Excl. GST)</span>
+                    <span className="text-foreground font-medium">{formatPrice(Math.round(totalExclGst))}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">GST</span>
+                    <span className="text-foreground font-medium">{formatPrice(Math.round(gstTotal))}</span>
                   </div>
                   {selectedCount > 0 && (
                     <>
@@ -392,7 +409,7 @@ const Cart = () => {
                       <span className="font-display text-xl lg:text-2xl text-primary">
                         {selectedCount > 0 ? formatPrice(finalTotal) : formatPrice(0)}
                       </span>
-                      <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
+                      <p className="text-xs text-muted-foreground">Inclusive of GST</p>
                     </div>
                   </div>
                 </div>

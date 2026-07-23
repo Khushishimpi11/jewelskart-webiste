@@ -413,6 +413,9 @@ export const ProductCard = ({
             </span>
           )}
         </div>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Incl. {product.gst ?? 3}% GST
+        </p>
 
         {/* Rating */}
         {product.rating && (

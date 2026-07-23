@@ -4,6 +4,7 @@ export interface Product {
   name: string;
   price: number;
   purchasePrice: number;
+  gst?: number;
   category: string;
   brand?: string;
   stock: number;

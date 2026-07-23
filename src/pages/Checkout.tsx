@@ -477,6 +477,18 @@ const Checkout = () => {
   const shipping = subtotal >= 5000 ? 0 : 250;
   const total = subtotal + shipping;
 
+  // GST breakdown (price is inclusive)
+  const gstTotal = checkoutItems.reduce((sum, item) => {
+    const gst = item.product.gst ?? 3;
+    const itemTotal = item.product.price * item.quantity;
+    return sum + (itemTotal - itemTotal / (1 + gst / 100));
+  }, 0);
+  const totalExclGst = subtotal - gstTotal;
+
+  // Unique GST rate label for display
+  const uniqueGstRates = [...new Set(checkoutItems.map(i => i.product.gst ?? 3))];
+  const gstLabel = uniqueGstRates.length === 1 ? `GST (${uniqueGstRates[0]}%)` : 'GST';
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -630,11 +642,12 @@ const Checkout = () => {
                     </div>
                   ) : (
                     checkoutItems.map((item, idx) => (
-                      <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-center gap-4">
-                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm" />
+                      <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-start gap-4">
+                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm flex-shrink-0" />
                         <div className="flex-1">
                           <p className="text-foreground">{item.product.name}</p>
                           <p className="text-muted-foreground text-sm">Qty: {item.quantity}{item.size && ` • Size: ${item.size}`}</p>
+                          <p className="text-xs text-muted-foreground">Incl. {item.product.gst ?? 3}% GST</p>
                         </div>
                         <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
                       </div>
@@ -652,15 +665,19 @@ const Checkout = () => {
                 </div>
                 <div className="bg-card p-6 border border-border/30 rounded-sm space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">{formatPrice(subtotal)}</span>
+                    <span className="text-muted-foreground">Product Price (Excl. GST)</span>
+                    <span className="text-foreground">{formatPrice(Math.round(totalExclGst))}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{gstLabel}</span>
+                    <span className="text-foreground">{formatPrice(Math.round(gstTotal))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
                     <span className="text-foreground">{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
                   </div>
                   <div className="border-t border-border/30 pt-3 flex justify-between">
-                    <span className="font-display text-lg text-foreground">Total</span>
+                    <span className="font-display text-lg text-foreground">Grand Total</span>
                     <span className="font-display text-xl text-primary">{formatPrice(total)}</span>
                   </div>
                 </div>

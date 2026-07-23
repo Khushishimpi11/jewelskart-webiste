@@ -102,6 +102,7 @@ interface Product {
       5: number;
     };
   };
+  gst?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -588,7 +589,8 @@ const ProductDetail = () => {
       price: product.price,
       image: getProductImageUrl(product, 0),
       category: product.category,
-      sku: product.sku
+      sku: product.sku,
+      gst: product.gst ?? 3
     };
     
     for (let i = 0; i < quantity; i++) {
@@ -653,7 +655,8 @@ const ProductDetail = () => {
         image: getProductImageUrl(product, 0),
         category: product.category,
         sku: product.sku,
-        stock: product.stock
+        stock: product.stock,
+        gst: product.gst ?? 3
       },
       quantity: quantity,
       size: selectedSize || undefined,
@@ -1213,8 +1216,11 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              <div className="price-container-fixed flex items-center gap-3">
-                <span className="font-display text-3xl text-foreground">{formatPrice(product.price)}</span>
+              <div className="price-container-fixed space-y-1">
+                <div className="flex items-center gap-3">
+                  <span className="font-display text-3xl text-foreground">{formatPrice(product.price)}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Inclusive of {product.gst ?? 3}% GST</p>
               </div>
 
               <div className="text-sm text-muted-foreground">

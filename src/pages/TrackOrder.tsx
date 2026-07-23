@@ -184,6 +184,11 @@ const TrackOrder = () => {
       items: order.items || [],
       shippingAddress: order.shippingAddress,
       total: order.total || 0,
+      subtotal: order.subtotal,
+      shippingCharge: order.shippingCharge,
+      tax: order.tax,
+      gstAmount: order.gstAmount,
+      totalExclGst: order.totalExclGst,
       paymentMethod: order.paymentMethod,
       requestType: requestType,
       steps: getTimelineSteps(currentStatus, order.date, requestType),
@@ -623,6 +628,40 @@ const TrackOrder = () => {
                         <p>{orderStatus.shippingAddress.firstName} {orderStatus.shippingAddress.lastName}</p>
                         <p>{orderStatus.shippingAddress.address || orderStatus.shippingAddress.street}</p>
                         <p>{orderStatus.shippingAddress.city}, {orderStatus.shippingAddress.state} - {orderStatus.shippingAddress.zip || orderStatus.shippingAddress.pincode}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Billing Breakdown */}
+                  {(orderStatus.tax !== undefined || orderStatus.subtotal !== undefined) && (
+                    <div className="px-6 py-4 border-b border-border/30">
+                      <h3 className="font-semibold text-foreground mb-3">Price Breakdown</h3>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Product Price (Excl. GST)</span>
+                          <span className="text-foreground">
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(
+                              orderStatus.totalExclGst || (orderStatus.subtotal || 0) - (orderStatus.tax || 0)
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">GST</span>
+                          <span className="text-foreground">
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.tax || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Shipping</span>
+                          <span className="text-foreground">
+                            {orderStatus.shippingCharge === 0 ? <span className="text-green-600">Free</span> : 
+                              new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.shippingCharge || 0)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-semibold pt-1.5 border-t border-border/20 mt-1.5">
+                          <span className="text-foreground">Grand Total</span>
+                          <span className="text-primary">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.total)}</span>
+                        </div>
                       </div>
                     </div>
                   )}

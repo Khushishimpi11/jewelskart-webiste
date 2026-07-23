@@ -11,6 +11,7 @@ export interface Product {
   material?: string;
   images?: string[];
   stock?: number;
+  gst?: number;
 }
 
 export interface CartItem {

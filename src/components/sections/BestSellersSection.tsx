@@ -19,7 +19,7 @@ export const BestSellersSection = ({ products: propProducts, isLoading = false }
 
   // Desktop: slider when > 4. Mobile: slider when > 2.
   const needsSliderDesktop = bestSellers.length > VISIBLE_DESKTOP;
-  const needsSliderMobile  = bestSellers.length > VISIBLE_MOBILE;
+  const needsSliderMobile = bestSellers.length > VISIBLE_MOBILE;
   const needsSlider = needsSliderDesktop || needsSliderMobile;
 
   // Clone enough items for both mobile (2-visible) and desktop (4-visible) loops
@@ -61,7 +61,7 @@ export const BestSellersSection = ({ products: propProducts, isLoading = false }
   }, [currentIndex, bestSellers.length, needsSlider]);
 
   const maxIndexDesktop = Math.max(0, bestSellers.length - VISIBLE_DESKTOP);
-  const maxIndexMobile  = Math.max(0, bestSellers.length - VISIBLE_MOBILE);
+  const maxIndexMobile = Math.max(0, bestSellers.length - VISIBLE_MOBILE);
 
   const slideLeft = () => {
     if (isSnapping.current) return;
@@ -99,13 +99,13 @@ export const BestSellersSection = ({ products: propProducts, isLoading = false }
           className="text-center mb-8 sm:mb-10"
         >
           <span className="inline-flex items-center bg-primary text-white px-4 py-1.5 font-body text-[10px] sm:text-xs tracking-widest uppercase rounded-full shadow-sm">
-  <img
-    src={exploreIcon}
-    alt="Explore"
-    className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
-  />
-  Most Loved
-</span>
+            <img
+              src={exploreIcon}
+              alt="Explore"
+              className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
+            />
+            Most Loved
+          </span>
           <h2 className="font-display text-2xl sm:text-4xl md:text-5xl text-foreground mt-3 sm:mt-4 mb-2">
             Best Sellers
           </h2>
@@ -182,14 +182,14 @@ export const BestSellersSection = ({ products: propProducts, isLoading = false }
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          
+
           <Link
             to="/shop"
             className="text-primary font-body text-xs sm:text-sm tracking-wider uppercase hover:text-primary/80 transition-colors min-h-[44px] inline-flex items-center"
           >
             View All Products
           </Link>
-          
+
           <button
             onClick={slideRight}
             className="hidden sm:flex w-10 h-10 sm:w-12 sm:h-12 min-h-[44px] min-w-[44px] border border-primary/50 items-center justify-center text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300"

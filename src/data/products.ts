@@ -126,6 +126,7 @@ export interface Product {
   brand?: string;
   discount?: number;
   rating?: number;
+  gst?: number;
   specifications?: {
     goldWeight?: string;
     diamondWeight?: string;

@@ -76,6 +76,11 @@ export interface SimpleOrder {
   date: string;
   status: string;
   total: number;
+  subtotal?: number;
+  shippingCharge?: number;
+  tax?: number;
+  gstAmount?: number;
+  totalExclGst?: number;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -501,6 +506,11 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
           }),
           status: order.orderStatus || 'Confirmed',
           total: Number(order.totalAmount) || Number(order.total) || 0,
+          subtotal: Number(order.subtotal) || 0,
+          shippingCharge: Number(order.shippingCharge) || 0,
+          tax: Number(order.tax) || 0,
+          gstAmount: Number(order.gstAmount) || Number(order.tax) || 0,
+          totalExclGst: Number(order.totalExclGst) || (Number(order.subtotal) - Number(order.tax)) || 0,
           customerName: order.customerName,
           customerEmail: order.customerEmail,
           customerPhone: order.customerPhone,
