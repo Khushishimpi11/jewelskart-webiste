@@ -8,15 +8,30 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
-import { User, MapPin, CreditCard, Loader2, Banknote, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { User, MapPin, CreditCard, Loader2, Banknote, Plus, Trash2, CheckCircle, Laptop, Smartphone, LogOut, ShieldAlert } from 'lucide-react';
+import { customerFetch } from '@/utils/sessionInterceptor';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+interface DeviceSession {
+  deviceId: string;
+  deviceName: string;
+  deviceType: string;
+  ipAddress: string;
+  lastActive: string;
+  loginTime: string;
+  isCurrentDevice: boolean;
+}
 
 const Profile = () => {
   const { user, isAuthenticated, token, updateProfile } = useAuthStore();
   const [activeTab, setActiveTab] = useState('personal');
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // Active Devices State
+  const [devices, setDevices] = useState<DeviceSession[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
   
   // Personal Info
   const [firstName, setFirstName] = useState(user?.firstName || '');
@@ -39,6 +54,7 @@ const Profile = () => {
   const [accountNumber, setAccountNumber] = useState(user?.bankDetails?.accountNumber || '');
   const [bankName, setBankName] = useState(user?.bankDetails?.bankName || '');
   const [ifscCode, setIfscCode] = useState(user?.bankDetails?.ifscCode || '');
+
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -231,11 +247,81 @@ const Profile = () => {
     }
   };
 
+  const fetchDevices = async () => {
+    setLoadingDevices(true);
+    const authToken = token || localStorage.getItem('customer_token');
+    if (!authToken) return;
+
+    try {
+      const res = await customerFetch(`${API_BASE_URL}/auth/active-devices`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDevices(data.devices || []);
+      }
+    } catch (err) {
+      console.error('Error fetching devices:', err);
+    } finally {
+      setLoadingDevices(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'devices') {
+      fetchDevices();
+    }
+  }, [activeTab]);
+
+  const handleRevokeDevice = async (deviceId: string) => {
+    const authToken = token || localStorage.getItem('customer_token');
+    if (!authToken) return;
+
+    try {
+      const res = await customerFetch(`${API_BASE_URL}/auth/active-devices/${deviceId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Device session logged out');
+        fetchDevices();
+      } else {
+        toast.error(data.message || 'Failed to logout device');
+      }
+    } catch (err) {
+      toast.error('Failed to logout device');
+    }
+  };
+
+  const handleRevokeAllOtherDevices = async () => {
+    const authToken = token || localStorage.getItem('customer_token');
+    if (!authToken) return;
+
+    try {
+      const res = await customerFetch(`${API_BASE_URL}/auth/active-devices-all-other`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('All other devices logged out');
+        fetchDevices();
+      } else {
+        toast.error(data.message || 'Failed to logout devices');
+      }
+    } catch (err) {
+      toast.error('Failed to logout devices');
+    }
+  };
+
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: User },
     { id: 'address', label: 'Address', icon: MapPin },
     { id: 'bank', label: 'UPI & Bank Details', icon: CreditCard },
+    { id: 'devices', label: 'Active Devices', icon: Laptop },
   ];
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -436,6 +522,90 @@ const Profile = () => {
                 )}
               </motion.form>
             )}
+
+            {/* Active Devices Tab */}
+            {activeTab === 'devices' && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border/30 p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/30 pb-4">
+                  <div>
+                    <h3 className="font-display text-xl text-foreground flex items-center gap-2">
+                      <Laptop className="w-5 h-5 text-primary" /> Active Devices & Sessions
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Devices currently logged into your JewelsKart account.
+                    </p>
+                  </div>
+                  {devices.length > 1 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={handleRevokeAllOtherDevices} 
+                      className="text-xs border-red-200 hover:bg-red-50 text-red-600 gap-1.5"
+                    >
+                      <LogOut className="w-3.5 h-3.5" /> Logout All Other Devices
+                    </Button>
+                  )}
+                </div>
+
+                {loadingDevices ? (
+                  <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <p className="text-sm">Loading active sessions...</p>
+                  </div>
+                ) : devices.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">
+                    <ShieldAlert className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
+                    <p className="text-sm font-medium">No active device sessions found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {devices.map((device) => (
+                      <div 
+                        key={device.deviceId} 
+                        className={`p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                          device.isCurrentDevice ? 'border-primary/50 bg-primary/5' : 'border-border/40 bg-background'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                            {device.deviceType === 'Mobile' || device.deviceType === 'Tablet' ? (
+                              <Smartphone className="w-5 h-5" />
+                            ) : (
+                              <Laptop className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-medium text-foreground text-sm">{device.deviceName}</h4>
+                              {device.isCurrentDevice && (
+                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                                  Current Device
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                              <p>IP Address: <span className="font-mono">{device.ipAddress}</span></p>
+                              <p>Last active: {new Date(device.lastActive).toLocaleString('en-IN')}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!device.isCurrentDevice && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleRevokeDevice(device.deviceId)}
+                            className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1 shrink-0 self-end sm:self-center"
+                          >
+                            <LogOut className="w-3.5 h-3.5" /> Logout
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
           </div>
         </div>
       </main>

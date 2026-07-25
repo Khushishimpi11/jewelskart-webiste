@@ -116,14 +116,14 @@ export const HeroSection = () => {
                   className="space-y-5 sm:space-y-7"
                 >
                   {/* Brand label */}
-                <span className="inline-flex items-center bg-primary text-white px-4 py-1.5 font-body text-[10px] sm:text-xs tracking-widest uppercase rounded-full shadow-sm">
-  <img
-    src={exploreIcon}
-    alt="Explore"
-    className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
-  />
-  {slide.brand}
-</span>
+                  <span className="inline-flex items-center bg-primary text-white px-4 py-1.5 font-body text-[10px] sm:text-xs tracking-widest uppercase rounded-full shadow-sm">
+                    <img
+                      src={exploreIcon}
+                      alt="Explore"
+                      className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
+                    />
+                    {slide.brand}
+                  </span>
 
                   {/* Main title */}
                   <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-6xl leading-[1.1] text-primary-foreground tracking-wide">
@@ -155,11 +155,10 @@ export const HeroSection = () => {
                   <button
                     key={i}
                     onClick={() => setCurrent(i)}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === current
-                        ? "w-7 h-2.5 bg-white"
-                        : "w-2.5 h-2.5 bg-primary-foreground/40 hover:bg-primary-foreground/60"
-                    }`}
+                    className={`rounded-full transition-all duration-300 ${i === current
+                      ? "w-7 h-2.5 bg-white"
+                      : "w-2.5 h-2.5 bg-primary-foreground/40 hover:bg-primary-foreground/60"
+                      }`}
                     aria-label={`Go to slide ${i + 1}`}
                   />
                 ))}

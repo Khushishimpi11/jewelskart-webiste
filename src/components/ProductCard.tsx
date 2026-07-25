@@ -15,11 +15,11 @@ interface ProductCardProps {
   isCurrentProduct?: boolean;
 }
 
-export const ProductCard = ({ 
-  product, 
-  isExchangeMode = false, 
-  onExchangeSelect, 
-  isCurrentProduct = false 
+export const ProductCard = ({
+  product,
+  isExchangeMode = false,
+  onExchangeSelect,
+  isCurrentProduct = false
 }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -31,7 +31,7 @@ export const ProductCard = ({
 
   const inWishlist = isInWishlist(product.id);
   const isOutOfStock = product.stock === 0;
-  
+
   const productImage = product.images?.[0] || product.image || '/placeholder-image.jpg';
   const hoverImage = product.images?.[1] || product.images?.[0] || product.image || '/placeholder-image.jpg';
 
@@ -40,9 +40,9 @@ export const ProductCard = ({
   }, [productImage]);
 
   const isRingProduct = useMemo(() => {
-    return product.category?.toLowerCase().includes('ring') || 
-           product.tags?.some(tag => tag.toLowerCase().includes('ring')) ||
-           (product.specifications?.ringSizes && product.specifications.ringSizes.length > 0);
+    return product.category?.toLowerCase().includes('ring') ||
+      product.tags?.some(tag => tag.toLowerCase().includes('ring')) ||
+      (product.specifications?.ringSizes && product.specifications.ringSizes.length > 0);
   }, [product]);
 
   const availableSizes = useMemo(() => {
@@ -71,16 +71,16 @@ export const ProductCard = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
     }
-    
+
     const sizeToPass = isRingProduct ? selectedSize : undefined;
     addToCart(product, sizeToPass);
-    
+
     if (isRingProduct && selectedSize && selectedSize !== 'Free Size') {
       toast.success(`${product.name} (Size ${selectedSize}) added to cart`);
     } else {
@@ -90,16 +90,16 @@ export const ProductCard = ({
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
     }
-    
+
     const sizeToPass = isRingProduct ? selectedSize : undefined;
     const productId = product._id || product.id;
-    
+
     const buyNowProduct = {
       product: {
         id: productId,
@@ -114,7 +114,7 @@ export const ProductCard = ({
       size: sizeToPass,
       timestamp: Date.now()
     };
-    
+
     navigate('/checkout', {
       state: {
         buyNowProduct: buyNowProduct,
@@ -126,9 +126,9 @@ export const ProductCard = ({
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     const productId = product._id || product.id;
-    
+
     const wishlistProduct = {
       id: productId,
       name: product.name,
@@ -142,7 +142,7 @@ export const ProductCard = ({
       availableSizes: isRingProduct ? availableSizes : undefined,
       selectedSize: isRingProduct ? selectedSize : undefined
     };
-    
+
     if (inWishlist) {
       removeFromWishlist(productId);
       toast.success('Removed from wishlist');
@@ -165,13 +165,13 @@ export const ProductCard = ({
 
   const handleExchangeSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (hasMultipleSizes && !selectedSize) {
       toast.error('Please select a ring size first');
       setShowSizeDropdown(true);
       return;
     }
-    
+
     if (onExchangeSelect && !isCurrentProduct && !isOutOfStock) {
       onExchangeSelect(product, isRingProduct ? selectedSize : undefined);
     }
@@ -238,13 +238,13 @@ export const ProductCard = ({
             <span className="text-base font-bold text-primary">
               {formatPrice(product.price)}
             </span>
-            {product.originalPrice && (
+            {Number(product.originalPrice) > 0 && (
               <span className="text-xs text-gray-400 line-through">
                 {formatPrice(product.originalPrice)}
               </span>
             )}
           </div>
-          
+
           {hasMultipleSizes && !isCurrentProduct && !isOutOfStock && (
             <div className="relative">
               <button
@@ -271,11 +271,10 @@ export const ProductCard = ({
                           setShowSizeDropdown(false);
                           toast.success(`Size ${size} selected`);
                         }}
-                        className={`px-1.5 py-1 text-xs text-center rounded-md transition-colors ${
-                          selectedSize === size
-                            ? 'bg-primary text-white'
-                            : 'hover:bg-primary/10 text-gray-700'
-                        }`}
+                        className={`px-1.5 py-1 text-xs text-center rounded-md transition-colors ${selectedSize === size
+                          ? 'bg-primary text-white'
+                          : 'hover:bg-primary/10 text-gray-700'
+                          }`}
                       >
                         {size}
                       </button>
@@ -285,30 +284,29 @@ export const ProductCard = ({
               )}
             </div>
           )}
-          
+
           {hasOnlyFreeSize && !isCurrentProduct && !isOutOfStock && (
             <div className="w-full px-2.5 py-1 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
               Free Size
             </div>
           )}
-          
+
           <button
             onClick={handleExchangeSelect}
             disabled={isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)}
-            className={`w-full mt-1.5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-              isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary/90'
-            }`}
+            className={`w-full mt-1.5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-primary text-white hover:bg-primary/90'
+              }`}
           >
             <RefreshCw className="w-4 h-4" />
-            {isCurrentProduct 
-              ? 'Current Product' 
-              : isOutOfStock 
-              ? 'Out of Stock' 
-              : hasMultipleSizes && !selectedSize
-              ? 'Select Size First'
-              : 'Select for Exchange'}
+            {isCurrentProduct
+              ? 'Current Product'
+              : isOutOfStock
+                ? 'Out of Stock'
+                : hasMultipleSizes && !selectedSize
+                  ? 'Select Size First'
+                  : 'Select for Exchange'}
           </button>
         </div>
       </motion.div>
@@ -338,7 +336,7 @@ export const ProductCard = ({
             e.currentTarget.src = '/placeholder-image.jpg';
           }}
         />
-        
+
         {/* OUT OF STOCK Badge */}
         {isOutOfStock && (
           <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10">
@@ -347,7 +345,7 @@ export const ProductCard = ({
         )}
 
         {/* SALE Badge */}
-        {product.originalPrice && (
+        {Number(product.originalPrice) > 0 && (
           <span className={`absolute bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 ${isOutOfStock ? 'top-8' : 'top-2'} left-2`}>
             SALE
           </span>
@@ -356,13 +354,12 @@ export const ProductCard = ({
         {/* ✅ WISHLIST BUTTON - Appears on hover like Add to Cart */}
         <motion.button
           onClick={handleWishlistToggle}
-          className={`absolute right-3 p-2.5 rounded-full transition-all z-10 shadow-md ${
-            inWishlist 
-              ? 'bg-red-500 text-white shadow-red-500/30' 
-              : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-500'
-          }`}
+          className={`absolute right-3 p-2.5 rounded-full transition-all z-10 shadow-md ${inWishlist
+            ? 'bg-red-500 text-white shadow-red-500/30'
+            : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-500'
+            }`}
           initial={{ opacity: 0, y: -10 }}
-          animate={{ 
+          animate={{
             opacity: isHovered ? 1 : 0,
             y: isHovered ? 0 : -10,
             scale: inWishlist ? 1.1 : 1
@@ -379,7 +376,7 @@ export const ProductCard = ({
         <motion.button
           className="absolute bottom-0 left-0 right-0 py-2.5 bg-black/80 backdrop-blur-sm text-white text-sm font-medium transition-colors z-10 flex items-center justify-center gap-2 hover:bg-black"
           initial={{ y: '100%', opacity: 0 }}
-          animate={{ 
+          animate={{
             y: isHovered && !isOutOfStock ? '0%' : '100%',
             opacity: isHovered && !isOutOfStock ? 1 : 0
           }}
@@ -407,7 +404,7 @@ export const ProductCard = ({
           <span className="text-base sm:text-lg font-bold text-primary">
             {formatPrice(product.price)}
           </span>
-          {product.originalPrice && (
+          {Number(product.originalPrice) > 0 && (
             <span className="text-xs text-gray-400 line-through">
               {formatPrice(product.originalPrice)}
             </span>
@@ -452,11 +449,10 @@ export const ProductCard = ({
                         setShowSizeDropdown(false);
                         toast.success(`Size ${size} selected`);
                       }}
-                      className={`px-2 py-1.5 text-xs text-center rounded-md transition-colors ${
-                        selectedSize === size
-                          ? 'bg-primary text-white'
-                          : 'hover:bg-primary/10 text-gray-700'
-                      }`}
+                      className={`px-2 py-1.5 text-xs text-center rounded-md transition-colors ${selectedSize === size
+                        ? 'bg-primary text-white'
+                        : 'hover:bg-primary/10 text-gray-700'
+                        }`}
                     >
                       {size}
                     </button>
@@ -483,17 +479,16 @@ export const ProductCard = ({
         <button
           onClick={handleBuyNow}
           disabled={isOutOfStock || (hasMultipleSizes && !selectedSize)}
-          className={`w-full py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${
-            isOutOfStock || (hasMultipleSizes && !selectedSize)
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-primary text-white hover:bg-primary/90'
-          }`}
+          className={`w-full py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${isOutOfStock || (hasMultipleSizes && !selectedSize)
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-primary text-white hover:bg-primary/90'
+            }`}
         >
-          {isOutOfStock 
-            ? 'Out of Stock' 
-            : hasMultipleSizes && !selectedSize 
-            ? 'Select Size First'
-            : 'Buy Now'}
+          {isOutOfStock
+            ? 'Out of Stock'
+            : hasMultipleSizes && !selectedSize
+              ? 'Select Size First'
+              : 'Buy Now'}
         </button>
       </div>
     </motion.div>

@@ -7,7 +7,7 @@ export const PromoBanner = () => {
   return (
     // Height: 250px on mobile, but matches your desktop code (450px+) on larger screens
     <section className="relative w-full h-[250px] sm:h-[450px] lg:h-[600px] overflow-hidden">
-      
+
       {/* Background Image */}
       <img
         src={promoBanner}
@@ -32,8 +32,8 @@ export const PromoBanner = () => {
             </span>
 
             {/* Brand Name: Mobile text-xl -> Desktop 6xl */}
-            <span 
-              className="block mt-0.5 sm:mt-4 text-xl sm:text-5xl lg:text-6xl" 
+            <span
+              className="block mt-0.5 sm:mt-4 text-xl sm:text-5xl lg:text-6xl"
               style={{ fontFamily: "Montserrat, sans-serif" }}
             >
               <span className="font-semibold">JEWELS</span>
@@ -48,20 +48,20 @@ export const PromoBanner = () => {
           </p>
 
           {/* Button: Mobile small -> Desktop large */}
-         <Link
-  to="/shop?brand=jewelskart"
-  className="inline-flex items-center gap-1 sm:gap-2 bg-white text-primary px-3 py-1.5 sm:px-6 sm:py-3 text-[10px] sm:text-base shadow-lg hover:scale-105 transition"
->
-  <Sparkles className="w-3 h-3 sm:w-4 h-4" />
+          <Link
+            to="/shop?brand=jewelskart"
+            className="inline-flex items-center gap-1 sm:gap-2 bg-white text-primary px-3 py-1.5 sm:px-6 sm:py-3 text-[10px] sm:text-base shadow-lg hover:scale-105 transition"
+          >
+            <Sparkles className="w-3 h-3 sm:w-4 h-4" />
 
-  <span>
-    Shop{" "}
-    <span style={{ fontFamily: "Montserrat, sans-serif" }}>
-      <span className="font-bold">JEWELS</span>
-      <span className="font-thin tracking-wider">KART</span>
-    </span>
-  </span>
-</Link>
+            <span>
+              Shop{" "}
+              <span style={{ fontFamily: "Montserrat, sans-serif" }}>
+                <span className="font-bold">JEWELS</span>
+                <span className="font-thin tracking-wider">KART</span>
+              </span>
+            </span>
+          </Link>
         </motion.div>
       </div>
     </section>

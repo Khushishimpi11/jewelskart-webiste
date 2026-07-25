@@ -263,7 +263,7 @@ export const Header = () => {
               <img
                 src={logo}
                 alt="Jewelskart"
-                className="h-20 sm:h-28 lg:h-40 w-auto"
+                className="h-28 sm:h-32 lg:h-40 w-auto"
               />
             </Link>
 
@@ -271,11 +271,10 @@ export const Header = () => {
             <nav className="hidden lg:flex items-center gap-6">
               <Link
                 to="/"
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname === '/'
-                    ? textColor
-                    : `${textMutedColor} ${hoverColor}`
-                }`}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${location.pathname === '/'
+                  ? textColor
+                  : `${textMutedColor} ${hoverColor}`
+                  }`}
               >
                 Home
               </Link>
@@ -286,17 +285,15 @@ export const Header = () => {
                 onMouseLeave={() => setShowShopMega(false)}
               >
                 <div
-                  className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 py-4 cursor-pointer ${
-                    location.pathname === '/shop'
-                      ? textColor
-                      : `${textMutedColor} ${hoverColor}`
-                  }`}
+                  className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 flex items-center gap-1 py-4 cursor-pointer ${location.pathname === '/shop'
+                    ? textColor
+                    : `${textMutedColor} ${hoverColor}`
+                    }`}
                 >
                   Shop
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      showShopMega ? 'rotate-180' : ''
-                    }`}
+                    className={`w-4 h-4 transition-transform ${showShopMega ? 'rotate-180' : ''
+                      }`}
                   />
                 </div>
 
@@ -352,33 +349,30 @@ export const Header = () => {
 
               <Link
                 to="/about"
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname === '/about'
-                    ? textColor
-                    : `${textMutedColor} ${hoverColor}`
-                }`}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${location.pathname === '/about'
+                  ? textColor
+                  : `${textMutedColor} ${hoverColor}`
+                  }`}
               >
                 About Us
               </Link>
 
               <Link
                 to="/testimonials"
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname === '/testimonials'
-                    ? textColor
-                    : `${textMutedColor} ${hoverColor}`
-                }`}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${location.pathname === '/testimonials'
+                  ? textColor
+                  : `${textMutedColor} ${hoverColor}`
+                  }`}
               >
                 Testimonials
               </Link>
 
               <Link
                 to="/contact"
-                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${
-                  location.pathname === '/contact'
-                    ? textColor
-                    : `${textMutedColor} ${hoverColor}`
-                }`}
+                className={`relative font-body text-sm tracking-wider uppercase transition-colors duration-300 ${location.pathname === '/contact'
+                  ? textColor
+                  : `${textMutedColor} ${hoverColor}`
+                  }`}
               >
                 Contact Us
               </Link>
@@ -442,14 +436,14 @@ export const Header = () => {
                         >
                           <Package className="w-4 h-4" /> Track Order
                         </Link>
-
+                        {/* 
                         <Link
                           to="/profile"
                           onClick={() => setShowDropdown(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                         >
                           <User className="w-4 h-4" /> Profile
-                        </Link>
+                        </Link> */}
 
                         <Link
                           to="/order-summary"
@@ -464,7 +458,7 @@ export const Header = () => {
                           onClick={() => setShowDropdown(false)}
                           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                         >
-                          <Settings className="w-4 h-4" /> Account
+                          <Settings className="w-4 h-4" /> My Account
                         </Link>
 
                         <button
@@ -554,9 +548,8 @@ export const Header = () => {
                 >
                   Shop
                   <ChevronDown
-                    className={`w-5 h-5 transition-transform ${
-                      mobileShopOpen ? 'rotate-180' : ''
-                    }`}
+                    className={`w-5 h-5 transition-transform ${mobileShopOpen ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
 
@@ -589,11 +582,10 @@ export const Header = () => {
                         >
                           JewelsKart
                           <ChevronRight
-                            className={`w-4 h-4 transition-transform ${
-                              mobileBrandOpen === 'jewelskart'
-                                ? 'rotate-90'
-                                : ''
-                            }`}
+                            className={`w-4 h-4 transition-transform ${mobileBrandOpen === 'jewelskart'
+                              ? 'rotate-90'
+                              : ''
+                              }`}
                           />
                         </button>
 

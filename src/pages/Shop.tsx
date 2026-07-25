@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, ChevronDown, ChevronLeft, ChevronRight, ShoppingBag, Loader2, X, RefreshCw } from 'lucide-react';
@@ -114,6 +114,17 @@ const AVAILABLE_TAGS = [
   { value: 'premium-pick', label: 'Premium Pick' }
 ];
 
+const GOLD_PURITIES = [
+  '9K Gold',
+  '10K Gold',
+  '14K Gold',
+  '18K Gold',
+  '21K Gold',
+  '22K Gold',
+  '23K Gold',
+  '24K Gold'
+];
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const Shop = () => {
@@ -140,6 +151,7 @@ const Shop = () => {
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedGoldPurity, setSelectedGoldPurity] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [products, setProducts] = useState<Product[]>([]);
@@ -159,6 +171,9 @@ const Shop = () => {
 
   const categoryFromUrl = searchParams.get('category');
   const brandFromUrl = searchParams.get('brand');
+
+  // Ref for section after banner
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   // Check for exchange mode from URL and Context
   useEffect(() => {
@@ -311,11 +326,30 @@ const Shop = () => {
     fetchProducts();
   }, []);
 
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const scrollToSection = () => {
+    if (sectionRef.current) {
+      const offset = 100; // Adjust based on your header height
+      const elementPosition = sectionRef.current.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    scrollToTop();
+    scrollToSection();
+  };
+
+  const toggleGoldPurity = (purity: string) => {
+    setSelectedGoldPurity((prev) =>
+      prev.includes(purity) ? prev.filter((p) => p !== purity) : [...prev, purity]
+    );
+    setCurrentPage(1);
+    scrollToSection();
   };
 
   const filteredProducts = useMemo(() => {
@@ -331,6 +365,12 @@ const Shop = () => {
     if (brandFromUrl && brandFromUrl.toLowerCase() === 'jewelskart') {
       filtered = filtered.filter((product) =>
         product.brand?.toLowerCase() === 'jewelskart original'
+      );
+    }
+
+    if (brandFromUrl && brandFromUrl.toLowerCase() === 'kcart') {
+      filtered = filtered.filter((product) =>
+        product.brand?.toLowerCase() === 'kcart'
       );
     }
 
@@ -352,8 +392,19 @@ const Shop = () => {
       );
     }
 
+    // Filter by gold purity
+    if (selectedGoldPurity.length > 0) {
+      filtered = filtered.filter((product) => {
+        const productPurity = product.goldDetails?.purity;
+        if (!productPurity) return false;
+        return selectedGoldPurity.some(purity =>
+          productPurity.toLowerCase().includes(purity.toLowerCase().replace(' gold', ''))
+        );
+      });
+    }
+
     return filtered;
-  }, [products, categoryFromUrl, brandFromUrl, selectedCategories, priceRange, selectedTags, categoryMapping]);
+  }, [products, categoryFromUrl, brandFromUrl, selectedCategories, priceRange, selectedTags, categoryMapping, selectedGoldPurity]);
 
   const sortedProducts = useMemo(() => {
     const p = [...filteredProducts];
@@ -381,16 +432,17 @@ const Shop = () => {
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
     setCurrentPage(1);
-    scrollToTop();
+    scrollToSection();
   };
 
   const clearFilters = () => {
     setSelectedCategories([]);
     setSelectedTags([]);
+    setSelectedGoldPurity([]);
     setPriceRange([0, 100000]);
     setSortBy('default');
     setCurrentPage(1);
-    scrollToTop();
+    scrollToSection();
   };
 
   const formatPrice = (price: number) => `₹${price.toLocaleString('en-IN')}`;
@@ -399,11 +451,12 @@ const Shop = () => {
     if (isExchangeMode) {
       return 'Select Exchange Product';
     }
-    if (brandFromUrl) {
-      return brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1);
-    }
+    // Check category first, then brand
     if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
       return categoryMapping[categoryFromUrl];
+    }
+    if (brandFromUrl) {
+      return brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1);
     }
     return 'Shop All';
   };
@@ -415,6 +468,7 @@ const Shop = () => {
       breadcrumbs.push({ label: 'Order Summary', path: '/order-summary' });
       breadcrumbs.push({ label: 'Select Exchange Product', path: '/shop' });
     } else if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
+      // Category takes priority
       breadcrumbs.push({
         label: categoryMapping[categoryFromUrl],
         path: `/shop?category=${categoryFromUrl}`
@@ -532,7 +586,11 @@ const Shop = () => {
           </div>
         )}
 
-        <section className="relative py-8 lg:py-12 overflow-hidden">
+        {/* This is the section that starts after the banner - we'll scroll to this */}
+        <section
+          ref={sectionRef}
+          className="relative py-8 lg:py-12 overflow-hidden"
+        >
           <div className="container mx-auto px-3 sm:px-4 lg:px-8">
 
             {/* Mobile Filter Toggle */}
@@ -543,9 +601,9 @@ const Shop = () => {
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-5 h-5" />
                 <span className="text-sm font-medium">Filters</span>
-                {selectedTags.length > 0 && (
+                {(selectedTags.length > 0 || selectedGoldPurity.length > 0) && (
                   <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                    {selectedTags.length}
+                    {selectedTags.length + selectedGoldPurity.length}
                   </span>
                 )}
               </div>
@@ -588,7 +646,7 @@ const Shop = () => {
                                 href={`/shop?brand=jewelskart&category=${cat.slug}`}
                                 className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${brandFromUrl === 'jewelskart' && categoryFromUrl === cat.slug
                                   ? 'text-primary font-semibold'
-                                  : 'text-muted-foreground hover:text-primary'
+                                  : 'text-gray-600 hover:text-primary'
                                   }`}
                               >
                                 {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
@@ -613,9 +671,28 @@ const Shop = () => {
                       step={500}
                       className="mb-4"
                     />
-                    <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                       <span>{formatPrice(priceRange[0])}</span>
                       <span>{formatPrice(priceRange[1])}</span>
+                    </div>
+                  </div>
+
+                  {/* KCart - Gold Purity Section */}
+                  <div className="mb-6 lg:mb-8">
+                    <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">KCart</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {GOLD_PURITIES.map((purity) => (
+                        <button
+                          key={purity}
+                          onClick={() => toggleGoldPurity(purity)}
+                          className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${selectedGoldPurity.includes(purity)
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-border/100 text-gray-800 hover:border-primary hover:text-primary'
+                            }`}
+                        >
+                          {purity}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -629,7 +706,7 @@ const Shop = () => {
                           onClick={() => toggleTag(tag.value)}
                           className={`px-3 py-1.5 text-xs border transition-colors min-h-[32px] ${selectedTags.includes(tag.value)
                             ? 'bg-primary text-primary-foreground border-primary'
-                            : 'border-border/50 text-muted-foreground hover:border-primary hover:text-primary'
+                            : 'border-border/100 text-gray-600 hover:border-primary hover:text-primary'
                             }`}
                         >
                           {tag.label}

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export interface User {
   id: string;
@@ -25,6 +25,7 @@ interface AuthState {
   googleLogin: (accessToken: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   refreshUser: () => Promise<void>;
   clearError: () => void;
   checkUserExists: () => Promise<boolean>;
@@ -88,11 +89,11 @@ export const useAuthStore = create<AuthState>()(
 
           localStorage.setItem('customer_token', data.token);
           localStorage.setItem('customer_user', JSON.stringify(user));
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           toast.success('Login successful! Welcome back!');
           console.log('✅ Customer ID:', user.customerId);
-          
+
           return true;
         } catch (error) {
           console.error('Login error:', error);
@@ -137,9 +138,9 @@ export const useAuthStore = create<AuthState>()(
             phone: phone || '',
           };
 
-          console.log('📝 Registration request:', { 
-            ...requestBody, 
-            password: '***HIDDEN***' 
+          console.log('📝 Registration request:', {
+            ...requestBody,
+            password: '***HIDDEN***'
           });
 
           const response = await fetch(`${API_BASE_URL}/auth/customer/register`, {
@@ -152,7 +153,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (!response.ok) {
             console.error('❌ Registration failed:', data);
-            
+
             if (data.message && data.message.includes('duplicate')) {
               toast.error('Email already registered. Please login instead.');
             } else if (data.message && data.message.includes('validation')) {
@@ -160,7 +161,7 @@ export const useAuthStore = create<AuthState>()(
             } else {
               toast.error(data.message || 'Registration failed. Please try again.');
             }
-            
+
             set({ isLoading: false });
             return false;
           }
@@ -192,13 +193,13 @@ export const useAuthStore = create<AuthState>()(
 
           localStorage.setItem('customer_token', data.token);
           localStorage.setItem('customer_user', JSON.stringify(user));
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           toast.success('Account created successfully! Welcome!');
           console.log('✅ Customer ID:', user.customerId);
-          
+
           return true;
-          
+
         } catch (error) {
           console.error('❌ Register network error:', error);
           toast.error('Network error. Please check your connection.');
@@ -242,7 +243,7 @@ export const useAuthStore = create<AuthState>()(
           let fullName = '';
           let firstName = '';
           let lastName = '';
-          
+
           if (data.user.name) {
             fullName = data.user.name;
           } else if (data.user.firstName && data.user.lastName) {
@@ -256,7 +257,7 @@ export const useAuthStore = create<AuthState>()(
           } else if (data.user.email) {
             fullName = data.user.email.split('@')[0];
           }
-          
+
           if (!firstName && !lastName && fullName) {
             const nameParts = fullName.split(' ');
             firstName = nameParts[0] || '';
@@ -279,10 +280,10 @@ export const useAuthStore = create<AuthState>()(
 
           localStorage.setItem('customer_token', data.token);
           localStorage.setItem('customer_user', JSON.stringify(user));
-          
+
           set({ user, isAuthenticated: true, isLoading: false });
           toast.success('Google login successful!');
-          
+
           return true;
         } catch (error) {
           console.error('Google login error:', error);
@@ -291,15 +292,15 @@ export const useAuthStore = create<AuthState>()(
           return false;
         }
       },
-      
+
       logout: () => {
         localStorage.removeItem('customer_token');
         localStorage.removeItem('customer_storage');
         localStorage.removeItem('customer_user');
-        
+
         set({ user: null, isAuthenticated: false, isLoading: false });
         toast.success('Logged out successfully');
-        
+
         window.location.href = '/';
       },
 
@@ -313,14 +314,14 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const updateData: any = {};
-          
+
           if (data.firstName || data.lastName) {
             const currentUser = get().user;
             const firstName = data.firstName || currentUser?.firstName || '';
             const lastName = data.lastName || currentUser?.lastName || '';
             updateData.name = `${firstName} ${lastName}`.trim();
           }
-          
+
           if (data.phone !== undefined) {
             if (data.phone && !/^\d{10}$/.test(data.phone)) {
               toast.error('Please enter a valid 10-digit phone number');
@@ -363,12 +364,77 @@ export const useAuthStore = create<AuthState>()(
             set({ user: updatedUser, isLoading: false });
             localStorage.setItem('customer_user', JSON.stringify(updatedUser));
           }
-          
+
           toast.success('Profile updated successfully');
           return true;
         } catch (error) {
           console.error('Update profile error:', error);
           toast.error('Network error. Please try again.');
+          set({ isLoading: false });
+          return false;
+        }
+      },
+
+      // ✅ NEW: Change Password Method
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        const token = localStorage.getItem('customer_token');
+        if (!token) {
+          toast.error('Please login first');
+          return false;
+        }
+
+        set({ isLoading: true });
+        try {
+          // Validate inputs
+          if (!currentPassword || !newPassword) {
+            toast.error('Please fill in all fields');
+            set({ isLoading: false });
+            return false;
+          }
+
+          if (newPassword.length < 6) {
+            toast.error('New password must be at least 6 characters long');
+            set({ isLoading: false });
+            return false;
+          }
+
+          if (currentPassword === newPassword) {
+            toast.error('New password must be different from current password');
+            set({ isLoading: false });
+            return false;
+          }
+
+          const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              currentPassword,
+              newPassword,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            if (response.status === 401) {
+              toast.error('Current password is incorrect');
+            } else {
+              toast.error(data.message || 'Failed to change password');
+            }
+            set({ isLoading: false });
+            return false;
+          }
+
+          toast.success('Password changed successfully!');
+          set({ isLoading: false });
+          return true;
+
+        } catch (error: any) {
+          console.error('Change password error:', error);
+          toast.error(error.message || 'Network error. Please try again.');
           set({ isLoading: false });
           return false;
         }
@@ -385,9 +451,9 @@ export const useAuthStore = create<AuthState>()(
               'Content-Type': 'application/json',
             }
           });
-          
+
           const data = await response.json();
-          
+
           if (response.ok && data.user) {
             const currentUser = get().user;
             if (currentUser) {
@@ -405,7 +471,7 @@ export const useAuthStore = create<AuthState>()(
                 phone: data.user.phone || currentUser.phone,
                 profilePicture: data.user.profilePicture || currentUser.profilePicture,
               };
-              
+
               set({ user: updatedUser });
               localStorage.setItem('customer_user', JSON.stringify(updatedUser));
               console.log('🔄 User refreshed:', updatedUser);
@@ -423,30 +489,29 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: false });
       },
 
-      // ✅ NEW: Check if user still exists in database
       checkUserExists: async () => {
         const currentUser = get().user;
         if (!currentUser?.email) return true;
-        
+
         try {
           const response = await fetch(`${API_BASE_URL}/auth/check-user-exists`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: currentUser.email })
           });
-          
+
           const data = await response.json();
-          
+
           if (!data.exists) {
             console.log("🔴 User deleted from database, logging out...");
             toast.error("Your account has been deleted by admin");
-            
+
             localStorage.removeItem('customer_token');
             localStorage.removeItem('customer_storage');
             localStorage.removeItem('customer_user');
-            
+
             set({ user: null, isAuthenticated: false, isLoading: false });
-            
+
             window.location.href = '/';
             return false;
           }

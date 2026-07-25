@@ -32,7 +32,8 @@ import RefundCancellationPage from "./pages/RefundCancellationPage";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 
 const queryClient = new QueryClient();
 
@@ -44,8 +45,19 @@ const ScrollToTop = () => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  // Check if user was force-logged out due to session revocation
+  useEffect(() => {
+    if (sessionStorage.getItem('session_expired') === '1') {
+      sessionStorage.removeItem('session_expired');
+      toast.error('Your session was logged out from another device. Please login again.', {
+        duration: 5000,
+      });
+    }
+  }, []);
+
   return null;
 };
+
 
 // ✅ AutoLogoutCheck Component - Checks if customer still exists in database
 const AutoLogoutCheck = () => {
