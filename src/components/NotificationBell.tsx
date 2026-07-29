@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, Trash2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
 
@@ -109,6 +109,23 @@ const NotificationBell = () => {
     }
   };
 
+  const clearAllNotifications = async () => {
+    const token = localStorage.getItem('customer_token');
+    if (!token) return;
+
+    try {
+      await fetch(`${API_BASE_URL}/notifications/my-notifications/clear-all`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const diff = new Date().getTime() - date.getTime();
@@ -182,14 +199,23 @@ const NotificationBell = () => {
             </button>
           </div>
 
-          {/* Mark all */}
-          {unreadCount > 0 && (
-            <div className="px-4 py-2 border-b">
+          {/* Mark all / Clear all */}
+          {notifications.length > 0 && (
+            <div className="px-4 py-2 border-b flex items-center justify-between gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Mark all as read
+                </button>
+              )}
               <button
-                onClick={markAllAsRead}
-                className="text-sm text-primary hover:underline"
+                onClick={clearAllNotifications}
+                className="flex items-center gap-1 text-sm text-red-500 hover:underline ml-auto"
               >
-                Mark all as read
+                <Trash2 className="w-3.5 h-3.5" />
+                Clear all
               </button>
             </div>
           )}

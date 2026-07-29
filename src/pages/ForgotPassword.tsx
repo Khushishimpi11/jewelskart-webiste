@@ -7,7 +7,7 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://jewelskart-backend-gt7z.onrender.com/api');
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast.error('Please enter your email address');
       return;
@@ -38,7 +38,7 @@ const ForgotPassword = () => {
 
       setIsSent(true);
       toast.success('Password reset link sent to your email!');
-      
+
     } catch (error: any) {
       toast.error(error.message || 'Something went wrong');
     } finally {
@@ -58,7 +58,7 @@ const ForgotPassword = () => {
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="max-w-md mx-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-card p-8 border border-border/30 rounded-lg"
@@ -69,7 +69,7 @@ const ForgotPassword = () => {
                   <p className="text-muted-foreground text-center mb-6">
                     Enter your email address and we'll send you a link to reset your password.
                   </p>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <Input
                       type="email"
@@ -88,7 +88,7 @@ const ForgotPassword = () => {
                       {isLoading ? 'Sending...' : 'Send Reset Link'}
                     </button>
                   </form>
-                  
+
                   <p className="text-center text-muted-foreground text-sm mt-6">
                     <Link to="/account" className="text-primary hover:underline">
                       ← Back to Login

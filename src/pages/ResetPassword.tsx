@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://jewelskart-backend-gt7z.onrender.com/api');
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -25,35 +25,35 @@ const ResetPassword = () => {
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     const emailParam = searchParams.get('email');
-    
+
     if (!tokenParam || !emailParam) {
       toast.error('Invalid reset link. Please request a new one.');
       navigate('/forgot-password');
       return;
     }
-    
+
     setToken(tokenParam);
     setEmail(emailParam);
   }, [searchParams, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password || !confirmPassword) {
       toast.error('Please fill in all fields');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    
+
     if (password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/auth/customer/reset-password`, {
@@ -70,11 +70,11 @@ const ResetPassword = () => {
 
       setIsSuccess(true);
       toast.success('Password reset successfully!');
-      
+
       setTimeout(() => {
         navigate('/account');
       }, 3000);
-      
+
     } catch (error: any) {
       toast.error(error.message || 'Something went wrong');
     } finally {
@@ -94,7 +94,7 @@ const ResetPassword = () => {
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="max-w-md mx-auto">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-card p-8 border border-border/30 rounded-lg"
@@ -105,7 +105,7 @@ const ResetPassword = () => {
                   <p className="text-muted-foreground text-center mb-6">
                     Please enter your new password below.
                   </p>
-                  
+
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">New Password</label>
