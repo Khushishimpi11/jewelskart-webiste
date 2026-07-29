@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, X, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface Notification {
   _id: string;
@@ -9,6 +10,8 @@ interface Notification {
   message: string;
   type: string;
   isRead: boolean;
+  actionLink?: string;
+  relatedData?: any;
   createdAt: string;
 }
 
@@ -18,6 +21,7 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -92,6 +96,24 @@ const NotificationBell = () => {
     }
   };
 
+  const handleNotificationClick = async (notif: Notification) => {
+    if (!notif.isRead) {
+      await markAsRead(notif._id);
+    }
+    setIsOpen(false);
+
+    // Determine navigation link
+    if (notif.actionLink) {
+      navigate(notif.actionLink);
+    } else if (notif.type.includes('order') || notif.type.includes('return') || notif.type.includes('exchange') || notif.type.includes('refund') || notif.type.includes('payment')) {
+      navigate('/orders');
+    } else if (notif.type.includes('stock') || notif.type.includes('wishlist')) {
+      navigate('/wishlist');
+    } else if (notif.type.includes('password')) {
+      navigate('/account');
+    }
+  };
+
   const markAllAsRead = async () => {
     const token = localStorage.getItem('customer_token');
     if (!token) return;
@@ -141,26 +163,70 @@ const NotificationBell = () => {
   };
 
   const getTypeStyles = (type: string) => {
-    switch (type) {
-      case 'order':
-        return 'bg-blue-100 text-blue-700';
-      case 'return':
-        return 'bg-orange-100 text-orange-700';
-      case 'refund':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+    if (type.includes('approved') || type.includes('completed') || type.includes('delivered') || type.includes('successful')) {
+      return 'bg-emerald-100 text-emerald-700';
     }
+    if (type.includes('rejected') || type.includes('cancelled') || type.includes('failed')) {
+      return 'bg-rose-100 text-rose-700';
+    }
+    if (type.includes('shipped') || type.includes('delivery') || type.includes('processing') || type.includes('packed')) {
+      return 'bg-sky-100 text-sky-700';
+    }
+    if (type.includes('return') || type.includes('exchange') || type.includes('refund')) {
+      return 'bg-amber-100 text-amber-700';
+    }
+    if (type.includes('password')) {
+      return 'bg-purple-100 text-purple-700';
+    }
+    return 'bg-blue-100 text-blue-700';
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
+      case 'order_placed':
       case 'order':
+        return '🛍️';
+      case 'order_confirmed':
+        return '🎉';
+      case 'order_processing':
+        return '⚙️';
+      case 'order_packed':
         return '📦';
+      case 'order_shipped':
+        return '🚚';
+      case 'order_out_for_delivery':
+        return '🛵';
+      case 'order_delivered':
+        return '🎁';
+      case 'order_cancelled':
+        return '❌';
+      case 'return_submitted':
       case 'return':
+      case 'exchange_submitted':
+      case 'exchange':
         return '🔄';
+      case 'return_approved':
+      case 'exchange_approved':
+        return '✅';
+      case 'return_rejected':
+      case 'exchange_rejected':
+        return '❌';
+      case 'refund_initiated':
+      case 'refund_completed':
       case 'refund':
         return '💰';
+      case 'payment_successful':
+        return '💳';
+      case 'payment_failed_customer':
+        return '⚠️';
+      case 'wishlist_back_in_stock':
+        return '✨';
+      case 'product_back_in_stock':
+        return '🏷️';
+      case 'password_changed':
+        return '🔐';
+      case 'password_reset':
+        return '🔑';
       default:
         return '🔔';
     }
@@ -231,9 +297,9 @@ const NotificationBell = () => {
               notifications.map(notif => (
                 <div
                   key={notif._id}
-                  onClick={() => markAsRead(notif._id)}
+                  onClick={() => handleNotificationClick(notif)}
                   className={`px-4 py-3 border-b hover:bg-gray-50 cursor-pointer ${
-                    !notif.isRead ? 'bg-blue-50' : ''
+                    !notif.isRead ? 'bg-blue-50/70' : ''
                   }`}
                 >
                   <div className="flex gap-3">
