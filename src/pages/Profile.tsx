@@ -28,16 +28,16 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState('personal');
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
+
   // Active Devices State
   const [devices, setDevices] = useState<DeviceSession[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
-  
+
   // Personal Info
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  
+
   // Address
   const [addressLine1, setAddressLine1] = useState(user?.address?.street || '');
   const [addressLine2, setAddressLine2] = useState('');
@@ -45,10 +45,10 @@ const Profile = () => {
   const [state, setState] = useState(user?.address?.state || '');
   const [pincode, setPincode] = useState(user?.address?.pincode || '');
   const [country, setCountry] = useState(user?.address?.country || 'India');
-  
+
   // ✅ UPI Details
   const [upiId, setUpiId] = useState(user?.bankDetails?.upiId || '');
-  
+
   // ✅ Bank Details
   const [accountHolder, setAccountHolder] = useState(user?.bankDetails?.accountHolderName || '');
   const [accountNumber, setAccountNumber] = useState(user?.bankDetails?.accountNumber || '');
@@ -87,15 +87,15 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     setSaveSuccess(false);
-    
+
     const authToken = token || localStorage.getItem('customer_token');
-    
+
     if (!authToken) {
       toast.error('Please login again');
       setLoading(false);
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/update-profile`, {
         method: 'PUT',
@@ -109,13 +109,13 @@ const Profile = () => {
           phone
         })
       });
-      
+
       const data = await response.json();
       if (response.ok) {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         const updatedUser = { ...storedUser, firstName, lastName, phone };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         toast.success('Personal information updated successfully!');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -137,15 +137,15 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     setSaveSuccess(false);
-    
+
     const authToken = token || localStorage.getItem('customer_token');
-    
+
     if (!authToken) {
       toast.error('Please login again');
       setLoading(false);
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/update-address`, {
         method: 'PUT',
@@ -161,16 +161,16 @@ const Profile = () => {
           country
         })
       });
-      
+
       const data = await response.json();
       if (response.ok) {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const updatedUser = { 
-          ...storedUser, 
+        const updatedUser = {
+          ...storedUser,
           address: { street: addressLine1, city, state, pincode, country }
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         toast.success('Address saved successfully!');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -191,15 +191,15 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     setSaveSuccess(false);
-    
+
     const authToken = token || localStorage.getItem('customer_token');
-    
+
     if (!authToken) {
       toast.error('Please login again');
       setLoading(false);
       return;
     }
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/update-bank-details`, {
         method: 'PUT',
@@ -215,13 +215,13 @@ const Profile = () => {
           ifscCode: ifscCode
         })
       });
-      
+
       const data = await response.json();
       if (response.ok) {
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const updatedUser = { 
-          ...storedUser, 
-          bankDetails: { 
+        const updatedUser = {
+          ...storedUser,
+          bankDetails: {
             upiId: upiId,
             accountHolderName: accountHolder,
             accountNumber: accountNumber,
@@ -230,7 +230,7 @@ const Profile = () => {
           }
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         toast.success('UPI & Bank details saved successfully!');
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
@@ -348,11 +348,10 @@ const Profile = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-3 font-body text-sm tracking-wider transition-all ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-6 py-3 font-body text-sm tracking-wider transition-all ${activeTab === tab.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-card border border-border/30 text-foreground hover:border-primary/50'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
@@ -380,12 +379,12 @@ const Profile = () => {
                 </div>
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">Phone Number</label>
-                  <Input 
-                    type="tel" 
-                    placeholder="Enter phone number" 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
-                    className="bg-background" 
+                  <Input
+                    type="tel"
+                    placeholder="Enter phone number"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="bg-background"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Required for order updates and delivery</p>
                 </div>
@@ -450,21 +449,21 @@ const Profile = () => {
                   <h3 className="font-display text-xl text-foreground">UPI & Bank Details</h3>
                   <p className="text-muted-foreground text-sm mt-1">For refunds and returns. Your details are securely stored.</p>
                 </div>
-                
+
                 {/* UPI Section */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                     <CreditCard className="w-4 h-4" /> UPI ID
                   </h4>
-                  <Input 
-                    placeholder="Enter UPI ID (e.g., name@upi)" 
-                    value={upiId} 
-                    onChange={(e) => setUpiId(e.target.value)} 
+                  <Input
+                    placeholder="Enter UPI ID (e.g., name@upi)"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
                     className="bg-white"
                   />
                   <p className="text-xs text-muted-foreground mt-1">Used for instant refunds via UPI</p>
                 </div>
-                
+
                 {/* Bank Section */}
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
@@ -473,45 +472,45 @@ const Profile = () => {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm text-muted-foreground mb-1">Account Holder Name</label>
-                      <Input 
-                        placeholder="Name as per bank records" 
-                        value={accountHolder} 
-                        onChange={(e) => setAccountHolder(e.target.value)} 
+                      <Input
+                        placeholder="Name as per bank records"
+                        value={accountHolder}
+                        onChange={(e) => setAccountHolder(e.target.value)}
                         className="bg-white"
                       />
                     </div>
                     <div>
                       <label className="block text-sm text-muted-foreground mb-1">Account Number</label>
-                      <Input 
-                        placeholder="Bank account number" 
-                        value={accountNumber} 
-                        onChange={(e) => setAccountNumber(e.target.value)} 
+                      <Input
+                        placeholder="Bank account number"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
                         className="bg-white"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm text-muted-foreground mb-1">Bank Name</label>
-                        <Input 
-                          placeholder="Bank name" 
-                          value={bankName} 
-                          onChange={(e) => setBankName(e.target.value)} 
+                        <Input
+                          placeholder="Bank name"
+                          value={bankName}
+                          onChange={(e) => setBankName(e.target.value)}
                           className="bg-white"
                         />
                       </div>
                       <div>
                         <label className="block text-sm text-muted-foreground mb-1">IFSC Code</label>
-                        <Input 
-                          placeholder="IFSC Code" 
-                          value={ifscCode} 
-                          onChange={(e) => setIfscCode(e.target.value)} 
+                        <Input
+                          placeholder="IFSC Code"
+                          value={ifscCode}
+                          onChange={(e) => setIfscCode(e.target.value)}
                           className="bg-white"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
-                
+
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Save UPI & Bank Details'}
                 </Button>
@@ -536,9 +535,9 @@ const Profile = () => {
                     </p>
                   </div>
                   {devices.length > 1 && (
-                    <Button 
-                      variant="outline" 
-                      onClick={handleRevokeAllOtherDevices} 
+                    <Button
+                      variant="outline"
+                      onClick={handleRevokeAllOtherDevices}
                       className="text-xs border-red-200 hover:bg-red-50 text-red-600 gap-1.5"
                     >
                       <LogOut className="w-3.5 h-3.5" /> Logout All Other Devices
@@ -559,11 +558,10 @@ const Profile = () => {
                 ) : (
                   <div className="space-y-4">
                     {devices.map((device) => (
-                      <div 
-                        key={device.deviceId} 
-                        className={`p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-                          device.isCurrentDevice ? 'border-primary/50 bg-primary/5' : 'border-border/40 bg-background'
-                        }`}
+                      <div
+                        key={device.deviceId}
+                        className={`p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${device.isCurrentDevice ? 'border-primary/50 bg-primary/5' : 'border-border/40 bg-background'
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
@@ -590,9 +588,9 @@ const Profile = () => {
                         </div>
 
                         {!device.isCurrentDevice && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleRevokeDevice(device.deviceId)}
                             className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 gap-1 shrink-0 self-end sm:self-center"
                           >

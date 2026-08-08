@@ -447,7 +447,7 @@ const Cart = () => {
                 <div className="mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-border/30">
                   <p className="text-muted-foreground text-xs mb-3 text-center">We accept</p>
                   <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
-                    {['Visa', 'Mastercard', 'UPI', 'RazorPay', 'Paytm'].map((method) => (
+                    {['Visa', 'Mastercard', 'UPI', 'Zoho Payments', 'Paytm'].map((method) => (
                       <span key={method} className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
                         {method}
                       </span>

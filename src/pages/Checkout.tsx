@@ -20,7 +20,7 @@ type PaymentMethod = 'cod' | 'online';
 
 declare global {
   interface Window {
-    Razorpay: any;
+    ZPayments?: any;
   }
 }
 
@@ -155,17 +155,62 @@ const Checkout = () => {
     handleGoogleLogin();
   };
 
-  const loadRazorpayScript = (): Promise<boolean> => {
+  // ✅ Load Zoho SDK with timeout + retry
+  const loadZohoPaymentsScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if (window.Razorpay) {
+      console.log('🔄 [ZPay] Checking if ZPayments SDK already loaded...');
+
+      if (window.ZPayments) {
+        console.log('✅ [ZPay] ZPayments already available on window');
         resolve(true);
         return;
       }
+
+      // Check if script is already being injected
+      const existing = document.querySelector('script[src*="zpayments.js"]');
+      if (existing) {
+        console.log('🔄 [ZPay] Script tag already in DOM, waiting for it to load...');
+        const poll = setInterval(() => {
+          if (window.ZPayments) {
+            clearInterval(poll);
+            console.log('✅ [ZPay] ZPayments loaded (poll)');
+            resolve(true);
+          }
+        }, 100);
+        // Timeout after 10s
+        setTimeout(() => {
+          clearInterval(poll);
+          console.warn('⚠️ [ZPay] SDK poll timeout after 10s');
+          resolve(!!window.ZPayments);
+        }, 10000);
+        return;
+      }
+
+      console.log('📥 [ZPay] Injecting ZPayments SDK script...');
       const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.src = 'https://static.zohocdn.com/zpay/zpay-js/v1/zpayments.js';
+      script.async = true;
+
+      script.onload = () => {
+        console.log('✅ [ZPay] Script onload fired. window.ZPayments:', typeof window.ZPayments);
+        // Give it a tick to initialize
+        setTimeout(() => resolve(!!window.ZPayments), 200);
+      };
+
+      script.onerror = (e) => {
+        console.error('❌ [ZPay] Failed to load ZPayments SDK script:', e);
+        resolve(false);
+      };
+
       document.body.appendChild(script);
+
+      // Timeout fallback
+      setTimeout(() => {
+        if (!window.ZPayments) {
+          console.warn('⚠️ [ZPay] Script load timeout after 15s');
+          resolve(false);
+        }
+      }, 15000);
     });
   };
 
@@ -344,28 +389,47 @@ const Checkout = () => {
     }
   };
 
-  const handleRazorpayPayment = async () => {
+  // ========== REPLACE handleZohoPayment FUNCTION ONLY ==========
+
+  const handleZohoPayment = async () => {
+    console.log('🟢 ============ PAY ONLINE CLICKED ============');
+    console.log('🟢 [Step 1] handleZohoPayment() started');
+    console.log('🟢 [Step 1] checkoutItems:', checkoutItems.length, 'items');
+    console.log('🟢 [Step 1] paymentMethod:', paymentMethod);
+
     setIsProcessingPayment(true);
 
     try {
-      const isLoaded = await loadRazorpayScript();
-      if (!isLoaded) {
-        throw new Error("Failed to load payment gateway. Please try again.");
+      // ── STEP 1: Check token ────────────────────────────────────
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
+      console.log('🔑 [Step 1] Auth token present:', !!token);
+      if (!token) {
+        toast.error('You must be logged in to pay. Please login and try again.');
+        setIsProcessingPayment(false);
+        return;
       }
 
+      // ── STEP 2: Compute totals ─────────────────────────────────
       const authUser = user;
-      const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
-
       const subtotal = checkoutItems.reduce(
         (total, item) => total + item.product.price * item.quantity,
         0
       );
-      const shipping = subtotal >= 5000 ? 0 : 250;
-      const total = subtotal + shipping;
+      const shippingCost = subtotal >= 5000 ? 0 : 250;
+      const total = subtotal + shippingCost;
 
+      console.log('💰 [Step 2] Totals — subtotal:', subtotal, '| shipping:', shippingCost, '| total:', total);
+
+      if (total <= 0) {
+        toast.error('Invalid order total. Please go back and try again.');
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      // ── STEP 3: Create backend order ───────────────────────────
       const orderData = {
         items: checkoutItems.map(item => ({
-          productId: item.product.id,
+          productId: item.product.id || item.product._id,
           quantity: item.quantity,
           price: item.product.price,
           size: item.size,
@@ -383,144 +447,255 @@ const Checkout = () => {
         customerPhone: shippingData.phone,
         customerId: authUser?.id || authUser?._id,
         userId: authUser?.id || authUser?._id,
-        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`,
+        customerName: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`.trim(),
         customerEmail: authUser?.email || shippingData.email,
         totalAmount: total,
-        subtotal: subtotal,
-        shippingCharge: shipping,
+        subtotal,
+        shippingCharge: shippingCost,
         tax: 0,
         discount: 0,
-        notes: ""
+        notes: ''
       };
 
-      console.log('📦 Creating ONLINE order:', orderData);
+      console.log('📦 [Step 3] Creating order — POST', `${API_BASE_URL}/orders/create`);
+      console.log('📦 [Step 3] Order payload:', JSON.stringify(orderData, null, 2));
 
-      const orderResponse = await fetch(`${API_BASE_URL}/orders/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(orderData)
-      });
+      let newOrderId = '';
+      let newOrderNumber = '';
 
-      const orderResult = await orderResponse.json();
+      try {
+        const orderResponse = await fetch(`${API_BASE_URL}/orders/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(orderData)
+        });
 
-      if (!orderResponse.ok) {
-        throw new Error(orderResult.message || "Failed to create order");
+        const orderResult = await orderResponse.json();
+        console.log('📦 [Step 3] Order response status:', orderResponse.status);
+        console.log('📦 [Step 3] Order response body:', JSON.stringify(orderResult, null, 2));
+
+        if (!orderResponse.ok) {
+          throw new Error(orderResult.message || `Order creation failed with status ${orderResponse.status}`);
+        }
+
+        newOrderId = orderResult.order?._id || orderResult.order?.id || '';
+        newOrderNumber = orderResult.order?.orderNumber || newOrderId;
+
+        setOrderId(newOrderId);
+        setOrderNumber(newOrderNumber);
+        console.log('✅ [Step 3] Order created — ID:', newOrderId, '| Number:', newOrderNumber);
+      } catch (orderErr: any) {
+        console.error('❌ [Step 3] Order creation failed:', orderErr.message);
+        toast.error(`Failed to create order: ${orderErr.message}`);
+        setIsProcessingPayment(false);
+        return;
       }
 
-      const newOrderId = orderResult.order?._id || orderResult.order?.id;
-      const newOrderNumber = orderResult.order?.orderNumber || newOrderId;
+      // ── STEP 4: Create Zoho payment session ────────────────────
+      console.log('💳 [Step 4] Creating Zoho payment session — POST', `${API_BASE_URL}/payment/create-session`);
 
-      setOrderId(newOrderId);
-      setOrderNumber(newOrderNumber);
+      // Read env vars
+      const accountId = import.meta.env.VITE_ZOHO_ACCOUNT_ID as string | undefined;
+      if (!accountId) {
+        toast.error('Payment configuration error: VITE_ZOHO_ACCOUNT_ID is not set.');
+        setIsProcessingPayment(false);
+        return;
+      }
 
-      const razorpayResponse = await fetch(`${API_BASE_URL}/payment/create-order`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      const apiKey = import.meta.env.VITE_ZOHO_API_KEY as string | undefined;
+      if (!apiKey) {
+        toast.error('Payment configuration error: VITE_ZOHO_API_KEY is not set.');
+        setIsProcessingPayment(false);
+        return;
+      }
+
+      let sessionId = '';
+      let sessionAmount = total;
+      let sessionCurrency = 'INR';
+      let sessionDescription = `JewelsKart Order #${newOrderNumber}`;
+
+      try {
+        const sessionPayload = {
           amount: total,
-          currency: "INR",
+          currency: 'INR',
+          description: sessionDescription,
           orderId: newOrderId,
-          type: "order_payment"
-        })
-      });
+          invoice_number: `INV-${newOrderNumber}`,
+          reference_number: newOrderId
+        };
+        console.log('💳 [Step 4] Session payload:', JSON.stringify(sessionPayload, null, 2));
 
-      const razorpayData = await razorpayResponse.json();
+        const sessionResponse = await fetch(`${API_BASE_URL}/payment/create-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(sessionPayload)
+        });
 
-      if (!razorpayData.success) {
-        throw new Error(razorpayData.message || "Failed to create payment order");
+        const sessionData = await sessionResponse.json();
+        console.log('💳 [Step 4] Session response status:', sessionResponse.status);
+        console.log('💳 [Step 4] Full session response:', JSON.stringify(sessionData, null, 2));
+
+        if (!sessionResponse.ok) {
+          const errMsg = sessionData?.message || sessionData?.error || `Session API returned ${sessionResponse.status}`;
+          console.error('❌ [Step 4] Session creation failed:', errMsg);
+          throw new Error(`Payment session creation failed: ${errMsg}`);
+        }
+
+        // ✅ Extract payments_session_id
+        sessionId = sessionData.payments_session_id || '';
+        if (!sessionId) {
+          throw new Error('Zoho did not return payments_session_id. Cannot open payment widget.');
+        }
+
+        sessionAmount = sessionData.amount || total;
+        sessionCurrency = sessionData.currency || sessionData.currency_code || 'INR';
+
+        console.log('✅ [Step 4] payments_session_id:', sessionId);
+        console.log('✅ [Step 4] amount:', sessionAmount, '| currency:', sessionCurrency);
+      } catch (sessionErr: any) {
+        console.error('Zoho session creation failed', sessionErr);
+        toast.error('Unable to create payment session.');
+        setIsProcessingPayment(false);
+        return;
       }
 
-      const options = {
-        key: razorpayData.key_id,
-        amount: razorpayData.amount,
-        currency: razorpayData.currency,
-        name: "JewelsKart",
-        description: `Payment for Order ${newOrderNumber}`,
-        order_id: razorpayData.order_id,
-        handler: async (response: any) => {
-          try {
-            const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify-payment`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                order_id: response.razorpay_order_id,
-                payment_id: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                orderId: newOrderId
-              })
-            });
+      // ── STEP 5: Load Zoho SDK ──────────────────────────────────
+      console.log('📥 [Step 5] Loading ZPayments SDK...');
+      const isLoaded = await loadZohoPaymentsScript();
+      console.log('📥 [Step 5] SDK loaded:', isLoaded, '| window.ZPayments:', typeof window.ZPayments);
 
-            const verifyData = await verifyResponse.json();
+      if (!isLoaded || !window.ZPayments) {
+        console.error('❌ [Step 5] ZPayments SDK not available');
+        toast.error('Payment widget failed to load. Please check your internet connection and try again.');
+        setIsProcessingPayment(false);
+        return;
+      }
 
-            if (verifyData.success) {
-              toast.success("Payment successful! Order confirmed.");
-
-              setIsOrderCompleted(true);
-              setCurrentStep('confirmation');
-
-              if (!isBuyNow) {
-                setTimeout(() => {
-                  clearCart();
-                }, 100);
-              }
-
-              setIsProcessingPayment(false);
-            } else {
-              throw new Error("Payment verification failed");
-            }
-          } catch (error) {
-            console.error("Verification error:", error);
-            toast.error("Payment verification failed. Please contact support.");
-            setIsProcessingPayment(false);
-          }
-        },
-        prefill: {
-          name: orderData.customerName,
-          email: orderData.customerEmail,
-          contact: shippingData.phone
-        },
-        theme: { color: "#F37254" },
-        modal: {
-          ondismiss: () => {
-            toast.error("Payment cancelled");
-            setIsProcessingPayment(false);
-          }
+      // ── STEP 6: Initialize ZPayments ──────────────────────────
+      const config = {
+        account_id: accountId,
+        domain: 'IN',
+        otherOptions: {
+          api_key: apiKey
         }
       };
 
-      const razorpay = new window.Razorpay(options);
+      console.log('🔧 [Step 6] Initializing ZPayments with config:', JSON.stringify({
+        account_id: config.account_id,
+        domain: config.domain,
+        otherOptions: { api_key: apiKey.slice(0, 15) + '...' }
+      }));
 
-      razorpay.on('payment.failed', (response: any) => {
-        console.error("Payment failed:", response.error);
-        toast.error(response.error.description || "Payment failed. Please try again.");
+      let zpayments: any;
+      try {
+        zpayments = new window.ZPayments(config);
+        console.log('✅ [Step 6] ZPayments instance created');
+      } catch (initErr: any) {
+        console.error('❌ [Step 6] ZPayments constructor failed:', initErr.message);
+        toast.error(`Payment widget initialization failed: ${initErr.message}`);
         setIsProcessingPayment(false);
-      });
+        return;
+      }
 
-      razorpay.open();
+      // ── STEP 7: Payment completion handler ────────────────────
+      const handlePaymentCompletion = async (paymentResult: any) => {
+        console.log('🎉 [Step 7] Widget success callback fired:', JSON.stringify(paymentResult, null, 2));
+        try {
+          const verifyPayload = {
+            payment_id: paymentResult?.payment_id || paymentResult?.id || paymentResult?.paymentId || `ZPAY_${Date.now()}`,
+            payments_session_id: sessionId,
+            signature: paymentResult?.signature || '',
+            orderId: newOrderId
+          };
+          console.log('🔐 [Step 7] Verifying payment — POST', `${API_BASE_URL}/payment/verify`);
+          console.log('🔐 [Step 7] Verify payload:', JSON.stringify(verifyPayload, null, 2));
 
+          const verifyResponse = await fetch(`${API_BASE_URL}/payment/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(verifyPayload)
+          });
+
+          const verifyData = await verifyResponse.json();
+          console.log('🔐 [Step 7] Verify response:', JSON.stringify(verifyData, null, 2));
+
+          if (verifyData.success) {
+            console.log('✅ [Step 7] Payment verified! Order confirmed.');
+            toast.success('Payment successful! Order confirmed. 🎉');
+            setIsOrderCompleted(true);
+            setCurrentStep('confirmation');
+            if (!isBuyNow) {
+              setTimeout(() => clearCart(), 100);
+            }
+            setIsProcessingPayment(false);
+          } else {
+            throw new Error(verifyData.message || 'Payment verification failed');
+          }
+        } catch (verifyErr: any) {
+          console.error('❌ [Step 7] Verification error:', verifyErr.message);
+          toast.error(`Payment verification failed: ${verifyErr.message}. Please contact support.`);
+          setIsProcessingPayment(false);
+        }
+      };
+
+      // ── STEP 8: Open the payment widget ───────────────────────
+      const widgetParams = {
+        amount: String(Number(sessionAmount).toFixed(2)),
+        currency_code: 'INR',
+        payments_session_id: sessionId,
+        currency_symbol: '₹',
+        business: 'JewelsKart',
+        description: sessionDescription,
+        invoice_number: `INV-${newOrderNumber}`,
+        reference_number: newOrderId,
+        address: {
+          name: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`.trim(),
+          email: authUser?.email || shippingData.email,
+          phone: shippingData.phone
+        }
+      };
+
+      console.log('Opening Zoho widget with params:', JSON.stringify(widgetParams, null, 2));
+
+      try {
+        const paymentResult = await zpayments.requestPaymentMethod(widgetParams);
+        console.log('Zoho payment success', paymentResult);
+        await handlePaymentCompletion(paymentResult);
+      } catch (err: any) {
+        console.error('Zoho payment failed', err);
+        if (err?.code === 'widget_closed') {
+          toast.info('Payment cancelled');
+        } else {
+          toast.error(err?.message || 'Payment failed');
+        }
+        setIsProcessingPayment(false);
+      }
     } catch (error: any) {
-      console.error("Payment error:", error);
-      toast.error(error.message || "Something went wrong. Please try again.");
+      console.error('❌ ============ PAYMENT FLOW CRASHED ============');
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error stack:', error?.stack);
+      toast.error(error?.message || 'Payment failed. Please try again.');
       setIsProcessingPayment(false);
     }
   };
-
   const handlePlaceOrder = async () => {
+    console.log('🟢 [handlePlaceOrder] called — paymentMethod:', paymentMethod);
     if (paymentMethod === 'cod') {
       await handleCODOrder();
     } else {
-      await handleRazorpayPayment();
+      await handleZohoPayment();
     }
   };
+
 
   const subtotal = checkoutItems.reduce(
     (total, item) => total + item.product.price * item.quantity,
@@ -856,8 +1031,8 @@ const Checkout = () => {
                     type="submit"
                     disabled={checkoutItems.length === 0}
                     className={`w-full py-3 rounded-md transition-all duration-300 ${checkoutItems.length === 0
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-primary text-white hover:bg-primary/90'
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-primary/90'
                       }`}
                   >
                     Continue to Summary
@@ -927,8 +1102,8 @@ const Checkout = () => {
                     onClick={() => setCurrentStep('payment')}
                     disabled={checkoutItems.length === 0}
                     className={`flex-1 py-3 rounded-md transition-all duration-300 ${checkoutItems.length === 0
-                        ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-primary text-white hover:bg-primary/90'
+                      ? 'bg-gray-300 cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-primary/90'
                       }`}
                   >
                     Proceed to Payment
@@ -948,7 +1123,7 @@ const Checkout = () => {
                     className={`flex-1 py-3 text-sm uppercase tracking-wider transition-colors ${paymentMethod === 'online' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:bg-primary/5'
                       }`}
                   >
-                    💳 Pay Online (Razorpay)
+                    💳 Pay Online (Zoho Payments)
                   </button>
                   <button
                     type="button"
@@ -964,13 +1139,7 @@ const Checkout = () => {
                   {paymentMethod === 'online' && (
                     <div className="text-center py-4">
                       <div className="mb-4">
-                        <img
-                          src="https://razorpay.com/assets/razorpay-glyph.svg"
-                          alt="Razorpay"
-                          className="h-8 mx-auto mb-2"
-                          onError={(e) => (e.currentTarget.style.display = 'none')}
-                        />
-                        <p className="text-foreground font-medium">Pay securely with Razorpay</p>
+                        <p className="text-foreground font-medium">Pay securely with Zoho Payments</p>
                         <p className="text-muted-foreground text-sm mt-1">
                           Cards • UPI • NetBanking • Wallet
                         </p>
