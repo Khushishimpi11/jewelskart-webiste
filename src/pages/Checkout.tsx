@@ -313,7 +313,7 @@ const Checkout = () => {
         (total, item) => total + item.product.price * item.quantity,
         0
       );
-      const shipping = subtotal >= 5000 ? 0 : 250;
+      const shipping = 0;
       const total = subtotal + shipping;
 
       const orderData = {
@@ -379,11 +379,11 @@ const Checkout = () => {
           clearCart();
         }, 100);
       }
-      } finally {
-        setIsPlacingOrder(false);
-        resetLoading();
-      }
-    };
+    } finally {
+      setIsPlacingOrder(false);
+      resetLoading();
+    }
+  };
 
   const handleZohoPayment = async () => {
     console.log('🟢 ============ PAY ONLINE CLICKED ============');
@@ -491,7 +491,7 @@ const Checkout = () => {
         newOrderId = orderResult.order?._id || orderResult.order?.id || '';
         newOrderNumber = orderResult.order?.orderNumber || newOrderId;
         backendTotal = orderResult.order?.totalAmount ?? total;
-        
+
         setOrderId(newOrderId);
         setOrderNumber(newOrderNumber);
         console.log('✅ [Step 4] Order created — ID:', newOrderId, '| Number:', newOrderNumber);
