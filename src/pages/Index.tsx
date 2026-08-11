@@ -14,6 +14,7 @@ import Banner from '@/components/sections/Banner';
 // import OfferBanners from '@/components/sections/OfferBanners';
 import { JewelrySection } from '@/components/sections/JewelrySection';
 import Jewellery from '@/components/sections/Jewellery';
+import ComingSoonSection from '@/components/ComingSoonSection';
 
 // import { PartnerSection } from '@/components/sections/PartnerSection';
 
@@ -95,28 +96,28 @@ const Index = () => {
   const premiumProducts = products.filter(p => p.tags && p.tags.includes('premium-pick'));
 
   return (
-    <div className="min-h-screen bg-background">
-
-      <Header />
-      <main>
-
-        <HeroSection />
-        {/* <TrustBar /> */}
-        <Banner />
-        <FeaturedSection products={signatureProducts} isLoading={loading} />
-        <JewelrySection products={jewelleryProducts} isLoading={loading} />
-        <Jewellery products={limitedProducts} isLoading={loading} />
-        <PromoBanner />
-        {/* <PartnerSection /> */}
-        <BestSellersSection products={bestsellerProducts} isLoading={loading} />
-        <MarqueeSection />
-        {/* <OfferBanners /> */}
-        <SpecialProducts products={premiumProducts} isLoading={loading} />
-        <AboutSection />
-        <TestimonialSection />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <ComingSoonSection />
+      {/* 
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main>
+          <HeroSection />
+          <Banner />
+          <FeaturedSection products={signatureProducts} isLoading={loading} />
+          <JewelrySection products={jewelleryProducts} isLoading={loading} />
+          <Jewellery products={limitedProducts} isLoading={loading} />
+          <PromoBanner />
+          <BestSellersSection products={bestsellerProducts} isLoading={loading} />
+          <MarqueeSection />
+          <SpecialProducts products={premiumProducts} isLoading={loading} />
+          <AboutSection />
+          <TestimonialSection />
+        </main>
+        <Footer />
+      </div>
+      */}
+    </>
   );
 };
 
