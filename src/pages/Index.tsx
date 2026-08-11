@@ -14,6 +14,7 @@ import Banner from '@/components/sections/Banner';
 // import OfferBanners from '@/components/sections/OfferBanners';
 import { JewelrySection } from '@/components/sections/JewelrySection';
 import Jewellery from '@/components/sections/Jewellery';
+
 // import { PartnerSection } from '@/components/sections/PartnerSection';
 
 const Index = () => {
@@ -28,7 +29,7 @@ const Index = () => {
         window.location.reload();
       }
     };
-    
+
     window.addEventListener('message', handleImageUpdate);
     return () => window.removeEventListener('message', handleImageUpdate);
   }, []);
@@ -42,14 +43,14 @@ const Index = () => {
           throw new Error('Failed to fetch products');
         }
         const data = await response.json();
-        
+
         let productsArray = [];
         if (data.products && Array.isArray(data.products)) {
           productsArray = data.products;
         } else if (Array.isArray(data)) {
           productsArray = data;
         }
-        
+
         // Normalize products (same helper as in Shop.tsx to resolve images etc.)
         const normalized = productsArray
           .filter((p: any) => p.status === "Published")
@@ -65,7 +66,7 @@ const Index = () => {
               images.push(...p.images);
             }
             const uniqueImages = [...new Set(images)];
-            
+
             return {
               ...p,
               id: p._id || p.id,
@@ -75,7 +76,7 @@ const Index = () => {
               image: uniqueImages[0] || '/placeholder-image.jpg', // fallback for featured display
             };
           });
-          
+
         setProducts(normalized);
       } catch (error) {
         console.error("Error fetching homepage products:", error);
@@ -95,15 +96,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+
       <Header />
       <main>
+
         <HeroSection />
         {/* <TrustBar /> */}
         <Banner />
-         <FeaturedSection products={signatureProducts} isLoading={loading} />
-          <JewelrySection products={jewelleryProducts} isLoading={loading} />
+        <FeaturedSection products={signatureProducts} isLoading={loading} />
+        <JewelrySection products={jewelleryProducts} isLoading={loading} />
         <Jewellery products={limitedProducts} isLoading={loading} />
-          <PromoBanner />
+        <PromoBanner />
         {/* <PartnerSection /> */}
         <BestSellersSection products={bestsellerProducts} isLoading={loading} />
         <MarqueeSection />
