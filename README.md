@@ -1,73 +1,199 @@
-# Welcome to your Lovable project
+# Evimeria Elegance
 
-## Project info
+Create a modern, premium jewellery e-commerce website for the brand "Evimeria Jewellery" 
+with a luxury, elegant and high-end feel.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+🔹 DESIGN THEME & COLORS
+Primary Color: Deep Charcoal Black (#111111 – #1A1A1A)
+Secondary Color: Soft / Champagne Gold (#C9A24D / #D4AF37)
+Accent Color: Ivory White (#F7F5F0)
+Text Color: Dark Grey (#2B2B2B)
+Backgrounds: Black, off-white, soft gradients
+Overall look should feel royal, minimal, premium and elegant.
 
-## How can I edit this code?
+Use smooth transitions, subtle shadows, gold accents and modern typography.
 
-There are several ways of editing your application.
+Use Framer Motion or GSAP style animations for sliders, transitions and hover effects.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🔹 WEBSITE STRUCTURE (7–8 SECTIONS ON HOME PAGE)
 
-Changes made via Lovable will be committed automatically to this repo.
+### 1️⃣ HERO SECTION (Animated Slider)
+• Full width hero section
+• Background image covering entire section
+• Layout split into 2 parts:
+  - Left side: Text content
+    - Heading (luxury tagline)
+    - Subheading
+    - CTA button (Shop Now / Explore Collection)
+  - Right side: Square product images grid
+• Images and text should change one by one using slider animation
+• Smooth text + image transition with fade / slide animation
+• Premium jewellery feel
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 2️⃣ CATEGORY SHOWCASE SECTION
+• Section showing 3 main jewellery categories (example: Rings, Necklaces, Earrings)
+• Images should slide continuously in an infinite horizontal loop
+• Auto-scroll slider with smooth animation
+• Clicking category opens category product page
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+### 3️⃣ BEST SELLERS SECTION
+• Grid of product cards
+• Each card includes:
+  - Product image
+  - Product name
+  - Price
+  - If product is Ring → show Size selector
+  - If not Ring → show Buy Now button
+• On hover:
+  - Wishlist icon ❤️
+  - Add to Cart icon 🛒
+  - View icon 👁
+• Smooth hover animation with slight zoom and overlay
+
+---
+
+### 4️⃣ OFFER / PROMOTIONAL BANNER
+• Full width banner section
+• Show seasonal offer / featured collection
+• Gold accents and elegant typography
+• CTA button (Shop Offer / View Collection)
+
+---
+
+### 5️⃣ "EVERY GEM TELLS A STORY" FEATURE SECTION (50% / 50%)
+• Split layout:
+  - Left side: Large featured product image (hero-style)
+  - Right side: Product card list
+• Product cards include:
+  - Image
+  - Name
+  - Price
+  - Size selector if ring
+  - Buy Now button
+• On hover:
+  - Cart, Wishlist, View icons
+• When clicking a product on right → left big image updates smoothly
+
+---
+
+### 6️⃣ SPECIAL PRODUCTS SECTION
+• Highlight exclusive / limited edition jewellery
+• Slider or grid layout
+• Gold borders, premium feel
+
+---
+
+### 7️⃣ ABOUT US SECTION
+• Brand story of Evimeria Jewellery
+• Elegant text with subtle background
+• Emphasis on craftsmanship, luxury, timeless beauty
+
+---
+
+### 8️⃣ MARQUEE SECTION (Between Sections)
+• Continuous horizontal scrolling marquee
+• Example text:
+  - “Handcrafted Luxury Jewellery”
+  - “Every Gem Tells A Story”
+  - “Timeless Elegance”
+• Infinite loop animation
+
+---
+
+### 9️⃣ FOOTER
+• Logo
+• Navigation links
+• Categories
+• Contact info
+• Social media icons
+• Dark background with gold accents
+
+---
+
+## 🔹 INNER PAGES (NO BACKEND / NO CLOUD)
+
+### 🔸 PRODUCT LISTING PAGE (Shop Page)
+• Filter sidebar:
+  - Category filter
+  - Price range slider
+  - Tags
+• Product grid layout
+• Same hover effects as homepage cards
+
+---
+
+### 🔸 PRODUCT DETAIL PAGE
+• Large product image gallery
+• Product name, price, description
+• Ring size selector (if applicable)
+• Add to Cart button
+• Wishlist icon
+• Product details, material, care info
+• Smooth animations
+
+---
+
+### 🔸 CART PAGE
+• Selected products list
+• Quantity update
+• Remove product
+• Price summary
+• Proceed to Checkout button
+
+---
+
+### 🔸 CHECKOUT FLOW (STEP BASED)
+• Step 1: Login / Guest checkout
+• Step 2: Shipping details
+• Step 3: Order summary
+• Step 4: Payment (UI only – no backend)
+• Order confirmation screen
+
+---
+
+### 🔸 USER ACCOUNT (FRONTEND ONLY)
+• Login / Register UI
+• Order history UI
+• Wishlist page
+
+---
+
+## 🔹 TECH & BEHAVIOR
+• Fully frontend only (no backend, no cloud services)
+• Use local state / dummy data
+• Responsive for all devices
+• Smooth scrolling
+• Luxury animations (subtle, not flashy)
+
+---
+
+The final website should feel like a high-end jewellery brand 
+with modern e-commerce experience, elegant animations and premium UI.
+use this logo
+
+This project was built with [Lovable](https://lovable.dev).
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/527484f4-6bf3-4a6a-b1a5-194c5bc51068).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+git clone <this-repository-url>
+cd <repository-name>
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
