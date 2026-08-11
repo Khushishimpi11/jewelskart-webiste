@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Instagram, Facebook, Twitter, MapPin, Phone, Mail } from 'lucide-react';
+import { Instagram, Facebook, MapPin, Phone, Mail } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import logo from "@/assets/logo.png";
 
@@ -36,7 +36,7 @@ export const Footer = () => {
       try {
         const response = await fetch(`${API_BASE_URL}/categories`);
         const data = await response.json();
-        
+
         if (data.success && data.categories) {
           // ✅ ONLY featured categories (same filter as Header)
           const featuredCategories = data.categories
@@ -54,7 +54,7 @@ export const Footer = () => {
         setLoadingCategories(false);
       }
     };
-    
+
     fetchCategories();
   }, []);
 
@@ -66,27 +66,36 @@ export const Footer = () => {
           {/* Column 1: Logo and Info */}
           <div className="lg:col-span-1 flex flex-col gap-6 -mt-20 items-center text-center md:items-start md:text-left">
             <Link to="/" className="block">
-              <img 
+              <img
                 src={logo}
                 alt="Jewelskart Jewellery"
                 className="w-40 md:w-48 lg:w-56 h-auto object-contain md:-ml-8"
               />
             </Link>
-            
+
             <p className="text-white/60 text-sm leading-relaxed max-w-xs -mt-16">
               Crafting timeless elegance since 1995. Every piece tells a story of luxury, passion, and unparalleled craftsmanship.
             </p>
-            
+
             <div className="flex items-center gap-4 justify-center md:justify-start">
-              {[Instagram, Facebook, Twitter].map((Icon, i) => (
-                <a 
-                  key={i} 
-                  href="#" 
-                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
+              <a
+                href="https://www.instagram.com/jewelskartindia?igsh=M2NiNDUydmZtajlk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all duration-300"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a
+                href="https://www.facebook.com/share/18AgyEFLAj/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all duration-300"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
@@ -125,8 +134,8 @@ export const Footer = () => {
               <ul className="space-y-3">
                 {categories.map((category) => (
                   <li key={category.name}>
-                    <Link 
-                      to={`/shop?category=${category.slug}`} 
+                    <Link
+                      to={`/shop?category=${category.slug}`}
                       className="text-white/80 text-sm hover:underline hover:decoration-white underline-offset-4 transition-all duration-300"
                     >
                       {category.name}
@@ -141,25 +150,51 @@ export const Footer = () => {
           <div className="text-center md:text-left">
             <h4 className="font-display text-lg text-white mb-6 font-bold">Contact Us</h4>
             <ul className="space-y-4">
-              <li className="flex items-start md:items-start items-center justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
+              <li className="flex items-start justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
                 <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MapPin className="w-3 h-3 text-primary" />
                 </div>
-                <span>42, MG Road, Connaught Place, New Delhi 110001</span>
+                <a
+                  href="https://maps.google.com/?q=Boulevard+Towers+A-1008+Camp+Pune+411001"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  Boulevard Towers - JEWELSKART
+                  A-1008, 10th Floor, Near Sadhu Vaswani Chowk, Opp Vijay Sales, Camp, Pune - 411001
+                </a>
               </li>
 
-              <li className="flex items-center justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
-                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+              <li className="flex items-start justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
+                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Phone className="w-3 h-3 text-primary" />
                 </div>
-                <span>+91 98765 43210</span>
+                <div className="flex flex-col gap-1">
+                  <a
+                    href="tel:+917558572001"
+                    className="hover:text-white transition-colors"
+                  >
+                    +91 75585 72001
+                  </a>
+                  <a
+                    href="tel:+919730253913"
+                    className="hover:text-white transition-colors"
+                  >
+                    +91 97302 53913
+                  </a>
+                </div>
               </li>
 
-              <li className="flex items-center justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
-                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+              <li className="flex items-start justify-center md:justify-start gap-3 text-white/80 text-sm text-center md:text-left">
+                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Mail className="w-3 h-3 text-primary" />
                 </div>
-                <span>support@jewelskartindia.com</span>
+                <a
+                  href="mailto:aanchal@jewelskartindia.com"
+                  className="hover:text-white transition-colors"
+                >
+                  aanchal@jewelskartindia.com
+                </a>
               </li>
             </ul>
           </div>
@@ -170,23 +205,23 @@ export const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
         <div className="container mx-auto px-4 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
-         <p className="text-white/70 text-sm">
-  © 2026 
-  <span className="text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-    <span className="font-bold">Jewels</span>
-    <span className="font-thin tracking-wider">kart</span>
-  </span>. 
-  All rights reserved. | Designed by{" "}
-  
-  <a 
-    href="https://www.pawartechnologyservices.com/" 
-    target="_blank" 
-    rel="noopener noreferrer"
-    className="text-white font-semibold hover:underline"
-  >
-    Pawar Technologies and Services
-  </a>
-</p>
+          <p className="text-white/70 text-sm">
+            © 2026
+            <span className="text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              <span className="font-bold">Jewels</span>
+              <span className="font-thin tracking-wider">kart</span>
+            </span>.
+            All rights reserved. | Designed by{" "}
+
+            <a
+              href="https://www.pawartechnologyservices.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-semibold hover:underline"
+            >
+              Pawar Technologies and Services
+            </a>
+          </p>
           <div className="flex items-center gap-6 text-white/60 text-sm justify-center md:justify-start">
             <Link to="/RefundCancellationPage" className="hover:text-white transition-colors">Refund & Cancellation Policy</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
