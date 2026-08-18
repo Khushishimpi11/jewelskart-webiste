@@ -5,7 +5,7 @@ import { HeroSection } from '@/components/sections/HeroSection';
 import { BestSellersSection } from '@/components/sections/BestSellersSection';
 import { PromoBanner } from '@/components/sections/PromoBanner';
 import { FeaturedSection } from '@/components/sections/FeaturedSection';
-import { SpecialProducts } from '@/components/sections/SpecialProducts';
+// import { SpecialProducts } from '@/components/sections/SpecialProducts';
 import { AboutSection } from '@/components/sections/AboutSection';
 import { MarqueeSection } from '@/components/sections/MarqueeSection';
 import { TestimonialSection } from '@/components/sections/TestimonialSection';
@@ -14,7 +14,7 @@ import Banner from '@/components/sections/Banner';
 // import OfferBanners from '@/components/sections/OfferBanners';
 import { JewelrySection } from '@/components/sections/JewelrySection';
 import Jewellery from '@/components/sections/Jewellery';
-import ComingSoonSection from '@/components/ComingSoonSection';
+// import ComingSoonSection from '@/components/ComingSoonSection';
 
 // import { PartnerSection } from '@/components/sections/PartnerSection';
 
@@ -111,7 +111,7 @@ const Index = () => {
           <PromoBanner />
           <BestSellersSection products={bestsellerProducts} isLoading={loading} />
           <MarqueeSection />
-          <SpecialProducts products={premiumProducts} isLoading={loading} />
+          {/* <SpecialProducts products={premiumProducts} isLoading={loading} /> */}
           <AboutSection />
           <TestimonialSection />
         </main>
