@@ -13,7 +13,7 @@ const TermsPage = () => {
           subtitle="JewelsKart India"
           breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Terms & Conditions' }]}
         />
-        
+
         <div className="container mx-auto px-4 lg:px-8 py-12 max-w-4xl">
           <div className="bg-white rounded-xl shadow-sm p-8 space-y-6">
             <div className="space-y-2">

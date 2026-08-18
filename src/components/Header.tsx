@@ -93,8 +93,11 @@ export const Header = () => {
   const ANNOUNCEMENT_HEIGHT = 38;
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  const getCategoryImage = (categoryName: string) => {
-    const name = categoryName.toLowerCase();
+  const getCategoryImage = (cat: any) => {
+    if (cat?.image && typeof cat.image === 'string' && cat.image.trim() !== '') {
+      return cat.image;
+    }
+    const name = (typeof cat === 'string' ? cat : cat?.name || '').toLowerCase();
 
     if (name.includes('ring')) return ringImg;
     if (name.includes('earring')) return earringImg;
@@ -113,18 +116,19 @@ export const Header = () => {
       const data = await response.json();
 
       if (data.success && data.categories) {
-        const featuredCategories = data.categories
+        // Sirf Active + Featured categories hi show karein
+        const activeCategories = data.categories
           .filter((cat: any) => cat.isActive === true && cat.featured === true)
           .map((cat: any) => ({
             name: capitalizeCategory(cat.name),
             category: cat.slug || cat.name.toLowerCase(),
-            img: getCategoryImage(cat.name),
+            img: (cat.image && cat.image.trim() !== '') ? cat.image : getCategoryImage(cat),
             _id: cat._id,
             productCount: cat.productCount || 0,
             featured: cat.featured,
           }));
 
-        setCategories(featuredCategories);
+        setCategories(activeCategories);
       } else {
         setCategories([]);
       }
@@ -135,7 +139,6 @@ export const Header = () => {
       setLoadingCategories(false);
     }
   };
-
   useEffect(() => {
     fetchCategories();
   }, []);

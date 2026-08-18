@@ -10,8 +10,11 @@ import earringImg from '@/assets/earring/e1.jpg';
 import braceletImg from '@/assets/c.jpg';
 import necklaceImg from '@/assets/c.png';
 
-const getCategoryImage = (categoryName: string) => {
-  const name = categoryName.toLowerCase();
+const getCategoryImage = (cat: any) => {
+  if (cat?.image && typeof cat.image === 'string' && cat.image.trim() !== '') {
+    return cat.image;
+  }
+  const name = (typeof cat === 'string' ? cat : cat?.name || '').toLowerCase();
   if (name.includes('ring')) return ringImg;
   if (name.includes('earring')) return earringImg;
   if (name.includes('pendant')) return pendantImg;
@@ -28,9 +31,9 @@ const capitalizeCategory = (name: string) => {
 export const Footer = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-  // Fetch ONLY featured categories from API (same as Header)
+  // Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -38,15 +41,14 @@ export const Footer = () => {
         const data = await response.json();
 
         if (data.success && data.categories) {
-          // ✅ ONLY featured categories (same filter as Header)
-          const featuredCategories = data.categories
-            .filter((cat: any) => cat.isActive === true && cat.featured === true)
+          const activeCategories = data.categories
+            .filter((cat: any) => cat.isActive === true)
             .map((cat: any) => ({
               name: capitalizeCategory(cat.name),
               slug: cat.slug || cat.name.toLowerCase(),
-              img: getCategoryImage(cat.name),
+              img: (cat.image && cat.image.trim() !== '') ? cat.image : getCategoryImage(cat),
             }));
-          setCategories(featuredCategories);
+          setCategories(activeCategories);
         }
       } catch (error) {
         console.error("Error fetching categories for footer:", error);

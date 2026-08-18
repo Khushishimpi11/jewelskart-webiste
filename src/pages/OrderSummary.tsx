@@ -7,10 +7,10 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useAuthStore } from '@/store/authStore';
 import { useOrderStore, SimpleOrder } from '@/store/orderStore';
 import { useExchange } from '@/context/ExchangeContext';
-import { 
-  Package, Eye, Loader2, Truck, CheckCircle, Clock, AlertCircle, 
+import {
+  Package, Eye, Loader2, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle,
   Copy, Check, User, RefreshCw, XCircle, Upload, X, CreditCard, Banknote, Plus, Search, MinusCircle,
-  MapPin, Phone, Mail, Calendar, MessageCircle, FileText
+  MapPin, Phone, Mail, Calendar, MessageCircle, FileText, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,13 @@ declare global {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+};
+const API_BASE_URL = getApiBaseUrl();
 
 interface SelectedItem {
   productId: string;
@@ -49,6 +55,8 @@ interface ReturnRequestInfo {
   status: 'pending' | 'approved' | 'rejected' | 'completed' | 'return_received' | 'exchange_shipped';
   refundAmount: number;
   refundStatus: string;
+  adminNote?: string;
+  productName?: string;
   exchangeDetails?: {
     returnShippingTracking: string;
     exchangeShippingTracking: string;
@@ -64,11 +72,11 @@ const OrderSummary = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { exchangeData, setExchangeData, clearExchangeData } = useExchange();
-  
+
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [returnRequests, setReturnRequests] = useState<ReturnRequestInfo[]>([]);
-  
+
   // Modal states
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -80,17 +88,21 @@ const OrderSummary = () => {
   const [processingQueue, setProcessingQueue] = useState<SelectedItem[]>([]);
   const [cancelReason, setCancelReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Single item states
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [requestType, setRequestType] = useState<'return' | 'exchange'>('return');
   const [returnReason, setReturnReason] = useState('');
   const [returnDescription, setReturnDescription] = useState('');
-  
-  // Image upload states
+
+  // Image/Video upload states
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  
+  // Mandatory unboxing video state
+  const [unboxingVideo, setUnboxingVideo] = useState<File | null>(null);
+  const [unboxingVideoUrl, setUnboxingVideoUrl] = useState<string>('');
+  const [unboxingVideoBase64, setUnboxingVideoBase64] = useState<string>('');
+
   // Refund method states
   const [refundMethod, setRefundMethod] = useState<'original' | 'saved-upi' | 'saved-bank' | 'new-upi' | 'new-bank'>('original');
   const [selectedUpiId, setSelectedUpiId] = useState('');
@@ -108,7 +120,7 @@ const OrderSummary = () => {
     ifscCode: ''
   });
   const [showNewRefundForm, setShowNewRefundForm] = useState(false);
-  
+
   // Exchange states
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [selectedExchangeProduct, setSelectedExchangeProduct] = useState<any | null>(null);
@@ -125,7 +137,7 @@ const OrderSummary = () => {
     ifscCode: ''
   });
   const [showNewDifferenceForm, setShowNewDifferenceForm] = useState(false);
-  
+
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedCondition, setAcceptedCondition] = useState(false);
   const [originalProductImage, setOriginalProductImage] = useState('');
@@ -145,7 +157,7 @@ const OrderSummary = () => {
 
   const fetchAllProductImages = async () => {
     if (imagesFetched || isFetchingImages) return;
-    
+
     const allProductIds = new Set<string>();
     orders.forEach(order => {
       order.items?.forEach(item => {
@@ -154,18 +166,18 @@ const OrderSummary = () => {
         }
       });
     });
-    
+
     if (allProductIds.size === 0) return;
-    
+
     setIsFetchingImages(true);
-    
+
     try {
       const authToken = token || localStorage.getItem('customer_token');
       const productIds = Array.from(allProductIds);
-      
+
       const batchSize = 5;
       const imageMap: Record<string, string> = {};
-      
+
       for (let i = 0; i < productIds.length; i += batchSize) {
         const batch = productIds.slice(i, i + batchSize);
         const promises = batch.map(async (productId) => {
@@ -183,7 +195,7 @@ const OrderSummary = () => {
             return { productId, imageUrl: '' };
           }
         });
-        
+
         const results = await Promise.all(promises);
         results.forEach(result => {
           if (result.imageUrl) {
@@ -191,10 +203,10 @@ const OrderSummary = () => {
           }
         });
       }
-      
+
       setProductImagesMap(imageMap);
       setImagesFetched(true);
-      
+
     } catch (error) {
       console.error('Error fetching product images:', error);
     } finally {
@@ -243,7 +255,7 @@ const OrderSummary = () => {
     onError: (error: string) => void
   ) => {
     setIsProcessingPayment(true);
-    
+
     try {
       const isLoaded = await loadZohoPaymentsScript();
       if (!isLoaded) {
@@ -251,7 +263,7 @@ const OrderSummary = () => {
       }
 
       const authToken = token || localStorage.getItem('customer_token');
-      
+
       const response = await fetch(`${API_BASE_URL}/payment/create-session`, {
         method: "POST",
         headers: {
@@ -397,6 +409,18 @@ const OrderSummary = () => {
     }
   }, [isAuthenticated, fetchMyOrders, token]);
 
+  // Re-fetch orders when tab regains focus (so CMS status changes are reflected)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isAuthenticated) {
+        fetchMyOrders();
+        fetchReturnRequests();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isAuthenticated, fetchMyOrders]);
+
   // Fetch images after orders are loaded
   useEffect(() => {
     if (orders.length > 0 && !imagesFetched && !isFetchingImages) {
@@ -410,7 +434,7 @@ const OrderSummary = () => {
       if (targetOrder) {
         setSelectedOrder(targetOrder);
       }
-      
+
       setOriginalProductImage(exchangeData.returnProductImage);
       setCurrentProcessingItem({
         productId: exchangeData.returnProductId,
@@ -420,7 +444,7 @@ const OrderSummary = () => {
         price: exchangeData.returnProductPrice,
         actionType: 'exchange'
       });
-      
+
       setSelectedProduct({
         productId: exchangeData.returnProductId,
         name: exchangeData.returnProductName,
@@ -428,20 +452,20 @@ const OrderSummary = () => {
         quantity: 1,
         price: exchangeData.returnProductPrice
       });
-      
+
       setReturnReason(exchangeData.returnReason);
       setReturnDescription(exchangeData.returnDescription);
       setUploadedImages(exchangeData.uploadedImages);
       setAcceptedTerms(exchangeData.acceptedTerms);
       setAcceptedCondition(exchangeData.acceptedCondition);
-      
+
       if (exchangeData.selectedExchangeProduct) {
         setSelectedExchangeProduct(exchangeData.selectedExchangeProduct);
         setExchangeProductId(exchangeData.selectedExchangeProduct.id);
         const diff = exchangeData.selectedExchangeProduct.price - exchangeData.returnProductPrice;
         setPriceDifference(diff);
       }
-      
+
       setRequestType('exchange');
       setShowReturnModal(true);
     }
@@ -453,7 +477,7 @@ const OrderSummary = () => {
       if (targetOrder) {
         setSelectedOrder(targetOrder);
       }
-      
+
       setOriginalProductImage(exchangeData.returnProductImage);
       setCurrentProcessingItem({
         productId: exchangeData.returnProductId,
@@ -463,7 +487,7 @@ const OrderSummary = () => {
         price: exchangeData.returnProductPrice,
         actionType: 'exchange'
       });
-      
+
       setSelectedProduct({
         productId: exchangeData.returnProductId,
         name: exchangeData.returnProductName,
@@ -471,23 +495,23 @@ const OrderSummary = () => {
         quantity: 1,
         price: exchangeData.returnProductPrice
       });
-      
+
       setReturnReason(exchangeData.returnReason);
       setReturnDescription(exchangeData.returnDescription);
       setUploadedImages(exchangeData.uploadedImages);
       setAcceptedTerms(exchangeData.acceptedTerms);
       setAcceptedCondition(exchangeData.acceptedCondition);
-      
+
       if (exchangeData.selectedExchangeProduct) {
         setSelectedExchangeProduct(exchangeData.selectedExchangeProduct);
         setExchangeProductId(exchangeData.selectedExchangeProduct.id);
         const diff = exchangeData.selectedExchangeProduct.price - exchangeData.returnProductPrice;
         setPriceDifference(diff);
       }
-      
+
       setRequestType('exchange');
       setShowReturnModal(true);
-      
+
       setTimeout(() => {
         clearExchangeData();
       }, 2000);
@@ -501,7 +525,7 @@ const OrderSummary = () => {
     const returnProductId = params.get('returnProductId');
     const returnPrice = params.get('returnPrice');
     const returnName = params.get('returnName');
-    
+
     if (exchangeProductId && orderId && returnProductId) {
       const loadProduct = async () => {
         try {
@@ -511,14 +535,14 @@ const OrderSummary = () => {
           });
           const data = await response.json();
           const product = data.product || data;
-          
+
           const selectedProductObj = {
             id: product._id,
             name: product.name,
             price: product.price,
             image: product.images?.[0] || ''
           };
-          
+
           if (exchangeData) {
             const updatedData = {
               ...exchangeData,
@@ -528,34 +552,34 @@ const OrderSummary = () => {
             };
             setExchangeData(updatedData);
           }
-          
+
           setSelectedExchangeProduct(selectedProductObj);
           setExchangeProductId(selectedProductObj.id);
-          
+
           const diff = selectedProductObj.price - (Number(returnPrice) || 0);
           setPriceDifference(diff);
-          
+
           toast.success(`Selected ${selectedProductObj.name} for exchange`);
-          
+
           window.history.replaceState({}, '', window.location.pathname);
         } catch (error) {
           console.error('Error loading product:', error);
           toast.error('Failed to load product');
         }
       };
-      
+
       loadProduct();
     }
   }, [location.search, token, exchangeData, setExchangeData]);
 
   const handleRedirectToShop = () => {
     const currentItem = currentProcessingItem || selectedProduct;
-    
+
     if (!currentItem || !selectedOrder) {
       toast.error("Unable to proceed. Please try again.");
       return;
     }
-    
+
     const exchangeDataToStore = {
       orderId: selectedOrder.id,
       returnProductId: currentItem.productId,
@@ -571,7 +595,7 @@ const OrderSummary = () => {
       step: 'selecting' as const,
       timestamp: Date.now()
     };
-    
+
     setExchangeData(exchangeDataToStore);
     navigate('/shop?for=exchange');
   };
@@ -581,22 +605,27 @@ const OrderSummary = () => {
       toast.error('Please select a reason');
       return;
     }
-    
+
+    if (!unboxingVideo) {
+      toast.error('Please upload the box-opening video to continue.');
+      return;
+    }
+
     if (uploadedImages.length === 0) {
       toast.error('Please upload proof images');
       return;
     }
-    
+
     if (!acceptedTerms) {
       toast.error('Please accept the terms and conditions');
       return;
     }
-    
+
     if (!acceptedCondition) {
       toast.error('Please confirm product condition');
       return;
     }
-    
+
     let requestData: any = {
       orderId: selectedOrder.id,
       productId: currentProcessingItem?.productId || selectedProduct?.productId,
@@ -606,20 +635,22 @@ const OrderSummary = () => {
       reason: returnReason,
       description: returnDescription,
       requestType: requestType,
-      images: uploadedImages
+      images: uploadedImages,
+      video: unboxingVideoBase64 || null,
+      unboxingVideoName: unboxingVideo?.name || ''
     };
-    
+
     if (requestType === 'return') {
       let refundDetails: any = {};
       if (refundMethod === 'original') {
         refundDetails = { method: 'original' };
-      } 
+      }
       else if (refundMethod === 'saved-upi' && selectedUpiId) {
         refundDetails = { method: 'upi', upiId: selectedUpiId };
       }
       else if (refundMethod === 'saved-bank' && selectedBankDetails.accountNumber) {
-        refundDetails = { 
-          method: 'bank', 
+        refundDetails = {
+          method: 'bank',
           bankDetails: {
             accountHolderName: selectedBankDetails.accountHolderName,
             accountNumber: selectedBankDetails.accountNumber,
@@ -632,8 +663,8 @@ const OrderSummary = () => {
         refundDetails = { method: 'upi', upiId: newUpiId };
       }
       else if (refundMethod === 'new-bank' && newBankDetails.accountNumber) {
-        refundDetails = { 
-          method: 'bank', 
+        refundDetails = {
+          method: 'bank',
           bankDetails: {
             accountHolderName: newBankDetails.accountHolderName,
             accountNumber: newBankDetails.accountNumber,
@@ -643,15 +674,15 @@ const OrderSummary = () => {
         };
       }
       requestData.refundDetails = refundDetails;
-    } 
+    }
     else if (requestType === 'exchange') {
       if (!selectedExchangeProduct) {
         toast.error('Please select a product to exchange');
         return;
       }
-      
+
       const priceDiff = selectedExchangeProduct.price - (currentProcessingItem?.price || selectedProduct?.price || 0);
-      
+
       requestData.exchangeDetails = {
         exchangeProductId: selectedExchangeProduct.id,
         exchangeProductName: selectedExchangeProduct.name,
@@ -662,7 +693,7 @@ const OrderSummary = () => {
         differencePaymentMethod: differencePaymentMethod,
         differencePaymentDetails: {}
       };
-      
+
       if (priceDiff > 0) {
         if (differencePaymentMethod === 'original') {
           requestData.exchangeDetails.differencePaymentDetails = { method: 'original' };
@@ -673,8 +704,8 @@ const OrderSummary = () => {
         } else if (differencePaymentMethod === 'saved-bank') {
           const storedUser = localStorage.getItem('user');
           const userData = storedUser ? JSON.parse(storedUser) : null;
-          requestData.exchangeDetails.differencePaymentDetails = { 
-            method: 'bank', 
+          requestData.exchangeDetails.differencePaymentDetails = {
+            method: 'bank',
             bankDetails: {
               accountHolderName: userData?.bankDetails?.accountHolderName,
               accountNumber: userData?.bankDetails?.accountNumber,
@@ -685,8 +716,8 @@ const OrderSummary = () => {
         } else if (differencePaymentMethod === 'new-upi' && differenceUpiId) {
           requestData.exchangeDetails.differencePaymentDetails = { method: 'upi', upiId: differenceUpiId };
         } else if (differencePaymentMethod === 'new-bank' && differenceBankDetails.accountNumber) {
-          requestData.exchangeDetails.differencePaymentDetails = { 
-            method: 'bank', 
+          requestData.exchangeDetails.differencePaymentDetails = {
+            method: 'bank',
             bankDetails: differenceBankDetails
           };
         }
@@ -700,8 +731,8 @@ const OrderSummary = () => {
         } else if (differencePaymentMethod === 'saved-bank') {
           const storedUser = localStorage.getItem('user');
           const userData = storedUser ? JSON.parse(storedUser) : null;
-          requestData.exchangeDetails.differencePaymentDetails = { 
-            method: 'bank', 
+          requestData.exchangeDetails.differencePaymentDetails = {
+            method: 'bank',
             bankDetails: {
               accountHolderName: userData?.bankDetails?.accountHolderName,
               accountNumber: userData?.bankDetails?.accountNumber,
@@ -712,8 +743,8 @@ const OrderSummary = () => {
         } else if (differencePaymentMethod === 'new-upi' && differenceUpiId) {
           requestData.exchangeDetails.differencePaymentDetails = { method: 'upi', upiId: differenceUpiId };
         } else if (differencePaymentMethod === 'new-bank' && differenceBankDetails.accountNumber) {
-          requestData.exchangeDetails.differencePaymentDetails = { 
-            method: 'bank', 
+          requestData.exchangeDetails.differencePaymentDetails = {
+            method: 'bank',
             bankDetails: differenceBankDetails
           };
         }
@@ -721,13 +752,13 @@ const OrderSummary = () => {
     }
 
     setSubmitting(true);
-    
+
     const result = await createReturnRequest(requestData);
 
-    if (result && result.success) {
+    if (result && (result.success || result._id || result.requestId)) {
       if (requestType === 'exchange' && priceDifference > 0 && result.requestId) {
         toast.info("Please complete the additional payment");
-        
+
         await processExchangeAdditionalPayment(
           selectedOrder.id,
           Math.abs(priceDifference),
@@ -739,7 +770,7 @@ const OrderSummary = () => {
             resetReturnModal();
             await fetchMyOrders();
             await fetchReturnRequests();
-            
+
             const nextIndex = currentProcessingIndex + 1;
             setCurrentProcessingIndex(nextIndex);
             await processNextItem(processingQueue, nextIndex);
@@ -760,7 +791,7 @@ const OrderSummary = () => {
         resetReturnModal();
         await fetchMyOrders();
         await fetchReturnRequests();
-        
+
         const nextIndex = currentProcessingIndex + 1;
         setCurrentProcessingIndex(nextIndex);
         await processNextItem(processingQueue, nextIndex);
@@ -778,7 +809,7 @@ const OrderSummary = () => {
     }
 
     setSubmitting(true);
-    
+
     const requestData = {
       orderId: selectedOrder.id,
       productId: selectedOrder.items?.[0]?.productId,
@@ -790,7 +821,7 @@ const OrderSummary = () => {
       requestType: "cancel",
       images: []
     };
-    
+
     const result = await createReturnRequest(requestData);
     setSubmitting(false);
 
@@ -809,6 +840,9 @@ const OrderSummary = () => {
     setReturnDescription('');
     setUploadedImages([]);
     setImageFiles([]);
+    setUnboxingVideo(null);
+    setUnboxingVideoUrl('');
+    setUnboxingVideoBase64('');
     setRefundMethod('original');
     setSelectedUpiId('');
     setSelectedBankDetails({
@@ -854,7 +888,7 @@ const OrderSummary = () => {
 
   const getStatusColor = (status: string) => {
     const statusLower = status?.toLowerCase() || '';
-    switch(statusLower) {
+    switch (statusLower) {
       case 'confirmed':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'processing':
@@ -876,7 +910,7 @@ const OrderSummary = () => {
 
   const getStatusIcon = (status: string) => {
     const statusLower = status?.toLowerCase() || '';
-    switch(statusLower) {
+    switch (statusLower) {
       case 'confirmed':
         return <CheckCircle className="w-4 h-4" />;
       case 'processing':
@@ -900,7 +934,7 @@ const OrderSummary = () => {
     const colorClass = getStatusColor(status);
     const icon = getStatusIcon(status);
     const displayStatus = status || 'Confirmed';
-    
+
     return (
       <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${colorClass}`}>
         {icon}
@@ -912,14 +946,14 @@ const OrderSummary = () => {
   const RequestStatusBadgeComponent = ({ request }: { request: ReturnRequestInfo }) => {
     const statusClass = getRequestStatusBadge(request.status);
     const statusLabel = getRequestStatusLabel(request.status);
-    
+
     let icon = null;
     if (request.status === 'pending') icon = <Clock className="w-3 h-3" />;
     else if (request.status === 'approved') icon = <CheckCircle className="w-3 h-3" />;
     else if (request.status === 'rejected') icon = <XCircle className="w-3 h-3" />;
     else if (request.status === 'return_received') icon = <Truck className="w-3 h-3" />;
     else if (request.status === 'exchange_shipped') icon = <Truck className="w-3 h-3" />;
-    
+
     return (
       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusClass}`}>
         {icon}
@@ -959,15 +993,40 @@ const OrderSummary = () => {
     return 'Loading...';
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a valid video file (MP4, MOV, WEBM)');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Video file must be under 100MB');
+      return;
+    }
+    setUnboxingVideo(file);
+    setUnboxingVideoUrl(URL.createObjectURL(file));
+
+    // Convert video to Base64 string for upload
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setUnboxingVideoBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    toast.success('Unboxing video uploaded successfully');
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + imageFiles.length > 5) {
       toast.error('Maximum 5 images allowed');
       return;
     }
-    
+
     setImageFiles([...imageFiles, ...files]);
-    
+
     const newImages: string[] = [];
     for (const file of files) {
       const base64 = await new Promise<string>((resolve) => {
@@ -988,7 +1047,7 @@ const OrderSummary = () => {
 
   const handleMultiItemSelect = (item: any, action: 'return' | 'exchange' | 'none') => {
     const existingIndex = selectedItems.findIndex(i => i.productId === item.productId);
-    
+
     if (existingIndex >= 0) {
       const updated = [...selectedItems];
       if (action === 'none') {
@@ -1015,7 +1074,7 @@ const OrderSummary = () => {
       toast.error('Please select at least one product for return or exchange');
       return;
     }
-    
+
     setProcessingQueue(selectedForAction);
     setCurrentProcessingIndex(0);
     processNextItem(selectedForAction, 0);
@@ -1032,10 +1091,10 @@ const OrderSummary = () => {
       toast.success('All requests submitted successfully!');
       return;
     }
-    
+
     const item = queue[index];
     setCurrentProcessingItem(item);
-    
+
     if (item.actionType === 'return') {
       setSelectedProduct({
         productId: item.productId,
@@ -1082,7 +1141,7 @@ const OrderSummary = () => {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       const data = await allProductsResponse.json();
-      
+
       let allProducts = [];
       if (Array.isArray(data)) {
         allProducts = data;
@@ -1091,7 +1150,7 @@ const OrderSummary = () => {
       } else {
         allProducts = [];
       }
-      
+
       let products = allProducts.filter((p: any) => {
         if (!p || !p._id) return false;
         if (p._id === currentProcessingItem?.productId) return false;
@@ -1099,13 +1158,13 @@ const OrderSummary = () => {
         if (p.status && p.status !== 'Published') return false;
         return true;
       });
-      
+
       if (searchProduct && searchProduct.trim()) {
-        products = products.filter((p: any) => 
+        products = products.filter((p: any) =>
           p.name && p.name.toLowerCase().includes(searchProduct.toLowerCase())
         );
       }
-      
+
       setAvailableProducts(products.map((p: any) => ({
         id: p._id,
         name: p.name || 'Product',
@@ -1163,7 +1222,7 @@ const OrderSummary = () => {
 
         <div className="container mx-auto px-4 lg:px-8 py-16">
           <div className="max-w-4xl mx-auto">
-            
+
             {/* Customer ID Card */}
             <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1182,8 +1241,8 @@ const OrderSummary = () => {
                           onClick={() => copyToClipboard(getCustomerId(), 'customer-id')}
                           className="p-1 hover:bg-primary/10 rounded transition-colors"
                         >
-                          {copiedId === 'customer-id' ? 
-                            <Check className="w-4 h-4 text-green-500" /> : 
+                          {copiedId === 'customer-id' ?
+                            <Check className="w-4 h-4 text-green-500" /> :
                             <Copy className="w-4 h-4 text-muted-foreground" />
                           }
                         </button>
@@ -1209,7 +1268,15 @@ const OrderSummary = () => {
                   const hasExchangeRequest = existingRequest?.requestType === 'exchange';
                   const isRequestApproved = existingRequest?.status === 'approved';
                   const isRequestRejected = existingRequest?.status === 'rejected';
-                  
+
+                  // 7-day return/exchange window from delivery date
+                  const deliveredAt = order.deliveredAt || order.updatedAt || order.date;
+                  const daysSinceDelivery = deliveredAt
+                    ? Math.floor((Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  const isWithin7Days = order.status === 'Delivered' && (daysSinceDelivery !== null ? daysSinceDelivery <= 7 : true);
+                  const isReturnExchangeExpired = order.status === 'Delivered' && daysSinceDelivery !== null && daysSinceDelivery > 7;
+
                   return (
                     <motion.div
                       key={order.id}
@@ -1229,8 +1296,8 @@ const OrderSummary = () => {
                               onClick={() => copyToClipboard(getDisplayOrderId(order), `order-${order.id}`)}
                               className="p-1 hover:bg-primary/10 rounded transition-colors"
                             >
-                              {copiedId === `order-${order.id}` ? 
-                                <Check className="w-4 h-4 text-green-500" /> : 
+                              {copiedId === `order-${order.id}` ?
+                                <Check className="w-4 h-4 text-green-500" /> :
                                 <Copy className="w-4 h-4 text-muted-foreground" />
                               }
                             </button>
@@ -1252,130 +1319,225 @@ const OrderSummary = () => {
 
                       {/* Request Status Badge */}
                       {existingRequest && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-primary" />
-                              <span className="text-sm font-medium">
-                                {existingRequest.requestType === 'cancel' && 'Cancellation Request'}
-                                {existingRequest.requestType === 'return' && 'Return Request'}
-                                {existingRequest.requestType === 'exchange' && 'Exchange Request'}
-                              </span>
-                              <RequestStatusBadgeComponent request={existingRequest} />
+                        <div className={`mb-4 rounded-lg border overflow-hidden ${existingRequest.status === 'rejected'
+                          ? 'border-red-200'
+                          : existingRequest.status === 'approved'
+                            ? 'border-green-200'
+                            : 'border-gray-200'
+                          }`}>
+                          <div className="p-3 bg-gray-50">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                <span className="text-sm font-medium">
+                                  {existingRequest.requestType === 'cancel' && 'Cancellation Request'}
+                                  {existingRequest.requestType === 'return' && 'Return Request'}
+                                  {existingRequest.requestType === 'exchange' && 'Exchange Request'}
+                                </span>
+                                <RequestStatusBadgeComponent request={existingRequest} />
+                              </div>
+                              {existingRequest.exchangeDetails?.exchangeShippingTracking && (
+                                <Link
+                                  to="/track-order"
+                                  state={{ trackingId: existingRequest.exchangeDetails.exchangeShippingTracking }}
+                                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                                >
+                                  <Truck className="w-3 h-3" />
+                                  Track Exchange →
+                                </Link>
+                              )}
+                              {existingRequest.exchangeDetails?.returnShippingTracking && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Truck className="w-3 h-3" />
+                                  Return Tracking: {existingRequest.exchangeDetails.returnShippingTracking}
+                                </span>
+                              )}
                             </div>
-                            {existingRequest.exchangeDetails?.exchangeShippingTracking && (
-                              <Link 
-                                to="/track-order" 
-                                state={{ trackingId: existingRequest.exchangeDetails.exchangeShippingTracking }}
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                <Truck className="w-3 h-3" />
-                                Track Exchange →
-                              </Link>
-                            )}
-                            {existingRequest.exchangeDetails?.returnShippingTracking && (
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Truck className="w-3 h-3" />
-                                Return Tracking: {existingRequest.exchangeDetails.returnShippingTracking}
-                              </span>
-                            )}
                           </div>
+                          {/* Rejection banner */}
+                          {existingRequest.status === 'rejected' && (
+                            <div className="bg-red-50 border-t border-red-200 px-3 py-2 flex items-start gap-2">
+                              <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-xs font-semibold text-red-700">
+                                  Your {existingRequest.requestType} request has been rejected by admin.
+                                </p>
+                                {existingRequest.adminNote && (
+                                  <p className="text-xs text-red-600 mt-0.5">Reason: {existingRequest.adminNote}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {/* Approval banner */}
+                          {existingRequest.status === 'approved' && existingRequest.requestType !== 'cancel' && (
+                            <div className="bg-green-50 border-t border-green-200 px-3 py-2 flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                              <div>
+                                <p className="text-xs font-semibold text-green-700">
+                                  Your {existingRequest.requestType} request has been approved! Please ship the product back.
+                                </p>
+                                {existingRequest.adminNote && (
+                                  <p className="text-xs text-green-600 mt-0.5">{existingRequest.adminNote}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                    {/* ========== ORDER ITEMS DISPLAY - FINAL WORKING VERSION ========== */}
-{/* ========== ORDER ITEMS DISPLAY - UPDATED WITH FREE SIZE ========== */}
-<div className="space-y-3 mb-4">
-  {order.items && order.items.length > 0 ? (
-    order.items.map((item, idx) => {
-      // ✅ Size from backend - show Free Size if no size
-      const productSize = item.size || item.selectedSize || '';
-      const displaySize = (!productSize || productSize === '') ? 'Free Size' : productSize;
-      
-      // ✅ Image - Priority order
-      let productImage = '';
-      
-      if (productImagesMap && productImagesMap[item.productId]) {
-        productImage = productImagesMap[item.productId];
-      }
-      else if (item.productImage && item.productImage !== '') {
-        productImage = item.productImage;
-      }
-      else if (item.image && item.image !== '') {
-        productImage = item.image;
-      }
-      else {
-        productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.productName || item.name || 'P').substring(0, 1))}`;
-      }
-      
-      const productName = item.productName || item.name || 'Product';
-      const productPrice = item.price || 0;
-      const productQuantity = item.quantity || 1;
-      const isLoading = !imagesFetched && !productImagesMap[item.productId];
-      
-      return (
-        <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-          {/* Product Image */}
-          <div className="w-16 h-16 flex-shrink-0">
-            {isLoading ? (
-              <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-              </div>
-            ) : (
-              <img 
-                src={productImage}
-                alt={productName}
-                className="w-full h-full object-cover rounded-lg border border-gray-200"
-                onError={(e) => {
-                  e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent(productName.substring(0, 1))}`;
-                }}
-              />
-            )}
-          </div>
-          
-          {/* Product Details */}
-          <div className="flex-1">
-            <p className="text-foreground text-sm font-medium">{productName}</p>
-            
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
-              
-              {/* ✅ SIZE BADGE - Always show Free Size if no size */}
-              <span className="inline-flex items-center gap-1 text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary font-medium">
-                {displaySize === 'Free Size' ? ' Free Size' : `Size: ${displaySize}`}
-              </span>
-              
-              {item.productSku && (
-                <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
-              )}
-            </div>
-            
-            <p className="text-muted-foreground text-[11px] mt-1">
-              {formatPrice(productPrice)} each
-            </p>
-          </div>
-          
-          {/* Total Price */}
-          <div className="text-right">
-            <span className="text-primary text-sm font-semibold">
-              {formatPrice(productPrice * productQuantity)}
-            </span>
-          </div>
-        </div>
-      );
-    })
-  ) : (
-    <div className="flex items-center justify-center py-8">
-      <p className="text-muted-foreground text-sm">No items found</p>
-    </div>
-  )}
-</div>
+                      {/* ========== ORDER ITEMS DISPLAY - FINAL WORKING VERSION ========== */}
+                      {/* ========== ORDER ITEMS DISPLAY - UPDATED WITH FREE SIZE ========== */}
+                      <div className="space-y-3 mb-4">
+                        {order.items && order.items.length > 0 ? (
+                          order.items.map((item, idx) => {
+                            // ✅ Size from backend - show Free Size if no size
+                            const productSize = item.size || item.selectedSize || '';
+                            const displaySize = (!productSize || productSize === '') ? 'Free Size' : productSize;
 
-                      {order.estimatedDelivery && order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                        <div className="mb-4 p-3 bg-primary/5 rounded-sm">
-                          <p className="text-sm text-muted-foreground">
-                            Estimated Delivery: <span className="text-foreground font-medium">{order.estimatedDelivery}</span>
-                          </p>
+                            // ✅ Image - Priority order
+                            let productImage = '';
+
+                            if (productImagesMap && productImagesMap[item.productId]) {
+                              productImage = productImagesMap[item.productId];
+                            }
+                            else if (item.productImage && item.productImage !== '') {
+                              productImage = item.productImage;
+                            }
+                            else if (item.image && item.image !== '') {
+                              productImage = item.image;
+                            }
+                            else {
+                              productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.productName || item.name || 'P').substring(0, 1))}`;
+                            }
+
+                            const productName = item.productName || item.name || 'Product';
+                            const productPrice = item.price || 0;
+                            const productQuantity = item.quantity || 1;
+                            const isLoading = !imagesFetched && !productImagesMap[item.productId];
+                            // Proportional shipping per item
+                            const totalQty = order.items.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
+                            const itemShippingShare = ((productQuantity / (totalQty || 1)) * (order.shippingCharge || 1200));
+                            const itemGst = productPrice * productQuantity * (item.gstPercent || 3) / 100;
+                            const itemTotalWithAll = productPrice * productQuantity + itemGst + itemShippingShare;
+
+                            return (
+                              <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                {/* Product Image */}
+                                <div className="w-16 h-16 flex-shrink-0">
+                                  {isLoading ? (
+                                    <div className="w-full h-full bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                                    </div>
+                                  ) : (
+                                    <img
+                                      src={productImage}
+                                      alt={productName}
+                                      className="w-full h-full object-cover rounded-lg border border-gray-200"
+                                      onError={(e) => {
+                                        e.currentTarget.src = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent(productName.substring(0, 1))}`;
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Product Details */}
+                                <div className="flex-1">
+                                  <p className="text-foreground text-sm font-medium">{productName}</p>
+
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
+
+                                    {/* ✅ RING OPTION BADGE */}
+                                    {item.ringOption && (
+                                      <span className="inline-flex items-center gap-1 text-xs bg-primary/10 px-2.5 py-0.5 rounded-full text-primary font-semibold border border-primary/20">
+                                        Ring: {item.ringOption}
+                                      </span>
+                                    )}
+
+                                    {/* ✅ SIZE BADGE - Always show Free Size if no size */}
+                                    <span className="inline-flex items-center gap-1 text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary font-medium">
+                                      {displaySize === 'Free Size' ? ' Free Size' : `Size: ${displaySize}`}
+                                    </span>
+
+                                    {/* ✅ METAL BADGE */}
+                                    {(() => {
+                                      const metal = item.material || (item as any).metal || (item as any).selectedMaterial || 'Gold';
+                                      const isRose = metal.toLowerCase().includes('rose');
+                                      return (
+                                        <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium border ${isRose
+                                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                                          }`}>
+                                          <span className={`w-1.5 h-1.5 rounded-full ${isRose ? 'bg-rose-500' : 'bg-amber-500'
+                                            }`} />
+                                          Metal: {metal}
+                                        </span>
+                                      );
+                                    })()}
+
+                                    {item.productSku && (
+                                      <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
+                                    )}
+                                  </div>
+
+                                  <p className="text-muted-foreground text-[11px] mt-1">
+                                    {formatPrice(productPrice)} each
+                                  </p>
+                                </div>
+
+                                {/* Total Price */}
+                                <div className="text-right">
+                                  <span className="text-primary text-sm font-semibold">
+                                    {formatPrice(itemTotalWithAll)}
+                                  </span>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">incl. GST + shipping</p>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="flex items-center justify-center py-8">
+                            <p className="text-muted-foreground text-sm">No items found</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ========== PRICE BREAKDOWN ========== */}
+                      <details className="mb-4 pt-3 border-t border-border/30 group">
+                        <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-medium text-foreground py-2 outline-none">
+                          <span className="font-semibold">Price Breakdown</span>
+                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                        </summary>
+                        <div className="mt-2 space-y-2 pb-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Product Subtotal (Excl. GST)</span>
+                            <span className="font-medium">{formatPrice(order.subtotal || order.totalExclGst || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">GST Tax (Added)</span>
+                            <span className="font-medium">{formatPrice(order.tax || order.gstAmount || 0)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Shipping Charge</span>
+                            <span className="font-medium">{formatPrice(order.shippingCharge || 1200)}</span>
+                          </div>
+                          <div className="flex justify-between items-center font-semibold pt-2 border-t border-border/30">
+                            <span className="text-foreground">Final Payable Amount</span>
+                            <span className="text-primary text-lg">{formatPrice(order.total)}</span>
+                          </div>
+                        </div>
+                      </details>
+
+
+                      {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
+                        <div className="mb-4 p-3 bg-primary/5 rounded-sm flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-primary flex-shrink-0" />
+                            <p className="text-sm text-muted-foreground">
+                              Estimated Delivery: <span className="text-foreground font-medium">{order.estimatedDelivery || "12–15 days from the date of order."}</span>
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground font-medium">(Products are prepared after receiving the order)</span>
                         </div>
                       )}
 
@@ -1394,8 +1556,8 @@ const OrderSummary = () => {
                                     onClick={() => copyToClipboard(order.trackingNumber, `tracking-${order.id}`)}
                                     className="p-1 hover:bg-primary/20 rounded transition-colors"
                                   >
-                                    {copiedId === `tracking-${order.id}` ? 
-                                      <Check className="w-3 h-3 text-green-500" /> : 
+                                    {copiedId === `tracking-${order.id}` ?
+                                      <Check className="w-3 h-3 text-green-500" /> :
                                       <Copy className="w-3 h-3 text-primary" />
                                     }
                                   </button>
@@ -1415,7 +1577,7 @@ const OrderSummary = () => {
                       )}
 
                       {/* Action Buttons */}
-                      <div className="flex gap-3 mt-4 pt-3 border-t">
+                      <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t">
                         {(order.status === 'Confirmed' || order.status === 'Pending Payment') && !isCancelled && !hasPendingRequest && !hasReturnRequest && !hasExchangeRequest && (
                           <Button
                             variant="outline"
@@ -1430,106 +1592,115 @@ const OrderSummary = () => {
                             Cancel Order
                           </Button>
                         )}
-                        
+
                         {order.status === 'Delivered' && !hasPendingRequest && !hasReturnRequest && !hasExchangeRequest && (
                           <>
-                            {order.items && order.items.length === 1 ? (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-orange-500 border-orange-500 hover:bg-orange-50"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setSelectedProduct(order.items[0]);
-                                    setOriginalProductImage(order.items[0].productImage || order.items[0].image);
-                                    setRequestType('return');
-                                    setCurrentProcessingItem({
-                                      productId: order.items[0].productId,
-                                      productName: order.items[0].name,
-                                      productImage: order.items[0].productImage || order.items[0].image,
-                                      quantity: order.items[0].quantity,
-                                      price: order.items[0].price,
-                                      actionType: 'return'
-                                    });
-                                    setProcessingQueue([]);
-                                    setShowReturnModal(true);
-                                  }}
-                                >
-                                  <RefreshCw className="w-3 h-3 mr-1" />
-                                  Return
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-blue-500 border-blue-500 hover:bg-blue-50"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setSelectedProduct(order.items[0]);
-                                    setOriginalProductImage(order.items[0].productImage || order.items[0].image);
-                                    setRequestType('exchange');
-                                    setCurrentProcessingItem({
-                                      productId: order.items[0].productId,
-                                      productName: order.items[0].name,
-                                      productImage: order.items[0].productImage || order.items[0].image,
-                                      quantity: order.items[0].quantity,
-                                      price: order.items[0].price,
-                                      actionType: 'exchange'
-                                    });
-                                    setProcessingQueue([]);
-                                    setShowReturnModal(true);
-                                  }}
-                                >
-                                  <RefreshCw className="w-3 h-3 mr-1" />
-                                  Exchange
-                                </Button>
-                              </>
+                            {isReturnExchangeExpired ? (
+                              <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md flex items-center gap-2 w-full">
+                                <XCircle className="w-4 h-4 flex-shrink-0" />
+                                Return/Exchange window has expired. Requests must be raised within 7 days of delivery.
+                              </div>
                             ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-purple-500 border-purple-500 hover:bg-purple-50"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setSelectedItems(order.items.map((item: any) => ({
-                                    productId: item.productId,
-                                    productName: item.name,
-                                    productImage: item.productImage || item.image,
-                                    quantity: item.quantity,
-                                    price: item.price,
-                                    actionType: 'none'
-                                  })));
-                                  setShowMultiItemModal(true);
-                                }}
-                              >
-                                <Package className="w-3 h-3 mr-1" />
-                                Return / Exchange Items
-                              </Button>
+                              <>
+                                {order.items && order.items.length === 1 ? (
+                                  <>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-orange-500 border-orange-500 hover:bg-orange-50"
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setSelectedProduct(order.items[0]);
+                                        setOriginalProductImage(order.items[0].productImage || order.items[0].image);
+                                        setRequestType('return');
+                                        setCurrentProcessingItem({
+                                          productId: order.items[0].productId,
+                                          productName: order.items[0].name,
+                                          productImage: order.items[0].productImage || order.items[0].image,
+                                          quantity: order.items[0].quantity,
+                                          price: order.items[0].price,
+                                          actionType: 'return'
+                                        });
+                                        setProcessingQueue([]);
+                                        setShowReturnModal(true);
+                                      }}
+                                    >
+                                      <RefreshCw className="w-3 h-3 mr-1" />
+                                      Return
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-blue-500 border-blue-500 hover:bg-blue-50"
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setSelectedProduct(order.items[0]);
+                                        setOriginalProductImage(order.items[0].productImage || order.items[0].image);
+                                        setRequestType('exchange');
+                                        setCurrentProcessingItem({
+                                          productId: order.items[0].productId,
+                                          productName: order.items[0].name,
+                                          productImage: order.items[0].productImage || order.items[0].image,
+                                          quantity: order.items[0].quantity,
+                                          price: order.items[0].price,
+                                          actionType: 'exchange'
+                                        });
+                                        setProcessingQueue([]);
+                                        setShowReturnModal(true);
+                                      }}
+                                    >
+                                      <RefreshCw className="w-3 h-3 mr-1" />
+                                      Exchange
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-purple-500 border-purple-500 hover:bg-purple-50"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setSelectedItems(order.items.map((item: any) => ({
+                                        productId: item.productId,
+                                        productName: item.name,
+                                        productImage: item.productImage || item.image,
+                                        quantity: item.quantity,
+                                        price: item.price,
+                                        actionType: 'none'
+                                      })));
+                                      setShowMultiItemModal(true);
+                                    }}
+                                  >
+                                    <Package className="w-3 h-3 mr-1" />
+                                    Return / Exchange Items
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </>
                         )}
-                        
+
                         {hasPendingRequest && (
                           <div className="text-sm text-yellow-600 bg-yellow-50 px-3 py-2 rounded-md flex items-center gap-2">
                             <Clock className="w-4 h-4" />
                             Your {existingRequest?.requestType} request is pending review
                           </div>
                         )}
-                        
+
                         {hasReturnRequest && existingRequest?.status === 'approved' && (
                           <div className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2">
                             <CheckCircle className="w-4 h-4" />
                             Return request approved. Pickup will be scheduled soon.
                           </div>
                         )}
-                        
+
                         {hasExchangeRequest && existingRequest?.status === 'approved' && (
                           <div className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md flex items-center gap-2">
                             <RefreshCw className="w-4 h-4" />
                             Exchange request approved. Please return your product.
                           </div>
                         )}
-                        
+
                         {isCancelled && (
                           <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md flex items-center gap-2">
                             <XCircle className="w-4 h-4" />
@@ -1537,6 +1708,7 @@ const OrderSummary = () => {
                           </div>
                         )}
                       </div>
+
                     </motion.div>
                   );
                 })}
@@ -1599,9 +1771,9 @@ const OrderSummary = () => {
               return (
                 <div key={idx} className="border rounded-lg p-4">
                   <div className="flex gap-4">
-                    <img 
-                      src={itemImage} 
-                      alt={item.name} 
+                    <img
+                      src={itemImage}
+                      alt={item.name}
                       className="w-16 h-16 object-cover rounded"
                       onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
                     />
@@ -1663,9 +1835,9 @@ const OrderSummary = () => {
             {/* Product Info */}
             {(currentProcessingItem || selectedProduct) && (
               <div className="flex gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <img 
-                  src={currentProcessingItem?.productImage || selectedProduct?.image || originalProductImage || 'https://placehold.co/200x200?text=Product'} 
-                  alt={currentProcessingItem?.productName || selectedProduct?.name || 'Original Product'} 
+                <img
+                  src={currentProcessingItem?.productImage || selectedProduct?.image || originalProductImage || 'https://placehold.co/200x200?text=Product'}
+                  alt={currentProcessingItem?.productName || selectedProduct?.name || 'Original Product'}
                   className="w-16 h-16 object-cover rounded"
                   onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
                 />
@@ -1676,13 +1848,13 @@ const OrderSummary = () => {
                 </div>
               </div>
             )}
-            
+
             {/* Selected Exchange Product */}
             {selectedExchangeProduct && (
               <div className="flex gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                <img 
-                  src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'} 
-                  alt={selectedExchangeProduct.name} 
+                <img
+                  src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
+                  alt={selectedExchangeProduct.name}
                   className="w-16 h-16 object-cover rounded"
                   onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
                 />
@@ -1705,14 +1877,14 @@ const OrderSummary = () => {
                 </Button>
               </div>
             )}
-            
+
             {/* Progress indicator */}
             {processingQueue.length > 0 && (
               <div className="text-center text-sm text-muted-foreground">
                 Item {currentProcessingIndex + 1} of {processingQueue.length}
               </div>
             )}
-            
+
             {/* Reason */}
             <div>
               <Label>Reason for {requestType} *</Label>
@@ -1727,7 +1899,7 @@ const OrderSummary = () => {
                 ))}
               </select>
             </div>
-            
+
             {/* Description */}
             <div>
               <Label>Additional Details (Optional)</Label>
@@ -1739,7 +1911,60 @@ const OrderSummary = () => {
                 className="mt-1"
               />
             </div>
-            
+
+            {/* Mandatory Unboxing Video Alert */}
+            <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-lg text-amber-900 text-sm space-y-1">
+              <div className="flex items-center gap-2 font-bold text-amber-800">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                <span>Important Condition</span>
+              </div>
+              <p className="text-xs font-medium text-amber-900 leading-relaxed">
+                <strong>Important:</strong> A complete box-opening / unboxing video is mandatory to be eligible for a return or exchange. The video should clearly show the sealed package being opened and the product inside. Requests without an unboxing video will not be accepted.
+              </p>
+            </div>
+
+            {/* Video Upload Field (Required) */}
+            <div>
+              <Label className="flex items-center gap-1 font-semibold text-red-600">
+                Upload Unboxing Video * <span className="text-xs text-muted-foreground font-normal">(MP4, MOV, WEBM - Required)</span>
+              </Label>
+              <div className="mt-1 border-2 border-dashed border-red-300 rounded-lg p-4 text-center bg-red-50/30 hover:border-red-500 transition-colors">
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                  id="video-upload-return"
+                />
+                <label htmlFor="video-upload-return" className="cursor-pointer flex flex-col items-center gap-2">
+                  <Upload className="w-8 h-8 text-red-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {unboxingVideo ? unboxingVideo.name : 'Click to upload unboxing video (MP4, MOV, WEBM)'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Mandatory for return & exchange verification</span>
+                </label>
+              </div>
+
+              {unboxingVideoUrl && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between text-xs text-green-800">
+                  <div className="flex items-center gap-2 truncate">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="truncate font-medium">{unboxingVideo?.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnboxingVideo(null);
+                      setUnboxingVideoUrl('');
+                    }}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Image Upload */}
             <div>
               <Label>Upload Proof Images *</Label>
@@ -1758,7 +1983,7 @@ const OrderSummary = () => {
                   <span className="text-xs text-gray-400">Max 5 images (JPG, PNG)</span>
                 </label>
               </div>
-              
+
               {uploadedImages.length > 0 && (
                 <div className="flex gap-2 mt-3 flex-wrap">
                   {uploadedImages.map((img, idx) => (
@@ -1775,23 +2000,23 @@ const OrderSummary = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Return Section */}
             {(requestType === 'return' || currentProcessingItem?.actionType === 'return') && (
               <div className="bg-gray-50 rounded-lg p-4">
                 <Label className="text-sm font-semibold block mb-3">Select Refund Method</Label>
-                
+
                 <div className="space-y-3">
                   <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary transition-all">
-                    <input 
-                      type="radio" 
-                      name="refundOption" 
-                      checked={refundMethod === 'original'} 
-                      onChange={() => { 
-                        setRefundMethod('original'); 
-                        setShowNewRefundForm(false); 
-                      }} 
-                      className="w-4 h-4 text-primary" 
+                    <input
+                      type="radio"
+                      name="refundOption"
+                      checked={refundMethod === 'original'}
+                      onChange={() => {
+                        setRefundMethod('original');
+                        setShowNewRefundForm(false);
+                      }}
+                      className="w-4 h-4 text-primary"
                     />
                     <div className="flex-1">
                       <p className="font-medium text-sm">Original Payment Method</p>
@@ -1799,24 +2024,24 @@ const OrderSummary = () => {
                     </div>
                     <CreditCard className="w-5 h-5 text-gray-400" />
                   </label>
-                  
+
                   {(() => {
                     const storedUser = localStorage.getItem('user');
                     const userData = storedUser ? JSON.parse(storedUser) : null;
                     const bankDetails = userData?.bankDetails || {};
-                    
+
                     return bankDetails.upiId ? (
                       <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary transition-all">
-                        <input 
-                          type="radio" 
-                          name="refundOption" 
-                          checked={refundMethod === 'saved-upi'} 
-                          onChange={() => { 
-                            setRefundMethod('saved-upi'); 
-                            setSelectedUpiId(bankDetails.upiId); 
-                            setShowNewRefundForm(false); 
-                          }} 
-                          className="w-4 h-4 text-primary" 
+                        <input
+                          type="radio"
+                          name="refundOption"
+                          checked={refundMethod === 'saved-upi'}
+                          onChange={() => {
+                            setRefundMethod('saved-upi');
+                            setSelectedUpiId(bankDetails.upiId);
+                            setShowNewRefundForm(false);
+                          }}
+                          className="w-4 h-4 text-primary"
                         />
                         <div className="flex-1">
                           <p className="font-medium text-sm">Saved UPI ID</p>
@@ -1827,29 +2052,29 @@ const OrderSummary = () => {
                       </label>
                     ) : null;
                   })()}
-                  
+
                   {(() => {
                     const storedUser = localStorage.getItem('user');
                     const userData = storedUser ? JSON.parse(storedUser) : null;
                     const bankDetails = userData?.bankDetails || {};
-                    
+
                     return bankDetails.accountNumber ? (
                       <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary transition-all">
-                        <input 
-                          type="radio" 
-                          name="refundOption" 
-                          checked={refundMethod === 'saved-bank'} 
-                          onChange={() => { 
-                            setRefundMethod('saved-bank'); 
-                            setSelectedBankDetails({ 
-                              accountHolderName: bankDetails.accountHolderName || '', 
-                              accountNumber: bankDetails.accountNumber, 
-                              bankName: bankDetails.bankName || '', 
-                              ifscCode: bankDetails.ifscCode || '' 
-                            }); 
-                            setShowNewRefundForm(false); 
-                          }} 
-                          className="w-4 h-4 text-primary" 
+                        <input
+                          type="radio"
+                          name="refundOption"
+                          checked={refundMethod === 'saved-bank'}
+                          onChange={() => {
+                            setRefundMethod('saved-bank');
+                            setSelectedBankDetails({
+                              accountHolderName: bankDetails.accountHolderName || '',
+                              accountNumber: bankDetails.accountNumber,
+                              bankName: bankDetails.bankName || '',
+                              ifscCode: bankDetails.ifscCode || ''
+                            });
+                            setShowNewRefundForm(false);
+                          }}
+                          className="w-4 h-4 text-primary"
                         />
                         <div className="flex-1">
                           <p className="font-medium text-sm">Saved Bank Account</p>
@@ -1862,9 +2087,9 @@ const OrderSummary = () => {
                       </label>
                     ) : null;
                   })()}
-                  
+
                   <div className="border-t border-gray-200 my-2"></div>
-                  
+
                   <div>
                     <button
                       type="button"
@@ -1874,7 +2099,7 @@ const OrderSummary = () => {
                       <Plus className="w-4 h-4" />
                       + Add New Refund Method
                     </button>
-                    
+
                     {showNewRefundForm && (
                       <div className="mt-3 ml-6 space-y-3 border-l-2 border-primary/30 pl-4">
                         <div className="space-y-2">
@@ -1897,7 +2122,7 @@ const OrderSummary = () => {
                             />
                           )}
                         </div>
-                        
+
                         <div className="space-y-2">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -1914,26 +2139,26 @@ const OrderSummary = () => {
                               <Input
                                 placeholder="Account Holder Name"
                                 value={newBankDetails.accountHolderName}
-                                onChange={(e) => setNewBankDetails({...newBankDetails, accountHolderName: e.target.value})}
+                                onChange={(e) => setNewBankDetails({ ...newBankDetails, accountHolderName: e.target.value })}
                                 className="text-sm"
                               />
                               <Input
                                 placeholder="Account Number"
                                 value={newBankDetails.accountNumber}
-                                onChange={(e) => setNewBankDetails({...newBankDetails, accountNumber: e.target.value})}
+                                onChange={(e) => setNewBankDetails({ ...newBankDetails, accountNumber: e.target.value })}
                                 className="text-sm"
                               />
                               <div className="grid grid-cols-2 gap-2">
                                 <Input
                                   placeholder="Bank Name"
                                   value={newBankDetails.bankName}
-                                  onChange={(e) => setNewBankDetails({...newBankDetails, bankName: e.target.value})}
+                                  onChange={(e) => setNewBankDetails({ ...newBankDetails, bankName: e.target.value })}
                                   className="text-sm"
                                 />
                                 <Input
                                   placeholder="IFSC Code"
                                   value={newBankDetails.ifscCode}
-                                  onChange={(e) => setNewBankDetails({...newBankDetails, ifscCode: e.target.value})}
+                                  onChange={(e) => setNewBankDetails({ ...newBankDetails, ifscCode: e.target.value })}
                                   className="text-sm uppercase"
                                 />
                               </div>
@@ -1943,25 +2168,25 @@ const OrderSummary = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
                     <p>ℹ️ Refund will be processed within 5-7 business days after return pickup and quality check.</p>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {/* Exchange Section */}
             {(requestType === 'exchange' || currentProcessingItem?.actionType === 'exchange') && (
               <div className="bg-blue-50 rounded-lg p-4">
                 <Label className="text-sm font-semibold block mb-3">Select Product to Exchange</Label>
-                
+
                 {selectedExchangeProduct ? (
                   <div className="bg-green-100 rounded-lg p-3 mb-3 border border-green-300">
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'} 
-                        alt={selectedExchangeProduct.name} 
+                      <img
+                        src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
+                        alt={selectedExchangeProduct.name}
                         className="w-20 h-20 object-cover rounded-lg"
                         onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
                       />
@@ -1984,14 +2209,14 @@ const OrderSummary = () => {
                         Change
                       </Button>
                     </div>
-                    
+
                     {priceDifference !== 0 && (
                       <div className={`mt-3 pt-3 border-t ${priceDifference > 0 ? 'border-orange-200' : 'border-green-200'}`}>
                         <div className="flex justify-between items-center mb-3">
                           <div>
                             <p className="text-sm font-medium">Price Difference</p>
                             <p className="text-xs text-gray-600">
-                              Original: ₹{(currentProcessingItem?.price || selectedProduct?.price || 0).toLocaleString()} → 
+                              Original: ₹{(currentProcessingItem?.price || selectedProduct?.price || 0).toLocaleString()} →
                               Exchange: ₹{selectedExchangeProduct.price.toLocaleString()}
                             </p>
                           </div>
@@ -1999,23 +2224,23 @@ const OrderSummary = () => {
                             {priceDifference > 0 ? `+${formatPrice(priceDifference)}` : formatPrice(priceDifference)}
                           </p>
                         </div>
-                        
+
                         <div className="mt-3">
                           <Label className="text-sm font-semibold block mb-2">
                             {priceDifference > 0 ? 'Pay Extra Amount via' : 'Receive Refund via'}
                           </Label>
-                          
+
                           <div className="space-y-2">
                             <label className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-white transition-colors">
-                              <input 
-                                type="radio" 
-                                name="diffPaymentMethod" 
-                                checked={differencePaymentMethod === 'original'} 
+                              <input
+                                type="radio"
+                                name="diffPaymentMethod"
+                                checked={differencePaymentMethod === 'original'}
                                 onChange={() => {
                                   setDifferencePaymentMethod('original');
                                   setShowNewDifferenceForm(false);
-                                }} 
-                                className="w-4 h-4 text-primary" 
+                                }}
+                                className="w-4 h-4 text-primary"
                               />
                               <div className="flex-1">
                                 <p className="text-sm font-medium">Original Payment Method</p>
@@ -2025,23 +2250,23 @@ const OrderSummary = () => {
                               </div>
                               <CreditCard className="w-5 h-5 text-gray-400" />
                             </label>
-                            
+
                             {(() => {
                               const storedUser = localStorage.getItem('user');
                               const userData = storedUser ? JSON.parse(storedUser) : null;
                               const bankDetails = userData?.bankDetails || {};
-                              
+
                               return bankDetails.upiId ? (
                                 <label className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-white transition-colors">
-                                  <input 
-                                    type="radio" 
-                                    name="diffPaymentMethod" 
-                                    checked={differencePaymentMethod === 'saved-upi'} 
+                                  <input
+                                    type="radio"
+                                    name="diffPaymentMethod"
+                                    checked={differencePaymentMethod === 'saved-upi'}
                                     onChange={() => {
                                       setDifferencePaymentMethod('saved-upi');
                                       setShowNewDifferenceForm(false);
-                                    }} 
-                                    className="w-4 h-4 text-primary" 
+                                    }}
+                                    className="w-4 h-4 text-primary"
                                   />
                                   <div className="flex-1">
                                     <p className="text-sm font-medium">Saved UPI ID</p>
@@ -2051,23 +2276,23 @@ const OrderSummary = () => {
                                 </label>
                               ) : null;
                             })()}
-                            
+
                             {(() => {
                               const storedUser = localStorage.getItem('user');
                               const userData = storedUser ? JSON.parse(storedUser) : null;
                               const bankDetails = userData?.bankDetails || {};
-                              
+
                               return bankDetails.accountNumber ? (
                                 <label className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-white transition-colors">
-                                  <input 
-                                    type="radio" 
-                                    name="diffPaymentMethod" 
-                                    checked={differencePaymentMethod === 'saved-bank'} 
+                                  <input
+                                    type="radio"
+                                    name="diffPaymentMethod"
+                                    checked={differencePaymentMethod === 'saved-bank'}
                                     onChange={() => {
                                       setDifferencePaymentMethod('saved-bank');
                                       setShowNewDifferenceForm(false);
-                                    }} 
-                                    className="w-4 h-4 text-primary" 
+                                    }}
+                                    className="w-4 h-4 text-primary"
                                   />
                                   <div className="flex-1">
                                     <p className="text-sm font-medium">Saved Bank Account</p>
@@ -2079,7 +2304,7 @@ const OrderSummary = () => {
                                 </label>
                               ) : null;
                             })()}
-                            
+
                             <div>
                               <button
                                 type="button"
@@ -2089,7 +2314,7 @@ const OrderSummary = () => {
                                 <Plus className="w-4 h-4" />
                                 + Add New {priceDifference > 0 ? 'Payment' : 'Refund'} Method
                               </button>
-                              
+
                               {showNewDifferenceForm && (
                                 <div className="mt-2 ml-6 space-y-3 border-l-2 border-primary/30 pl-4">
                                   <div className="space-y-2">
@@ -2112,7 +2337,7 @@ const OrderSummary = () => {
                                       />
                                     )}
                                   </div>
-                                  
+
                                   <div className="space-y-2">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                       <input
@@ -2129,26 +2354,26 @@ const OrderSummary = () => {
                                         <Input
                                           placeholder="Account Holder Name"
                                           value={differenceBankDetails.accountHolderName}
-                                          onChange={(e) => setDifferenceBankDetails({...differenceBankDetails, accountHolderName: e.target.value})}
+                                          onChange={(e) => setDifferenceBankDetails({ ...differenceBankDetails, accountHolderName: e.target.value })}
                                           className="text-sm"
                                         />
                                         <Input
                                           placeholder="Account Number"
                                           value={differenceBankDetails.accountNumber}
-                                          onChange={(e) => setDifferenceBankDetails({...differenceBankDetails, accountNumber: e.target.value})}
+                                          onChange={(e) => setDifferenceBankDetails({ ...differenceBankDetails, accountNumber: e.target.value })}
                                           className="text-sm"
                                         />
                                         <div className="grid grid-cols-2 gap-2">
                                           <Input
                                             placeholder="Bank Name"
                                             value={differenceBankDetails.bankName}
-                                            onChange={(e) => setDifferenceBankDetails({...differenceBankDetails, bankName: e.target.value})}
+                                            onChange={(e) => setDifferenceBankDetails({ ...differenceBankDetails, bankName: e.target.value })}
                                             className="text-sm"
                                           />
                                           <Input
                                             placeholder="IFSC Code"
                                             value={differenceBankDetails.ifscCode}
-                                            onChange={(e) => setDifferenceBankDetails({...differenceBankDetails, ifscCode: e.target.value})}
+                                            onChange={(e) => setDifferenceBankDetails({ ...differenceBankDetails, ifscCode: e.target.value })}
                                             className="text-sm uppercase"
                                           />
                                         </div>
@@ -2159,7 +2384,7 @@ const OrderSummary = () => {
                               )}
                             </div>
                           </div>
-                          
+
                           <div className={`mt-3 p-2 rounded text-xs ${priceDifference > 0 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
                             {priceDifference > 0 ? (
                               <p>⚠️ You will be redirected to payment gateway to pay the extra amount.</p>
@@ -2187,20 +2412,20 @@ const OrderSummary = () => {
                 )}
               </div>
             )}
-            
+
             {/* Terms */}
             <div className="space-y-2">
               <label className="flex items-start gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={acceptedTerms} 
-                  onChange={(e) => setAcceptedTerms(e.target.checked)} 
-                  className="mt-0.5" 
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5"
                 />
                 <span className="text-xs text-gray-600">
                   I agree to the{' '}
-                  <Link 
-                    to="/RefundCancellationPage" 
+                  <Link
+                    to="/RefundCancellationPage"
                     target="_blank"
                     className="text-primary hover:underline font-medium"
                     onClick={(e) => e.stopPropagation()}
@@ -2209,18 +2434,18 @@ const OrderSummary = () => {
                   </Link>
                 </span>
               </label>
-              
+
               <label className="flex items-start gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={acceptedCondition} 
-                  onChange={(e) => setAcceptedCondition(e.target.checked)} 
-                  className="mt-0.5" 
+                <input
+                  type="checkbox"
+                  checked={acceptedCondition}
+                  onChange={(e) => setAcceptedCondition(e.target.checked)}
+                  className="mt-0.5"
                 />
                 <span className="text-xs text-gray-600">
                   I confirm the product is unused and in original condition as per our{' '}
-                  <Link 
-                    to="/terms" 
+                  <Link
+                    to="/terms"
                     target="_blank"
                     className="text-primary hover:underline font-medium"
                     onClick={(e) => e.stopPropagation()}
@@ -2236,8 +2461,8 @@ const OrderSummary = () => {
               setShowReturnModal(false);
               resetReturnModal();
             }}>Cancel</Button>
-            <Button 
-              onClick={handleSingleItemSubmit} 
+            <Button
+              onClick={handleSingleItemSubmit}
               disabled={submitting || isProcessingPayment}
             >
               {(submitting || isProcessingPayment) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

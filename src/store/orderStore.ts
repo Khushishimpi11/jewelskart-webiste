@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+};
+const API_BASE_URL = getApiBaseUrl();
 
 export interface CartItem {
   product: {
@@ -26,6 +32,8 @@ export interface OrderItem {
   productSku?: string;
   total?: number;
   size?: string;  // ✅ ADDED - For ring size
+  material?: string; // ✅ Gold / Rose Gold option
+  ringOption?: string; // ✅ Couple Ring option
 }
 
 export interface ShippingAddress {
@@ -96,7 +104,7 @@ interface OrderStore {
   trackingData: TrackingData | null;
   isTrackingLoading: boolean;
   returnRequests: ReturnRequest[];
-  
+
   placeOrder: (cartItems: CartItem[], shippingData: any, paymentMethod: string, total: number) => Promise<string | null>;
   getOrderById: (id: string) => SimpleOrder | undefined;
   fetchMyOrders: () => Promise<void>;
@@ -104,7 +112,7 @@ interface OrderStore {
   getTrackingByOrderId: (orderId: string) => Promise<TrackingData | null>;
   resetLoading: () => void;
   clearTrackingData: () => void;
-  
+
   createReturnRequest: (data: {
     orderId: string;
     productId?: string | null;
@@ -119,7 +127,7 @@ interface OrderStore {
     refundDetails?: any;
     exchangeDetails?: any;
   }) => Promise<any>;
-  
+
   cancelOrder: (orderId: string, reason: string) => Promise<any>;
   cancelOrderImmediate: (orderId: string, reason: string) => Promise<any>;
   returnOrder: (data: any) => Promise<any>;
@@ -145,7 +153,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   getTrackingByOrderId: async (orderId: string) => {
     const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
-    
+
     if (!token) {
       return null;
     }
@@ -175,7 +183,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   getTrackingByTrackingId: async (trackingId: string) => {
     const token = localStorage.getItem('customer_token') || localStorage.getItem('admin_token');
-    
+
     if (!token) {
       toast.error('Please login to track order');
       return null;
@@ -206,7 +214,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   createReturnRequest: async (data) => {
     const token = localStorage.getItem('customer_token');
-    
+
     if (!token) {
       toast.error('Please login');
       return null;
@@ -221,13 +229,15 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       reason: data.reason,
       description: data.description || '',
       requestType: data.requestType,
-      images: data.images || []
+      images: data.images || [],
+      video: data.video || null,
+      unboxingVideoName: data.unboxingVideoName || ''
     };
-    
+
     if (data.requestType === 'return' || data.requestType === 'cancel') {
       requestBody.refundDetails = data.refundDetails || { method: 'original' };
     }
-    
+
     if (data.requestType === 'exchange' && data.exchangeDetails) {
       requestBody.exchangeDetails = {
         exchangeProductId: data.exchangeDetails.exchangeProductId,
@@ -249,19 +259,24 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       });
 
       const result = await response.json();
-      
+
       if (response.ok) {
         toast.success(result.message);
         await get().fetchReturnRequests();
-        
+
         if (data.requestType === 'cancel') {
           get().updateOrderStatusLocally(data.orderId, 'Cancelled');
           await get().fetchMyOrders();
         }
-        
-        return result.request;
+
+        const reqObj = result.request || {};
+        return {
+          ...reqObj,
+          success: true,
+          requestId: reqObj._id || reqObj.id
+        };
       } else {
-        toast.error(result.message);
+        toast.error(result.message || 'Failed to submit request');
         return null;
       }
     } catch (error: any) {
@@ -333,9 +348,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   placeOrder: async (cartItems, shippingData, paymentMethod, total) => {
     set({ isLoading: true });
-    
+
     const token = localStorage.getItem('customer_token');
-    
+
     if (!token) {
       toast.error('Please login to place order');
       set({ isLoading: false });
@@ -357,7 +372,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
       const orderItems = cartItems.map(item => {
         const itemSize = item.size || item.selectedSize || '';
         console.log(`📦 Cart item: ${item.product.name}, Size: "${itemSize}"`);
-        
+
         return {
           productId: item.product.id,
           quantity: item.quantity,
@@ -365,7 +380,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
           productName: item.product.name,
           productSku: item.product.sku || '',
           productImage: item.product.image || '',
-          size: itemSize  // ✅ Send size to backend
+          size: itemSize,  // ✅ Send size to backend
+          material: (item as any).material || item.product?.material || '', // ✅ Send material to backend
+          ringOption: (item as any).ringOption || item.product?.ringOption || '' // ✅ Send ringOption to backend
         };
       });
 
@@ -404,7 +421,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
       const deliveryDate = new Date();
       deliveryDate.setDate(deliveryDate.getDate() + 5);
-      
+
       const formattedDeliveryDate = deliveryDate.toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'long',
@@ -413,7 +430,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
       const trackingId = data.tracking?.trackingId || data.order?.trackingNumber || '';
 
-      // ✅ Store size in local order
+      // ✅ Store size and material in local order
       const newOrder: SimpleOrder = {
         id: data.order?._id || data.order?.id,
         orderNumber: data.order?.orderNumber,
@@ -436,6 +453,8 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
           productId: item.product.id,
           productSku: item.product.sku,
           size: item.size || item.selectedSize || '',  // ✅ Store size
+          material: (item as any).material || item.product?.material || '', // ✅ Store material
+          ringOption: (item as any).ringOption || item.product?.ringOption || '', // ✅ Store ringOption
           total: item.product.price * item.quantity,
         })),
         shippingAddress: {
@@ -454,11 +473,11 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         orders: [newOrder, ...state.orders],
         isLoading: false
       }));
-      
+
       toast.success(`Order confirmed! Order ID: ${data.order?.orderNumber}`);
-      
+
       return data.order?._id || data.order?.id;
-      
+
     } catch (error: any) {
       console.error('Order error:', error);
       toast.error(error.message || 'Failed to place order');
@@ -469,8 +488,8 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   getOrderById: (id) => {
     const { orders } = get();
-    return orders.find(order => 
-      order.id === id || 
+    return orders.find(order =>
+      order.id === id ||
       order.orderNumber === id ||
       order.orderNumber?.includes(id) ||
       id?.includes(order.orderNumber)
@@ -479,14 +498,14 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
 
   fetchMyOrders: async () => {
     const token = localStorage.getItem('customer_token');
-    
+
     if (!token) {
       console.log('No token found');
       return;
     }
 
     set({ isLoading: true });
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/orders/my-orders`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -505,12 +524,29 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
             year: 'numeric'
           }),
           status: order.orderStatus || 'Confirmed',
-          total: Number(order.totalAmount) || Number(order.total) || 0,
-          subtotal: Number(order.subtotal) || 0,
-          shippingCharge: Number(order.shippingCharge) || 0,
-          tax: Number(order.tax) || 0,
-          gstAmount: Number(order.gstAmount) || Number(order.tax) || 0,
-          totalExclGst: Number(order.totalExclGst) || (Number(order.subtotal) - Number(order.tax)) || 0,
+          subtotal: (() => {
+            const items = order.items || [];
+            return items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
+          })(),
+          tax: (() => {
+            const items = order.items || [];
+            return items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1) * (Number(item.gstPercent) || 3) / 100), 0);
+          })(),
+          shippingCharge: 1200, // Fixed shipping charge
+          total: (() => {
+            const items = order.items || [];
+            const subtotal = items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
+            const tax = items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1) * (Number(item.gstPercent) || 3) / 100), 0);
+            return subtotal + tax + 1200;
+          })(),
+          gstAmount: (() => {
+            const items = order.items || [];
+            return items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1) * (Number(item.gstPercent) || 3) / 100), 0);
+          })(),
+          totalExclGst: (() => {
+            const items = order.items || [];
+            return items.reduce((acc: number, item: any) => acc + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
+          })(),
           customerName: order.customerName,
           customerEmail: order.customerEmail,
           customerPhone: order.customerPhone,
@@ -522,6 +558,9 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
             productId: item.productId,
             productSku: item.productSku,
             size: item.size || '',  // ✅ Get size from backend
+            material: item.material || item.metal || item.selectedMaterial || 'Gold', // ✅ Get material from backend
+            ringOption: item.ringOption || item.selectedRingOption || '', // ✅ Get ringOption from backend
+            gstPercent: item.gstPercent || 3,
             total: (Number(item.price) || 0) * (Number(item.quantity) || 1),
           })),
           shippingAddress: {
@@ -537,7 +576,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
           paymentMethod: order.paymentMethod || 'COD',
           estimatedDelivery: order.estimatedDelivery || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
         }));
-        
+
         set({ orders: formattedOrders, isLoading: false });
       } else {
         set({ orders: [], isLoading: false });

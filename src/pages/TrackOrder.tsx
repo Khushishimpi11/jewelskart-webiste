@@ -6,14 +6,20 @@ import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useOrderStore } from '@/store/orderStore';
 import { useAuthStore } from '@/store/authStore';
-import { 
-  Package, CheckCircle, Truck, Home, Clock, Loader2, 
+import {
+  Package, CheckCircle, Truck, Home, Clock, Loader2,
   Search, Copy, Check, Calendar, ArrowLeft, RefreshCw,
-  XCircle, Mail, Phone, MapPin, DollarSign, Settings
+  XCircle, Mail, Phone, MapPin, DollarSign, Settings, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || API_BASE_URL;
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+};
+const API_BASE_URL = getApiBaseUrl();
 
 interface ReturnRequestInfo {
   _id: string;
@@ -21,6 +27,7 @@ interface ReturnRequestInfo {
   status: 'pending' | 'approved' | 'rejected' | 'completed' | 'return_received' | 'exchange_shipped';
   refundAmount: number;
   refundStatus: string;
+  adminNote?: string;
   returnTrackingNumber?: string;
   exchangeTrackingNumber?: string;
   exchangeDetails?: {
@@ -47,13 +54,13 @@ const TrackOrder = () => {
   const [productImagesMap, setProductImagesMap] = useState<Record<string, string>>({});
   const [isOrdersLoaded, setIsOrdersLoaded] = useState(false);
   const [pendingSearchId, setPendingSearchId] = useState<string | null>(null);
-  
+
   const { getTrackingByTrackingId, fetchMyOrders, orders } = useOrderStore();
 
   // Fetch product images
   const fetchProductImage = async (productId: string) => {
     if (productImagesMap[productId]) return productImagesMap[productId];
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -77,6 +84,13 @@ const TrackOrder = () => {
       setIsOrdersLoaded(true);
     };
     loadOrders();
+  }, [fetchMyOrders]);
+
+  // Re-fetch when tab gains focus so CMS status changes are reflected
+  useEffect(() => {
+    const handleFocus = () => { fetchMyOrders(); };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [fetchMyOrders]);
 
   // Fetch return request for the order
@@ -111,13 +125,13 @@ const TrackOrder = () => {
     setIsTracking(true);
     setOrderStatus(null);
     setReturnRequest(null);
-    
+
     // First try as Tracking ID
     const tracking = await getTrackingByTrackingId(id);
-    
+
     if (tracking && tracking.orderId) {
       const order = orders.find(o => o.id === tracking.orderId || o.orderNumber === tracking.orderNumber);
-      
+
       if (order) {
         await displayOrderDetails(order, tracking.trackingId);
         toast.success(`Order found!`);
@@ -125,10 +139,10 @@ const TrackOrder = () => {
         return;
       }
     }
-    
+
     // If not found as Tracking ID, try as Order ID
     const foundOrder = orders.find(o => o.orderNumber === id || o.id === id);
-    
+
     if (foundOrder) {
       const trackingNumber = foundOrder.trackingNumber;
       if (trackingNumber) {
@@ -141,18 +155,18 @@ const TrackOrder = () => {
       toast.error('No order found with this Tracking ID or Order ID');
       setOrderStatus(null);
     }
-    
+
     setIsTracking(false);
   };
 
   const displayOrderDetails = async (order: any, trackingId: string | null) => {
     const currentStatus = order.status || 'Confirmed';
     let requestType: string | undefined;
-    
+
     if (returnRequest) {
       requestType = returnRequest.requestType;
     }
-    
+
     // Fetch images for all items
     if (order.items && order.items.length > 0) {
       for (const item of order.items) {
@@ -161,7 +175,7 @@ const TrackOrder = () => {
         }
       }
     }
-    
+
     // Calculate estimated delivery date if not present
     let estimatedDelivery = order.estimatedDelivery;
     if (!estimatedDelivery && order.date) {
@@ -173,7 +187,7 @@ const TrackOrder = () => {
         year: 'numeric'
       });
     }
-    
+
     setOrderStatus({
       id: order.id,
       orderNumber: order.orderNumber,
@@ -193,8 +207,31 @@ const TrackOrder = () => {
       requestType: requestType,
       steps: getTimelineSteps(currentStatus, order.date, requestType),
     });
-    
-    await fetchReturnRequest(order.id);
+
+    // Fetch return request and then rebuild steps with correct requestType
+    const token = localStorage.getItem('customer_token');
+    if (token && order.id) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/returns/my-requests`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.requests) {
+          const req = data.requests.find((r: any) => r.orderId === order.id);
+          if (req) {
+            setReturnRequest(req);
+            // Rebuild timeline with proper requestType from the actual request
+            setOrderStatus((prev: any) => prev ? {
+              ...prev,
+              requestType: req.requestType,
+              steps: getTimelineSteps(currentStatus, order.date, req.requestType),
+            } : prev);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching return request:', e);
+      }
+    }
   };
 
   const handleTrack = async (e: React.FormEvent) => {
@@ -217,14 +254,14 @@ const TrackOrder = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     let idParam = urlParams.get('id');
-    
+
     // Also support ?order= and ?tracking= for backward compatibility
     if (!idParam) idParam = urlParams.get('order');
     if (!idParam) idParam = urlParams.get('tracking');
-    
+
     if (idParam) {
       setSearchId(idParam);
-      
+
       if (isOrdersLoaded && orders.length > 0) {
         searchOrder(idParam);
       } else {
@@ -265,7 +302,14 @@ const TrackOrder = () => {
   }, [isOrdersLoaded, pendingSearchId]);
 
   // RETURN TIMELINE STEPS
-  const getReturnTimelineSteps = () => {
+  const getReturnTimelineSteps = (isRejected = false) => {
+    if (isRejected) {
+      return [
+        { name: 'Return Request Submitted', icon: RefreshCw, key: 'Return Requested', description: 'Your return request has been submitted' },
+        { name: 'Under Review', icon: Clock, key: 'Return Under Review', description: 'Admin reviewed your request' },
+        { name: 'Request Rejected', icon: XCircle, key: 'Return Rejected', description: 'Your return request was rejected by admin' },
+      ];
+    }
     return [
       { name: 'Return Request Submitted', icon: RefreshCw, key: 'Return Requested', description: 'Your return request has been submitted' },
       { name: 'Under Review', icon: Clock, key: 'Return Under Review', description: 'Admin is reviewing your request' },
@@ -279,7 +323,14 @@ const TrackOrder = () => {
   };
 
   // EXCHANGE TIMELINE STEPS
-  const getExchangeTimelineSteps = () => {
+  const getExchangeTimelineSteps = (isRejected = false) => {
+    if (isRejected) {
+      return [
+        { name: 'Exchange Request Submitted', icon: RefreshCw, key: 'Exchange Requested', description: 'Your exchange request has been submitted' },
+        { name: 'Under Review', icon: Clock, key: 'Exchange Under Review', description: 'Admin reviewed your request' },
+        { name: 'Request Rejected', icon: XCircle, key: 'Exchange Rejected', description: 'Your exchange request was rejected by admin' },
+      ];
+    }
     return [
       { name: 'Exchange Request Submitted', icon: RefreshCw, key: 'Exchange Requested', description: 'Your exchange request has been submitted' },
       { name: 'Under Review', icon: Clock, key: 'Exchange Under Review', description: 'Admin is reviewing your request' },
@@ -302,10 +353,10 @@ const TrackOrder = () => {
       { name: 'Out for Delivery', icon: Truck, key: 'Out for Delivery', description: 'Out for delivery' },
       { name: 'Delivered', icon: Home, key: 'Delivered', description: 'Order delivered successfully' },
     ];
-    
+
     const statusOrder = ['Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered'];
     const currentIndex = statusOrder.indexOf(status);
-    
+
     return steps.map((step, index) => ({
       ...step,
       completed: index <= currentIndex && currentIndex >= 0,
@@ -316,40 +367,49 @@ const TrackOrder = () => {
 
   // Get timeline steps based on request type
   const getTimelineSteps = (orderStatusStr: string, orderDate: string, requestType?: string) => {
+    const isReturnRejected = orderStatusStr === 'Return Rejected';
+    const isExchangeRejected = orderStatusStr === 'Exchange Rejected';
+
     if (requestType === 'return' || orderStatusStr.includes('Return')) {
-      const steps = getReturnTimelineSteps();
-      const statusOrder = [
-        'Return Requested', 'Return Under Review', 'Return Approved', 
-        'Return Pickup Scheduled', 'Return Picked Up', 'Return Quality Check',
-        'Return Refund Initiated', 'Return Refund Completed'
-      ];
-      const currentIndex = statusOrder.findIndex(s => orderStatusStr.includes(s));
-      
+      const steps = getReturnTimelineSteps(isReturnRejected);
+      const statusOrder = isReturnRejected
+        ? ['Return Requested', 'Return Under Review', 'Return Rejected']
+        : [
+          'Return Requested', 'Return Under Review', 'Return Approved',
+          'Return Pickup Scheduled', 'Return Picked Up', 'Return Quality Check',
+          'Return Refund Initiated', 'Return Refund Completed'
+        ];
+      const currentIndex = statusOrder.findIndex(s => orderStatusStr === s || orderStatusStr.includes(s));
+
       return steps.map((step, index) => ({
         ...step,
         completed: index <= currentIndex && currentIndex >= 0,
         current: index === currentIndex,
+        failed: isReturnRejected && index === steps.length - 1 && currentIndex === steps.length - 1,
         date: index <= currentIndex ? (index === 0 ? orderDate : 'Completed') : 'Pending',
       }));
     }
-    
+
     if (requestType === 'exchange' || orderStatusStr.includes('Exchange')) {
-      const steps = getExchangeTimelineSteps();
-      const statusOrder = [
-        'Exchange Requested', 'Exchange Under Review', 'Exchange Approved',
-        'Exchange Pickup Scheduled', 'Exchange Picked Up', 'Exchange Quality Check',
-        'Exchange Replacement Processing', 'Exchange Shipped', 'Exchange Delivered'
-      ];
-      const currentIndex = statusOrder.findIndex(s => orderStatusStr.includes(s));
-      
+      const steps = getExchangeTimelineSteps(isExchangeRejected);
+      const statusOrder = isExchangeRejected
+        ? ['Exchange Requested', 'Exchange Under Review', 'Exchange Rejected']
+        : [
+          'Exchange Requested', 'Exchange Under Review', 'Exchange Approved',
+          'Exchange Pickup Scheduled', 'Exchange Picked Up', 'Exchange Quality Check',
+          'Exchange Replacement Processing', 'Exchange Shipped', 'Exchange Delivered'
+        ];
+      const currentIndex = statusOrder.findIndex(s => orderStatusStr === s || orderStatusStr.includes(s));
+
       return steps.map((step, index) => ({
         ...step,
         completed: index <= currentIndex && currentIndex >= 0,
         current: index === currentIndex,
+        failed: isExchangeRejected && index === steps.length - 1 && currentIndex === steps.length - 1,
         date: index <= currentIndex ? (index === 0 ? orderDate : 'Completed') : 'Pending',
       }));
     }
-    
+
     return getNormalOrderSteps(orderStatusStr, orderDate);
   };
 
@@ -398,7 +458,7 @@ const TrackOrder = () => {
     const colorClass = getStatusColor(status);
     const icon = getStatusIcon(status);
     const displayStatus = status || 'Confirmed';
-    
+
     return (
       <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${colorClass}`}>
         {icon}
@@ -450,7 +510,7 @@ const TrackOrder = () => {
 
         <div className="container mx-auto px-4 lg:px-8 py-12">
           <div className="max-w-3xl mx-auto">
-            
+
             {/* Search Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -479,7 +539,7 @@ const TrackOrder = () => {
                   Track
                 </button>
               </form>
-              
+
               <p className="text-xs text-muted-foreground mt-3">
                 Enter your Tracking ID (e.g., TRK123456) or Order ID to track your order
               </p>
@@ -532,32 +592,61 @@ const TrackOrder = () => {
 
                   {/* Return/Exchange Status Banner */}
                   {returnRequest && (
-                    <div className={`px-6 py-3 border-b ${
-                      returnRequest.requestType === 'return' ? 'bg-purple-50 border-purple-200' : 'bg-cyan-50 border-cyan-200'
-                    }`}>
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                          <RefreshCw className="w-4 h-4 text-purple-600" />
-                          <span className="text-sm font-semibold">
-                            {returnRequest.requestType === 'return' ? 'Return Request' : 'Exchange Request'}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            returnRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            returnRequest.status === 'approved' ? 'bg-green-100 text-green-700' :
-                            returnRequest.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            returnRequest.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {returnRequest.status.toUpperCase()}
-                          </span>
-                        </div>
-                        {returnRequest.refundStatus === 'completed' && (
-                          <div className="flex items-center gap-1 text-green-600">
-                            <DollarSign className="w-4 h-4" />
-                            <span className="text-xs">Refund of {formatPrice(returnRequest.refundAmount)} processed</span>
+                    <div className={`border-b overflow-hidden ${returnRequest.requestType === 'return' ? 'border-purple-200' : 'border-cyan-200'}`}>
+                      <div className={`px-6 py-3 ${returnRequest.requestType === 'return' ? 'bg-purple-50' : 'bg-cyan-50'}`}>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <RefreshCw className="w-4 h-4 text-purple-600" />
+                            <span className="text-sm font-semibold">
+                              {returnRequest.requestType === 'return' ? 'Return Request' : 'Exchange Request'}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${returnRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              returnRequest.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                returnRequest.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                  returnRequest.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-gray-100 text-gray-700'
+                              }`}>
+                              {returnRequest.status.toUpperCase()}
+                            </span>
                           </div>
-                        )}
+                          {returnRequest.refundStatus === 'completed' && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <DollarSign className="w-4 h-4" />
+                              <span className="text-xs">Refund of {formatPrice(returnRequest.refundAmount)} processed</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                      {/* Rejection detail banner */}
+                      {returnRequest.status === 'rejected' && (
+                        <div className="bg-red-50 border-t border-red-200 px-6 py-2 flex items-start gap-2">
+                          <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-red-700">
+                              Your {returnRequest.requestType} request has been rejected by our team.
+                            </p>
+                            {returnRequest.adminNote && (
+                              <p className="text-xs text-red-600 mt-0.5">Reason: {returnRequest.adminNote}</p>
+                            )}
+                            <p className="text-xs text-red-500 mt-1">Please contact support if you have questions.</p>
+                          </div>
+                        </div>
+                      )}
+                      {/* Approval detail banner */}
+                      {returnRequest.status === 'approved' && (
+                        <div className="bg-green-50 border-t border-green-200 px-6 py-2 flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-xs font-semibold text-green-700">
+                              Your {returnRequest.requestType} request has been approved!
+                            </p>
+                            {returnRequest.adminNote && (
+                              <p className="text-xs text-green-600 mt-0.5">{returnRequest.adminNote}</p>
+                            )}
+                            <p className="text-xs text-green-500 mt-1">Please ship the product back as instructed.</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -568,16 +657,21 @@ const TrackOrder = () => {
                       {orderStatus.items && orderStatus.items.length > 0 ? (
                         orderStatus.items.map((item: any, idx: number) => {
                           const productSize = item.size || item.selectedSize || '';
-                          
+
                           let productImage = productImagesMap[item.productId] || item.image || item.productImage || '';
                           if (!productImage) {
                             productImage = `https://placehold.co/200x200/3b82f6/white?text=${encodeURIComponent((item.name || 'P').substring(0, 1))}`;
                           }
-                          
+
+                          const totalItemQty = orderStatus.items.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
+                          const itemShipping = ((item.quantity || 1) / (totalItemQty || 1)) * (orderStatus.shippingCharge || 1200);
+                          const itemGst = (item.price || 0) * (item.quantity || 1) * (item.gstPercent || 3) / 100;
+                          const itemTotalAll = (item.price || 0) * (item.quantity || 1) + itemGst + itemShipping;
+
                           return (
                             <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
                               <div className="w-16 h-16 flex-shrink-0">
-                                <img 
+                                <img
                                   src={productImage}
                                   alt={item.name || 'Product'}
                                   className="w-full h-full object-cover rounded-lg border border-gray-200"
@@ -590,6 +684,12 @@ const TrackOrder = () => {
                                 <p className="font-medium text-foreground">{item.name || item.productName || 'Product'}</p>
                                 <div className="flex flex-wrap items-center gap-2 mt-1">
                                   <p className="text-sm text-muted-foreground">Qty: {item.quantity || 1}</p>
+                                  {/* RING OPTION BADGE */}
+                                  {item.ringOption && (
+                                    <span className="text-xs bg-primary/10 px-2.5 py-0.5 rounded-full text-primary font-semibold border border-primary/20">
+                                      Ring: {item.ringOption}
+                                    </span>
+                                  )}
                                   {productSize && productSize !== '' ? (
                                     <span className="text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary">
                                       Size: {productSize}
@@ -599,6 +699,21 @@ const TrackOrder = () => {
                                       Free Size
                                     </span>
                                   )}
+                                  {/* METAL BADGE */}
+                                  {(() => {
+                                    const metal = item.material || item.metal || item.selectedMaterial || 'Gold';
+                                    const isRose = metal.toLowerCase().includes('rose');
+                                    return (
+                                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 border ${isRose
+                                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                                        }`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isRose ? 'bg-rose-500' : 'bg-amber-500'
+                                          }`} />
+                                        Metal: {metal}
+                                      </span>
+                                    );
+                                  })()}
                                   {item.productSku && (
                                     <p className="text-xs text-muted-foreground">SKU: {item.productSku}</p>
                                   )}
@@ -606,7 +721,8 @@ const TrackOrder = () => {
                                 <p className="text-xs text-muted-foreground mt-1">{formatPrice(item.price || 0)} each</p>
                               </div>
                               <div className="text-right">
-                                <p className="font-semibold text-primary">{formatPrice((item.price || 0) * (item.quantity || 1))}</p>
+                                <p className="font-semibold text-primary">{formatPrice(itemTotalAll)}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">incl. GST + shipping</p>
                               </div>
                             </div>
                           );
@@ -634,28 +750,30 @@ const TrackOrder = () => {
 
                   {/* Billing Breakdown */}
                   {(orderStatus.tax !== undefined || orderStatus.subtotal !== undefined) && (
-                    <div className="px-6 py-4 border-b border-border/30">
-                      <h3 className="font-semibold text-foreground mb-3">Price Breakdown</h3>
-                      <div className="space-y-1.5 text-sm">
+                    <details className="px-6 py-4 border-b border-border/30 group">
+                      <summary className="flex items-center justify-between cursor-pointer list-none outline-none">
+                        <h3 className="font-semibold text-foreground m-0">Price Breakdown</h3>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="space-y-1.5 text-sm mt-3 pb-2">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Product Price (Excl. GST)</span>
                           <span className="text-foreground">
                             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(
-                              orderStatus.totalExclGst || (orderStatus.subtotal || 0) - (orderStatus.tax || 0)
+                              orderStatus.subtotal || orderStatus.totalExclGst || 0
                             )}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">GST</span>
+                          <span className="text-muted-foreground">GST Tax (Added)</span>
                           <span className="text-foreground">
-                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.tax || 0)}
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.tax || orderStatus.gstAmount || 0)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Shipping</span>
+                          <span className="text-muted-foreground">Shipping Charge</span>
                           <span className="text-foreground">
-                            {orderStatus.shippingCharge === 0 ? <span className="text-green-600">Free</span> : 
-                              new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.shippingCharge || 0)}
+                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.shippingCharge || 1200)}
                           </span>
                         </div>
                         <div className="flex justify-between font-semibold pt-1.5 border-t border-border/20 mt-1.5">
@@ -663,7 +781,7 @@ const TrackOrder = () => {
                           <span className="text-primary">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(orderStatus.total)}</span>
                         </div>
                       </div>
-                    </div>
+                    </details>
                   )}
 
                   {/* Estimated Delivery */}
@@ -680,11 +798,11 @@ const TrackOrder = () => {
                 {/* Order Timeline */}
                 <div className="bg-card border border-border/30 rounded-sm p-6">
                   <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">
-                    {orderStatus.requestType === 'return' ? <RefreshCw className="w-5 h-5 text-purple-600" /> : 
-                     orderStatus.requestType === 'exchange' ? <RefreshCw className="w-5 h-5 text-cyan-600" /> :
-                     <Package className="w-5 h-5 text-primary" />}
-                    {orderStatus.requestType === 'return' ? 'Return Timeline' : 
-                     orderStatus.requestType === 'exchange' ? 'Exchange Timeline' : 'Order Timeline'}
+                    {orderStatus.requestType === 'return' ? <RefreshCw className="w-5 h-5 text-purple-600" /> :
+                      orderStatus.requestType === 'exchange' ? <RefreshCw className="w-5 h-5 text-cyan-600" /> :
+                        <Package className="w-5 h-5 text-primary" />}
+                    {orderStatus.requestType === 'return' ? 'Return Timeline' :
+                      orderStatus.requestType === 'exchange' ? 'Exchange Timeline' : 'Order Timeline'}
                   </h3>
                   <div className="relative">
                     {orderStatus.steps.map((step: any, index: number) => {
@@ -694,9 +812,8 @@ const TrackOrder = () => {
                           {index < orderStatus.steps.length - 1 && (
                             <div className={`absolute left-5 top-10 w-0.5 h-12 ${step.completed ? 'bg-primary' : 'bg-border'}`} />
                           )}
-                          <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            step.completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                          }`}>
+                          <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${step.completed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                            }`}>
                             <Icon className="w-5 h-5" />
                           </div>
                           <div className="flex-1">
@@ -750,7 +867,10 @@ const TrackOrder = () => {
                     <ArrowLeft className="w-4 h-4" />
                     View Order History
                   </Link>
-                  <Link to="/shop" className="flex-1 bg-primary text-primary-foreground py-3 rounded-sm text-center hover:bg-primary/90 transition-colors">
+                  <Link
+                    to="/shop"
+                    className="flex-1 bg-primary text-primary-foreground py-3 rounded-sm text-center hover:bg-primary/90 transition-colors"
+                  >
                     Continue Shopping
                   </Link>
                 </div>
@@ -766,15 +886,15 @@ const TrackOrder = () => {
                   Enter your Tracking ID or Order ID to track your order
                 </p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link 
-                    to="/order-summary" 
+                  <Link
+                    to="/order-summary"
                     className="inline-flex items-center justify-center gap-2 px-6 py-2 border border-primary text-primary rounded-sm hover:bg-primary/10 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     My Orders
                   </Link>
-                  <Link 
-                    to="/shop" 
+                  <Link
+                    to="/shop"
                     className="inline-flex items-center justify-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-sm hover:bg-primary/90 transition-colors"
                   >
                     Continue Shopping

@@ -10,17 +10,22 @@ export interface WishlistItem {
   category?: string;
   originalPrice?: number;
   selectedSize?: string;  // ✅ Size field for ring products
+  material?: string;      // ✅ Gold / Rose Gold option
+  ringOption?: string;    // ✅ Couple Ring option
+  availableMaterials?: string[]; // ✅ Available metals
   stock?: number;
   isRingProduct?: boolean;  // ✅ Check if product is ring
+  isCoupleRing?: boolean;   // ✅ Check if couple ring
   availableSizes?: string[];  // ✅ Available sizes for ring
   sku?: string;
 }
 
 interface WishlistStore {
   items: WishlistItem[];
-  addItem: (product: WishlistItem, selectedSize?: string) => void;
+  addItem: (product: WishlistItem, selectedSize?: string, selectedMaterial?: string, ringOption?: string) => void;
   removeItem: (productId: string) => void;
   updateItemSize: (productId: string, selectedSize: string) => void;
+  updateItemMaterial: (productId: string, material: string) => void;
   isInWishlist: (productId: string) => boolean;
   clearWishlist: () => void;
   getItemSize: (productId: string) => string | undefined;
@@ -31,23 +36,34 @@ export const useWishlistStore = create<WishlistStore>()(
     (set, get) => ({
       items: [],
 
-      addItem: (product, selectedSize) => {
-        const existingItem = get().items.find(item => item.id === product.id);
-        
+      addItem: (product, selectedSize, selectedMaterial, ringOption) => {
+        const existingItem = get().items.find(item => item.id === product.id && item.ringOption === (ringOption || product.ringOption));
+
         if (existingItem) {
           toast.success(`${product.name} is already in wishlist`);
           return;
         }
-        
+
+        const effectiveMaterial = selectedMaterial || product.material;
+        const effectiveRingOption = ringOption || product.ringOption;
+
         set((state) => ({
-          items: [...state.items, { 
-            ...product, 
-            selectedSize: selectedSize || product.selectedSize 
+          items: [...state.items, {
+            ...product,
+            selectedSize: selectedSize || product.selectedSize,
+            material: effectiveMaterial,
+            ringOption: effectiveRingOption
           }],
         }));
-        
-        if (selectedSize && selectedSize !== 'Free Size') {
-          toast.success(`${product.name} (Size ${selectedSize}) added to wishlist`);
+
+        const details = [
+          effectiveRingOption,
+          effectiveMaterial,
+          selectedSize && selectedSize !== 'Free Size' ? `Size ${selectedSize}` : null
+        ].filter(Boolean).join(' • ');
+
+        if (details) {
+          toast.success(`${product.name} (${details}) added to wishlist`);
         } else {
           toast.success(`${product.name} added to wishlist`);
         }
@@ -70,6 +86,15 @@ export const useWishlistStore = create<WishlistStore>()(
           ),
         }));
         toast.success(`Size updated to ${selectedSize}`);
+      },
+
+      updateItemMaterial: (productId, material) => {
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === productId ? { ...item, material } : item
+          ),
+        }));
+        toast.success(`Metal updated to ${material}`);
       },
 
       isInWishlist: (productId) => {

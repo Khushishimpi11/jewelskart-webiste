@@ -84,13 +84,14 @@ const Checkout = () => {
       return;
     }
 
-    // Priority 2: Buy Now from Product Card
+    // Priority 2: Buy Now from Product Card / Product Detail
     if (location.state?.isBuyNow && location.state?.buyNowProduct) {
       const buyNowProduct = location.state.buyNowProduct;
       setCheckoutItems([{
         product: buyNowProduct.product,
         quantity: buyNowProduct.quantity || 1,
-        size: buyNowProduct.size
+        size: buyNowProduct.size,
+        material: buyNowProduct.material || buyNowProduct.product?.material
       }]);
       setIsBuyNow(true);
       console.log("✅ Buy Now Mode - Single product");
@@ -313,15 +314,21 @@ const Checkout = () => {
         (total, item) => total + item.product.price * item.quantity,
         0
       );
-      const shipping = 0;
-      const total = subtotal + shipping;
+      // GST exclusive: calculated on top of product price
+      const gstAmount = checkoutItems.reduce((sum, item) => {
+        const gst = item.product.gst ?? 3;
+        return sum + (item.product.price * item.quantity * gst / 100);
+      }, 0);
+      const shippingCharge = 1200;
+      const total = subtotal + gstAmount + shippingCharge;
 
       const orderData = {
         items: checkoutItems.map(item => ({
-          productId: item.product.id,
+          productId: item.product.id || item.product._id,
           quantity: item.quantity,
           price: item.product.price,
           size: item.size,
+          material: item.material || item.product?.material || '',
           name: item.product.name,
           image: item.product.image
         })),
@@ -340,8 +347,8 @@ const Checkout = () => {
         customerEmail: authUser?.email || shippingData.email,
         totalAmount: total,
         subtotal: subtotal,
-        shippingCharge: shipping,
-        tax: 0,
+        shippingCharge: shippingCharge,
+        tax: Math.round(gstAmount),
         discount: 0,
         notes: ""
       };
@@ -409,10 +416,15 @@ const Checkout = () => {
         (total, item) => total + item.product.price * item.quantity,
         0
       );
-      const shippingCost = subtotal >= 5000 ? 0 : 250;
-      const total = subtotal + shippingCost;
+      // GST exclusive: calculated on top
+      const gstAmount = checkoutItems.reduce((sum, item) => {
+        const gst = item.product.gst ?? 3;
+        return sum + (item.product.price * item.quantity * gst / 100);
+      }, 0);
+      const shippingCost = 1200;
+      const total = subtotal + gstAmount + shippingCost;
 
-      console.log('💰 [Step 2] Totals — subtotal:', subtotal, '| shipping:', shippingCost, '| total:', total);
+      console.log('💰 [Step 2] Totals — subtotal:', subtotal, '| gst:', gstAmount, '| shipping:', shippingCost, '| total:', total);
 
       if (total <= 0) {
         toast.error('Invalid order total. Please go back and try again.');
@@ -442,6 +454,8 @@ const Checkout = () => {
           quantity: item.quantity,
           price: item.product.price,
           size: item.size,
+          material: item.material || item.product?.material || '',
+          ringOption: item.ringOption || item.product?.ringOption || '',
           name: item.product.name,
           image: item.product.image
         })),
@@ -461,7 +475,7 @@ const Checkout = () => {
         totalAmount: total,
         subtotal,
         shippingCharge: shippingCost,
-        tax: 0,
+        tax: Math.round(gstAmount),
         discount: 0,
         notes: ''
       };
@@ -632,16 +646,15 @@ const Checkout = () => {
     (total, item) => total + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal >= 5000 ? 0 : 250;
-  const total = subtotal + shipping;
-
-  // GST breakdown (price is inclusive)
+  // Fixed shipping
+  const shipping = 1200;
+  // GST exclusive: add on top
   const gstTotal = checkoutItems.reduce((sum, item) => {
     const gst = item.product.gst ?? 3;
     const itemTotal = item.product.price * item.quantity;
-    return sum + (itemTotal - itemTotal / (1 + gst / 100));
+    return sum + itemTotal * (gst / 100);
   }, 0);
-  const totalExclGst = subtotal - gstTotal;
+  const total = subtotal + gstTotal + shipping;
 
   // Unique GST rate label for display
   const uniqueGstRates = [...new Set(checkoutItems.map(i => i.product.gst ?? 3))];
@@ -985,17 +998,26 @@ const Checkout = () => {
                       </Link>
                     </div>
                   ) : (
-                    checkoutItems.map((item, idx) => (
-                      <div key={`${item.product.id}-${item.size}-${idx}`} className="flex items-start gap-4">
-                        <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-foreground">{item.product.name}</p>
-                          <p className="text-muted-foreground text-sm">Qty: {item.quantity}{item.size && ` • Size: ${item.size}`}</p>
-                          <p className="text-xs text-muted-foreground">Incl. {item.product.gst ?? 3}% GST</p>
+                    checkoutItems.map((item, idx) => {
+                      const itemMaterial = item.material || item.product?.material;
+                      const itemRingOption = item.ringOption || item.product?.ringOption;
+                      return (
+                        <div key={`${item.product.id}-${item.size}-${itemMaterial}-${itemRingOption}-${idx}`} className="flex items-start gap-4">
+                          <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-foreground font-medium">{item.product.name}</p>
+                            <p className="text-muted-foreground text-sm">
+                              Qty: {item.quantity}
+                              {itemRingOption && ` • Ring: ${itemRingOption}`}
+                              {itemMaterial && ` • Metal: ${itemMaterial}`}
+                              {item.size && ` • Size: ${item.size}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">+ {item.product.gst ?? 3}% GST applicable</p>
+                          </div>
+                          <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
                         </div>
-                        <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
                 <div className="bg-card p-6 border border-border/30 rounded-sm">
@@ -1009,21 +1031,24 @@ const Checkout = () => {
                 </div>
                 <div className="bg-card p-6 border border-border/30 rounded-sm space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Product Price (Excl. GST)</span>
-                    <span className="text-foreground">{formatPrice(Math.round(totalExclGst))}</span>
+                    <span className="text-muted-foreground">Product Subtotal</span>
+                    <span className="text-foreground">{formatPrice(Math.round(subtotal))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{gstLabel}</span>
+                    <span className="text-muted-foreground">{gstLabel} (extra)</span>
                     <span className="text-foreground">{formatPrice(Math.round(gstTotal))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-foreground">{shipping === 0 ? 'Free' : formatPrice(shipping)}</span>
+                    <span className="text-muted-foreground">Shipping (Pan-India)</span>
+                    <span className="text-foreground">{formatPrice(shipping)}</span>
                   </div>
                   <div className="border-t border-border/30 pt-3 flex justify-between">
-                    <span className="font-display text-lg text-foreground">Grand Total</span>
-                    <span className="font-display text-xl text-primary">{formatPrice(total)}</span>
+                    <span className="font-display text-lg text-foreground">Total Payable</span>
+                    <span className="font-display text-xl text-primary">{formatPrice(Math.round(total))}</span>
                   </div>
+                </div>
+                <div className="bg-primary/5 p-3 rounded-sm border border-primary/20 flex items-center gap-2 text-xs sm:text-sm text-foreground">
+                  <span className="font-medium">Estimated Delivery:</span> 12–15 days from the date of order. (Products are made/prepared after receiving the order)
                 </div>
                 <div className="flex gap-4">
                   <button onClick={() => setCurrentStep('shipping')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors">
@@ -1102,7 +1127,7 @@ const Checkout = () => {
                     {(isPlacingOrder || orderLoading || isProcessingPayment) ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      `Complete Order • ${formatPrice(total)}`
+                      `Complete Order • ${formatPrice(Math.round(total))}`
                     )}
                   </button>
                 </div>
@@ -1131,7 +1156,11 @@ const Checkout = () => {
                     <Copy className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
-                <p className="text-muted-foreground mb-8">A confirmation has been sent to {shippingData.email}</p>
+                <p className="text-muted-foreground mb-4">A confirmation has been sent to {shippingData.email}</p>
+                <div className="bg-primary/5 p-4 rounded-md border border-primary/20 max-w-md mx-auto mb-8 text-sm">
+                  <p className="font-medium text-foreground">Estimated Delivery: 12–15 days from the date of order.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Products are prepared after receiving the order.</p>
+                </div>
                 <div className="flex gap-4 justify-center flex-wrap">
                   <Link to="/order-summary" className="border border-primary text-primary px-6 py-3 rounded-md hover:bg-primary/5 transition-colors">
                     View Orders

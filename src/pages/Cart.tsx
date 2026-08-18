@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Trash2, Plus, Minus, ShoppingBag, ArrowRight, Shield, Truck, 
-  RefreshCw, CheckSquare, Square, Trash 
+import {
+  Trash2, Plus, Minus, ShoppingBag, ArrowRight, Shield, Truck,
+  RefreshCw, CheckSquare, Square, Trash
 } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -14,12 +14,12 @@ import { toast } from 'sonner';
 const Cart = () => {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
-  
+
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(true);
 
   const getItemKey = (item: any) => {
-    return `${item.product.id}-${item.size || 'nosize'}`;
+    return `${item.product.id}-${item.size || 'nosize'}-${item.material || item.product?.material || 'nomat'}-${item.ringOption || item.product?.ringOption || 'noopt'}`;
   };
 
   useEffect(() => {
@@ -74,19 +74,19 @@ const Cart = () => {
   const removeSelectedItems = () => {
     const itemsToRemove = items.filter(item => selectedItems.has(getItemKey(item)));
     itemsToRemove.forEach(item => {
-      removeItem(item.product.id, item.size);
+      removeItem(item.product.id, item.size, item.material || item.product?.material, item.ringOption || item.product?.ringOption);
     });
     toast.success(`${itemsToRemove.length} item(s) removed`);
   };
 
   const handleProceedToCheckout = () => {
     const selected = getSelectedItemsForCheckout();
-    
+
     if (selected.length === 0) {
       toast.error("Please select at least one item to checkout");
       return;
     }
-    
+
     navigate('/checkout', {
       state: {
         selectedItems: selected,
@@ -109,28 +109,29 @@ const Cart = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
- const getDisplaySize = (item: any) => {
-  // If size is not present or empty, show "Free Size" for non-ring products
-  if (!item.size) {
-    return 'Free Size';
-  }
-  return item.size;
-};
+  const getDisplaySize = (item: any) => {
+    // If size is not present or empty, show "Free Size" for non-ring products
+    if (!item.size) {
+      return 'Free Size';
+    }
+    return item.size;
+  };
 
   const selectedCount = getSelectedCount();
   const selectedTotal = getSelectedTotal();
-  const shipping = selectedTotal >= 5000 ? 0 : (selectedTotal > 0 ? 250 : 0);
-  const finalTotal = selectedTotal + shipping;
+  // Fixed ₹1,200 shipping pan-India (applied when items are selected)
+  const shipping = selectedCount > 0 ? 1200 : 0;
 
-  // GST breakdown for selected items
+  // GST breakdown for selected items (GST is EXCLUSIVE — calculated on top of product price)
   const selectedCartItems = items.filter(item => selectedItems.has(getItemKey(item)));
   const gstTotal = selectedCartItems.reduce((sum, item) => {
     const gst = item.product.gst ?? 3;
     const itemTotal = item.product.price * item.quantity;
-    const gstAmount = itemTotal - (itemTotal / (1 + gst / 100));
+    const gstAmount = itemTotal * (gst / 100);
     return sum + gstAmount;
   }, 0);
-  const totalExclGst = selectedTotal - gstTotal;
+  const totalExclGst = selectedTotal; // price is already excl. GST
+  const finalTotal = selectedTotal + gstTotal + shipping;
 
   if (items.length === 0) {
     return (
@@ -211,16 +212,15 @@ const Cart = () => {
                 const selectedSize = getDisplaySize(item);
                 const itemKey = getItemKey(item);
                 const isSelected = selectedItems.has(itemKey);
-                
+
                 return (
                   <motion.div
                     key={itemKey}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border rounded-sm hover:shadow-md transition-shadow ${
-                      isSelected ? 'border-primary/50 border-2' : 'border-border/30'
-                    }`}
+                    className={`flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border rounded-sm hover:shadow-md transition-shadow ${isSelected ? 'border-primary/50 border-2' : 'border-border/30'
+                      }`}
                   >
                     <div className="flex-shrink-0 pt-2">
                       <button
@@ -235,16 +235,16 @@ const Cart = () => {
                       </button>
                     </div>
 
-                    {/* ✅ Product Image Link with size */}
-                    <Link 
-                      to={`/product/${item.product.id}`} 
-                      state={{ selectedSize: selectedSize }}
+                    {/* ✅ Product Image Link with size and material */}
+                    <Link
+                      to={`/product/${item.product.id}`}
+                      state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
                       className="flex-shrink-0 group"
                     >
                       <div className="relative overflow-hidden rounded-sm">
-                        <img 
-                          src={item.product.image || item.product.images?.[0]} 
-                          alt={item.product.name} 
+                        <img
+                          src={item.product.image || item.product.images?.[0]}
+                          alt={item.product.name}
                           className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
                           loading="lazy"
                         />
@@ -254,10 +254,10 @@ const Cart = () => {
                     <div className="flex-1 flex flex-col min-w-0">
                       <div className="flex justify-between items-start gap-2">
                         <div className="min-w-0 flex-1">
-                          {/* ✅ Product Name Link with size */}
-                          <Link 
-                            to={`/product/${item.product.id}`} 
-                            state={{ selectedSize: selectedSize }}
+                          {/* ✅ Product Name Link with size and material */}
+                          <Link
+                            to={`/product/${item.product.id}`}
+                            state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
                             className="font-display text-sm sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
                           >
                             {item.product.name}
@@ -273,12 +273,31 @@ const Cart = () => {
                             {formatPrice(item.product.price * item.quantity)}
                           </span>
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Incl. {item.product.gst ?? 3}% GST
+                            + {item.product.gst ?? 3}% GST applicable
                           </p>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 sm:mt-2">
+                        {(item.ringOption || item.product?.ringOption) && (
+                          <div className="flex items-center gap-1.5 text-xs sm:text-sm px-2.5 py-1 rounded border font-semibold bg-primary/10 text-primary border-primary/20">
+                            <span>Ring: <strong>{item.ringOption || item.product?.ringOption}</strong></span>
+                          </div>
+                        )}
+                        {(item.material || item.product?.material) && (
+                          <div className={`flex items-center gap-1.5 text-xs sm:text-sm px-2.5 py-1 rounded border font-medium ${
+                            (item.material || item.product?.material || '').toLowerCase().includes('rose')
+                              ? 'bg-rose-500/10 text-rose-950 border-rose-400/40'
+                              : 'bg-amber-500/10 text-amber-950 border-amber-400/40'
+                          }`}>
+                            <span className={`w-2.5 h-2.5 rounded-full inline-block ${
+                              (item.material || item.product?.material || '').toLowerCase().includes('rose')
+                                ? 'bg-gradient-to-br from-rose-300 to-rose-500 border border-rose-400'
+                                : 'bg-gradient-to-br from-amber-300 to-amber-500 border border-amber-400'
+                            }`} />
+                            <span>Metal: <strong className="font-semibold">{item.material || item.product?.material}</strong></span>
+                          </div>
+                        )}
                         {selectedSize ? (
                           <div className="flex items-center gap-1 text-xs sm:text-sm bg-primary/10 px-2 py-1 rounded border border-primary/20">
                             <span className="font-medium text-primary">Size:</span>
@@ -296,8 +315,8 @@ const Cart = () => {
 
                       <div className="flex items-center justify-between flex-wrap gap-2 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border/20">
                         <div className="flex items-center border border-border/50 rounded-sm">
-                          <button 
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, selectedSize)} 
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
                             className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                             disabled={item.quantity <= 1}
                           >
@@ -306,25 +325,25 @@ const Cart = () => {
                           <span className="w-8 sm:w-10 text-center text-foreground text-xs sm:text-sm font-medium">
                             {item.quantity}
                           </span>
-                          <button 
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, selectedSize)} 
+                          <button
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
                             className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
                           >
                             <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Truck className="w-3 h-3" />
-                          <span>Delivery by {getDeliveryDate()}</span>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Truck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                          <span>Estimated Delivery: 12–15 days from the date of order.</span>
                         </div>
 
                         <div className="text-xs sm:text-sm text-muted-foreground">
                           {formatPrice(item.product.price)} each
                         </div>
 
-                        <button 
-                          onClick={() => removeItem(item.product.id, selectedSize)} 
+                        <button
+                          onClick={() => removeItem(item.product.id, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
                           className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-xs sm:text-sm min-h-[44px] px-2"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -337,15 +356,15 @@ const Cart = () => {
               })}
 
               <div className="flex items-center justify-between pt-4">
-                <button 
-                  onClick={clearCart} 
+                <button
+                  onClick={clearCart}
                   className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm hover:text-destructive transition-colors min-h-[44px]"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear Cart
                 </button>
-                <Link 
-                  to="/shop" 
+                <Link
+                  to="/shop"
                   className="flex items-center gap-2 text-primary text-xs sm:text-sm hover:underline min-h-[44px]"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -368,48 +387,32 @@ const Cart = () => {
                     </span>
                   )}
                 </h2>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Product Price (Excl. GST)</span>
+                    <span className="text-muted-foreground">Product Subtotal</span>
                     <span className="text-foreground font-medium">{formatPrice(Math.round(totalExclGst))}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">GST</span>
-                    <span className="text-foreground font-medium">{formatPrice(Math.round(gstTotal))}</span>
+                    <span className="text-muted-foreground">GST (+ as applicable)</span>
+                    <span className="text-foreground font-medium">{selectedCount > 0 ? formatPrice(Math.round(gstTotal)) : '₹0'}</span>
                   </div>
                   {selectedCount > 0 && (
-                    <>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span className="text-foreground font-medium">
-                          {selectedTotal >= 5000 ? (
-                            <span className="text-green-600">Free</span>
-                          ) : (
-                            formatPrice(250)
-                          )}
-                        </span>
-                      </div>
-                      {selectedTotal < 5000 && selectedTotal > 0 && (
-                        <div className="bg-muted/50 p-3 rounded-sm text-xs">
-                          <p className="text-muted-foreground">
-                            Add {formatPrice(5000 - selectedTotal)} more to get 
-                            <span className="text-green-600 font-medium"> FREE shipping</span>
-                          </p>
-                        </div>
-                      )}
-                    </>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Shipping (Pan-India)</span>
+                      <span className="text-foreground font-medium">{formatPrice(1200)}</span>
+                    </div>
                   )}
                 </div>
 
                 <div className="border-t border-border/30 pt-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-base lg:text-lg text-foreground">Total</span>
+                    <span className="font-display text-base lg:text-lg text-foreground">Total Payable</span>
                     <div className="text-right">
                       <span className="font-display text-xl lg:text-2xl text-primary">
-                        {selectedCount > 0 ? formatPrice(finalTotal) : formatPrice(0)}
+                        {selectedCount > 0 ? formatPrice(Math.round(finalTotal)) : formatPrice(0)}
                       </span>
-                      <p className="text-xs text-muted-foreground">Inclusive of GST</p>
+                      <p className="text-xs text-muted-foreground">Incl. GST + ₹1,200 Shipping</p>
                     </div>
                   </div>
                 </div>
@@ -417,11 +420,10 @@ const Cart = () => {
                 <button
                   onClick={handleProceedToCheckout}
                   disabled={selectedCount === 0}
-                  className={`w-full py-3 min-h-[44px] rounded-md flex items-center justify-center gap-2 transition-all duration-300 group text-sm lg:text-base ${
-                    selectedCount === 0
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-primary text-white hover:bg-primary/90'
-                  }`}
+                  className={`w-full py-3 min-h-[44px] rounded-md flex items-center justify-center gap-2 transition-all duration-300 group text-sm lg:text-base ${selectedCount === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-primary text-white hover:bg-primary/90'
+                    }`}
                 >
                   Proceed to Checkout ({selectedCount} {selectedCount === 1 ? 'item' : 'items'})
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -434,6 +436,10 @@ const Cart = () => {
                 )}
 
                 <div className="mt-4 lg:mt-6 space-y-2 lg:space-y-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Truck className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span>Estimated Delivery: 12–15 days from the date of order.</span>
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 text-green-600 flex-shrink-0" />
                     <span>Secure payment · 100% buyer protection</span>

@@ -73,6 +73,7 @@ const Index = () => {
               id: p._id || p.id,
               price: Number(p.price),
               purchasePrice: Number(p.purchasePrice),
+              coupleRing: p.coupleRing || p.specifications?.coupleRing || undefined,
               images: uniqueImages.length > 0 ? uniqueImages : ['/placeholder-image.jpg'],
               image: uniqueImages[0] || '/placeholder-image.jpg', // fallback for featured display
             };
@@ -97,8 +98,8 @@ const Index = () => {
 
   return (
     <>
-      <ComingSoonSection />
-      {/* 
+      {/* <ComingSoonSection /> */}
+
       <div className="min-h-screen bg-background">
         <Header />
         <main>
@@ -116,7 +117,7 @@ const Index = () => {
         </main>
         <Footer />
       </div>
-      */}
+
     </>
   );
 };

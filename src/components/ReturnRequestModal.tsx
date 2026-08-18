@@ -27,7 +27,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedCondition, setAcceptedCondition] = useState(false);
-  
+
   const [refundMethod, setRefundMethod] = useState<'original' | 'upi' | 'bank' | 'wallet'>('original');
   const [upiId, setUpiId] = useState('');
   const [bankDetails, setBankDetails] = useState({
@@ -69,7 +69,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
       toast.error('Maximum 5 images allowed');
       return;
     }
-    
+
     setImages([...images, ...files]);
     const newPreviews = files.map(f => URL.createObjectURL(f));
     setImagePreviews([...imagePreviews, ...newPreviews]);
@@ -100,7 +100,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
   };
 
   const getTitle = () => {
-    switch(requestType) {
+    switch (requestType) {
       case 'cancel': return 'Cancel Order';
       case 'return': return 'Return Product';
       case 'exchange': return 'Exchange Product';
@@ -120,7 +120,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
             {getTitle()}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-5">
           {product && (
             <div className="flex gap-3 p-3 bg-gray-50 rounded-lg border">
@@ -132,7 +132,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               </div>
             </div>
           )}
-          
+
           <div>
             <Label className="text-sm font-semibold">Reason for {requestType} *</Label>
             <select
@@ -147,7 +147,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               ))}
             </select>
           </div>
-          
+
           <div>
             <Label className="text-sm font-semibold">Additional Details (Optional)</Label>
             <Textarea
@@ -158,7 +158,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               className="mt-1.5"
             />
           </div>
-          
+
           {(requestType === 'return' || requestType === 'exchange') && (
             <div>
               <Label className="text-sm font-semibold flex items-center gap-2">
@@ -179,7 +179,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                   <span className="text-xs text-gray-400">Max 5 images (JPG, PNG)</span>
                 </label>
               </div>
-              
+
               {imagePreviews.length > 0 && (
                 <div className="flex gap-2 mt-3 flex-wrap">
                   {imagePreviews.map((img, idx) => (
@@ -197,11 +197,11 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               )}
             </div>
           )}
-          
+
           {(requestType === 'return' || requestType === 'cancel') && (
             <div className="bg-gray-50 rounded-lg p-4">
               <Label className="text-sm font-semibold mb-3 block">How would you like to receive your refund?</Label>
-              
+
               <div className="space-y-3">
                 <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary">
                   <input
@@ -222,7 +222,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                   </div>
                   <CreditCard className="w-5 h-5 text-gray-400" />
                 </label>
-                
+
                 <div>
                   <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary">
                     <input
@@ -251,7 +251,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                     />
                   )}
                 </div>
-                
+
                 <div>
                   <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary">
                     <input
@@ -276,29 +276,29 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                       <Input
                         placeholder="Account Holder Name"
                         value={bankDetails.accountHolderName}
-                        onChange={(e) => setBankDetails({...bankDetails, accountHolderName: e.target.value})}
+                        onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
                       />
                       <Input
                         placeholder="Account Number"
                         value={bankDetails.accountNumber}
-                        onChange={(e) => setBankDetails({...bankDetails, accountNumber: e.target.value})}
+                        onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
                       />
                       <div className="grid grid-cols-2 gap-2">
                         <Input
                           placeholder="Bank Name"
                           value={bankDetails.bankName}
-                          onChange={(e) => setBankDetails({...bankDetails, bankName: e.target.value})}
+                          onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
                         />
                         <Input
                           placeholder="IFSC Code"
                           value={bankDetails.ifscCode}
-                          onChange={(e) => setBankDetails({...bankDetails, ifscCode: e.target.value})}
+                          onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
                         />
                       </div>
                     </div>
                   )}
                 </div>
-                
+
                 <label className="flex items-center gap-3 p-3 bg-white rounded-lg border cursor-pointer hover:border-primary">
                   <input
                     type="radio"
@@ -321,7 +321,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               </div>
             </div>
           )}
-          
+
           <div className="space-y-2">
             <label className="flex items-start gap-2 cursor-pointer">
               <input
@@ -347,38 +347,38 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
             </label>
           </div>
         </div>
-        
+
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button 
+          <Button
             onClick={async () => {
               alert('BUTTON CLICKED!'); // ✅ This will show popup
               console.log('🔴🔴🔴 BUTTON CLICKED DIRECTLY 🔴🔴🔴');
-              
+
               if (!reason) {
                 toast.error('Please select a reason');
                 return;
               }
-              
+
               if (images.length === 0) {
                 toast.error('Please upload proof images');
                 return;
               }
-              
+
               if (!acceptedTerms) {
                 toast.error('Please accept the terms and conditions');
                 return;
               }
-              
+
               if (!acceptedCondition) {
                 toast.error('Please confirm product condition');
                 return;
               }
-              
+
               setLoading(true);
-              
+
               const imageBase64: string[] = [];
               for (let i = 0; i < images.length; i++) {
                 const img = images[i];
@@ -394,7 +394,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                   console.error('Error converting image:', error);
                 }
               }
-              
+
               let refundDetails: any = {};
               if (refundMethod === 'original') {
                 refundDetails = { method: 'original' };
@@ -411,8 +411,8 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                   setLoading(false);
                   return;
                 }
-                refundDetails = { 
-                  method: 'bank', 
+                refundDetails = {
+                  method: 'bank',
                   bankDetails: {
                     accountHolderName: bankDetails.accountHolderName,
                     accountNumber: bankDetails.accountNumber,
@@ -423,7 +423,7 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
               } else if (refundMethod === 'wallet') {
                 refundDetails = { method: 'wallet' };
               }
-              
+
               const requestData = {
                 orderId: orderId,
                 productId: product?.productId || null,
@@ -436,18 +436,18 @@ const ReturnRequestModal = ({ open, onOpenChange, orderId, product, requestType 
                 images: imageBase64,
                 refundDetails: refundDetails
               };
-              
+
               const result = await createReturnRequest(requestData);
-              
+
               if (result) {
                 onOpenChange(false);
                 resetForm();
                 toast.success(`${requestType === 'return' ? 'Return' : 'Exchange'} request submitted successfully!`);
               }
-              
+
               setLoading(false);
-            }} 
-            disabled={loading} 
+            }}
+            disabled={loading}
             className="bg-primary hover:bg-primary/90"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

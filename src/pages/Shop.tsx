@@ -48,6 +48,12 @@ interface Product {
     purity: string;
     makingCharge: number;
   };
+  coupleRing?: {
+    womenPrice?: number;
+    womenWeight?: number;
+    menPrice?: number;
+    menWeight?: number;
+  };
   specifications?: {
     material?: string;
     finish?: string;
@@ -64,6 +70,7 @@ interface Product {
     rating: number;
     count: number;
   };
+  ringSizes?: string[];
 }
 
 interface Category {
@@ -284,6 +291,12 @@ const Shop = () => {
         .map((p: Product) => {
           const allImages = getAllProductImages(p);
 
+          const cmsRingSizes = Array.isArray(p.ringSizes) && p.ringSizes.length > 0
+            ? p.ringSizes
+            : (Array.isArray(p.specifications?.ringSizes) && p.specifications.ringSizes.length > 0
+              ? p.specifications.ringSizes
+              : ['Free Size']);
+
           return {
             ...p,
             id: p._id,
@@ -292,11 +305,11 @@ const Shop = () => {
             images: allImages.length > 0 ? allImages : ['/placeholder-image.jpg'],
             mainImage: p.mainImage,
             galleryImages: p.galleryImages,
+            ringSizes: cmsRingSizes,
+            coupleRing: p.coupleRing || (p as any).specifications?.coupleRing || undefined,
             specifications: {
               ...p.specifications,
-              ringSizes: p.specifications?.ringSizes && p.specifications.ringSizes.length > 0
-                ? p.specifications.ringSizes
-                : (p.category?.toLowerCase().includes('ring') ? ['Free Size'] : undefined)
+              ringSizes: cmsRingSizes
             }
           };
         });
@@ -630,7 +643,7 @@ const Shop = () => {
                   <div className="mb-6 lg:mb-8">
                     <h4 className="font-body text-xs sm:text-sm text-foreground mb-4 uppercase tracking-wider">Categories</h4>
                     <div className="space-y-2">
-                      <a href="/shop" className="block py-2 text-sm font-semibold text-primary hover:underline">
+                      <a href={`/shop${isExchangeMode ? '?for=exchange' : ''}`} className="block py-2 text-sm font-semibold text-primary hover:underline">
                         All Products
                       </a>
                       <div className="pt-2">
@@ -643,7 +656,7 @@ const Shop = () => {
                             categories.map((cat) => (
                               <a
                                 key={cat._id}
-                                href={`/shop?brand=jewelskart&category=${cat.slug}`}
+                                href={`/shop?brand=jewelskart&category=${cat.slug}${isExchangeMode ? '&for=exchange' : ''}`}
                                 className={`block py-1.5 text-sm transition-colors font-medium tracking-wide ${brandFromUrl === 'jewelskart' && categoryFromUrl === cat.slug
                                   ? 'text-primary font-semibold'
                                   : 'text-gray-600 hover:text-primary'
@@ -783,7 +796,18 @@ const Shop = () => {
                               rating: product.reviews?.rating || 4.5,
                               reviewCount: product.reviews?.count || 0,
                               stock: product.stock,
-                              specifications: product.specifications
+                              specifications: product.specifications,
+                              coupleRing: product.coupleRing || (product as any).specifications?.coupleRing || undefined,
+                              // ✅ Pass the exact sizes configured in CMS
+                              ringSizes: product.ringSizes?.length
+                                ? product.ringSizes
+                                : (product.specifications?.ringSizes?.length
+                                  ? product.specifications.ringSizes
+                                  : ['Free Size']),
+                              isRingProduct: (() => {
+                                const cat = product.category?.toLowerCase().trim() || '';
+                                return (cat === 'ring' || cat === 'rings' || cat.includes('ring')) && !cat.includes('earring');
+                              })()
                             }}
                             isExchangeMode={isExchangeMode}
                             onExchangeSelect={handleSelectForExchange}
