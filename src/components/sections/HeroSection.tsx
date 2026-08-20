@@ -12,7 +12,6 @@ import modelLeft4 from "@/assets/hero/6.png";
 import heroImage1 from "@/assets/hero/222.png";
 import heroImage2 from "@/assets/hero/222.png";
 
-
 const slides = [
   {
     brand: "JEWELSKART",
@@ -88,7 +87,7 @@ export const HeroSection = () => {
 
           {/* Content grid: model-left | text-center | model-right */}
           <div className="relative z-10 h-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr_1fr] items-end">
-            {/* Left model - Removed opacity */}
+            {/* Left model */}
             <div className="hidden lg:block h-full relative">
               <AnimatePresence mode="wait">
                 <motion.img
@@ -149,23 +148,44 @@ export const HeroSection = () => {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Dots */}
-              <div className="flex items-center gap-2.5 mt-8">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrent(i)}
-                    className={`rounded-full transition-all duration-300 ${i === current
-                      ? "w-7 h-2.5 bg-white"
-                      : "w-2.5 h-2.5 bg-primary-foreground/40 hover:bg-primary-foreground/60"
-                      }`}
-                    aria-label={`Go to slide ${i + 1}`}
-                  />
-                ))}
+              {/* Navigation with Arrows and Dots - Arrows on left and right of dots */}
+              <div className="flex items-center gap-3 mt-8">
+                {/* Left Arrow */}
+                <button
+                  onClick={prev}
+                  className="w-9 h-9 rounded-full bg-background/10 backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center text-primary-foreground hover:bg-background/25 transition-all flex-shrink-0"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Dots */}
+                <div className="flex items-center gap-2.5">
+                  {slides.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrent(i)}
+                      className={`rounded-full transition-all duration-300 ${i === current
+                          ? "w-7 h-2.5 bg-white"
+                          : "w-2.5 h-2.5 bg-primary-foreground/40 hover:bg-primary-foreground/60"
+                        }`}
+                      aria-label={`Go to slide ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                {/* Right Arrow */}
+                <button
+                  onClick={next}
+                  className="w-9 h-9 rounded-full bg-background/10 backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center text-primary-foreground hover:bg-background/25 transition-all flex-shrink-0"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* Right model - Removed opacity */}
+            {/* Right model */}
             <div className="hidden lg:block h-full relative">
               <AnimatePresence mode="wait">
                 <motion.img
@@ -182,21 +202,7 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Navigation arrows */}
-          <button
-            onClick={prev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-background/10 backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center text-primary-foreground hover:bg-background/25 transition-all"
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={next}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-background/10 backdrop-blur-sm border border-primary-foreground/20 flex items-center justify-center text-primary-foreground hover:bg-background/25 transition-all"
-            aria-label="Next slide"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+          {/* Old navigation arrows removed from here */}
         </div>
       </div>
     </section>

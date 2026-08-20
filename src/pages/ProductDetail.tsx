@@ -78,6 +78,14 @@ interface Product {
     womenWeight?: number;
     menPrice?: number;
     menWeight?: number;
+    womenDiamond?: string;
+    womenDiamondWeight?: string | number;
+    womenSemiPreciousStone?: string;
+    womenSemiPreciousWeight?: string | number;
+    menDiamond?: string;
+    menDiamondWeight?: string | number;
+    menSemiPreciousStone?: string;
+    menSemiPreciousWeight?: string | number;
   };
   specifications?: {
     material?: string;
@@ -89,6 +97,18 @@ interface Product {
     occasion?: string;
     stoneType?: string;
     stoneWeight?: number;
+    diamond?: string;
+    diamondWeight?: string | number;
+    semiPreciousStone?: string;
+    semiPreciousWeight?: string | number;
+    womenDiamond?: string;
+    womenDiamondWeight?: string | number;
+    womenSemiPreciousStone?: string;
+    womenSemiPreciousWeight?: string | number;
+    menDiamond?: string;
+    menDiamondWeight?: string | number;
+    menSemiPreciousStone?: string;
+    menSemiPreciousWeight?: string | number;
     warranty?: string;
   };
   careInstructions?: {
@@ -255,10 +275,32 @@ const getAvailableMaterials = (prod?: Product | null): string[] => {
   return ['Gold'];
 };
 
+// ========== CUSTOM HOOK FOR MEDIA QUERY ==========
+const useMediaQuery = (query: string): boolean => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = (event: MediaQueryListEvent) => setMatches(event.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+
+  return matches;
+};
+
 const ProductDetail = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // ========== MOBILE DETECTION ==========
+  const isMobile = useMediaQuery('(max-width: 480px)');
+  const isTablet = useMediaQuery('(max-width: 768px)');
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
@@ -476,7 +518,7 @@ const ProductDetail = () => {
       }
 
       const related = productsArray
-        .filter((p: Product) => p.category === category && p._id !== id && p.status === "Published")
+        .filter((p: Product) => (p.category?.toLowerCase() === category?.toLowerCase() || p.category?.toLowerCase().replace(/s$/, '') === category?.toLowerCase().replace(/s$/, '')) && (p._id || p.id) !== id && p.status === "Published")
         .slice(0, 4)
         .map((p: Product) => {
           // FIX: Use getAllProductImages for related products too
@@ -738,12 +780,38 @@ const ProductDetail = () => {
     if (!isRingProduct()) return undefined;
     if (!requiresRingSizeSelection()) return 'Free Size';
     if (isCoupleRing) {
-      if (selectedRingOption === 'Women’s Ring') return selectedWomenSize ? `Size ${selectedWomenSize}` : undefined;
-      if (selectedRingOption === 'Men’s Ring') return selectedMenSize ? `Size ${selectedMenSize}` : undefined;
-      if (selectedWomenSize && selectedMenSize) return `Women: Size ${selectedWomenSize}, Men: Size ${selectedMenSize}`;
+      const opt = (selectedRingOption || '').toLowerCase();
+      const isBoth = opt.includes('both') || opt.includes('couple') || opt.includes('set');
+      const isWomen = !isBoth && opt.includes('women');
+      const isMen = !isBoth && opt.includes('men');
+      if (isWomen) {
+        return selectedWomenSize ? `Women: Size ${selectedWomenSize.replace(/^Size\s*/i, '').trim()}` : undefined;
+      }
+      if (isMen) {
+        return selectedMenSize ? `Men: Size ${selectedMenSize.replace(/^Size\s*/i, '').trim()}` : undefined;
+      }
+      // Both / Couple Set
+      if (selectedWomenSize && selectedMenSize) {
+        return `Women: Size ${selectedWomenSize.replace(/^Size\s*/i, '').trim()}, Men: Size ${selectedMenSize.replace(/^Size\s*/i, '').trim()}`;
+      }
       return undefined;
     }
     return selectedSize || undefined;
+  };
+
+  const hasSelectedRequiredRingSize = () => {
+    if (!requiresRingSizeSelection()) return true;
+    if (isCoupleRing) {
+      const opt = (selectedRingOption || '').toLowerCase();
+      const isBoth = opt.includes('both') || opt.includes('couple') || opt.includes('set');
+      const isWomen = !isBoth && opt.includes('women');
+      const isMen = !isBoth && opt.includes('men');
+      if (isWomen) return Boolean(selectedWomenSize);
+      if (isMen) return Boolean(selectedMenSize);
+      // Both / Couple Set — need both sizes
+      return Boolean(selectedWomenSize && selectedMenSize);
+    }
+    return Boolean(selectedSize);
   };
 
   const getEffectiveMaterial = () => {
@@ -773,22 +841,35 @@ const ProductDetail = () => {
         background: '#612030',
         color: '#ffffff',
         fontWeight: 'bold',
-        fontSize: '15px',
-        border: '2px solid #b91c1c'
+        padding: '12px 18px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        border: '1px solid #7a283c'
+      },
+      iconTheme: {
+        primary: '#ffffff',
+        secondary: '#612030',
       }
     });
   };
 
   const triggerMaterialAlert = () => {
     setMaterialError(true);
-    toast.error('Please select Gold or Rose Gold before proceeding.', {
+    setShowAlertModal(true);
+    toast.error('Please select Gold or Rose Gold first.', {
       duration: 4000,
       style: {
         background: '#612030',
         color: '#ffffff',
         fontWeight: 'bold',
-        fontSize: '15px',
-        border: '2px solid #b91c1c'
+        padding: '12px 18px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        border: '1px solid #7a283c'
+      },
+      iconTheme: {
+        primary: '#ffffff',
+        secondary: '#612030',
       }
     });
   };
@@ -845,10 +926,13 @@ const ProductDetail = () => {
     }
 
     const effectiveSize = getEffectiveSize();
+    const formattedSizeToast = effectiveSize && effectiveSize !== 'Free Size'
+      ? (effectiveSize.includes('Women:') || effectiveSize.includes('Men:') || effectiveSize.startsWith('Size ') ? effectiveSize : `Size ${effectiveSize}`)
+      : null;
     const itemDetails = [
       ringOpt,
       effectiveMat,
-      effectiveSize && effectiveSize !== 'Free Size' ? `Size ${effectiveSize}` : null
+      formattedSizeToast
     ].filter(Boolean).join(', ');
 
     if (itemDetails) {
@@ -1008,12 +1092,39 @@ const ProductDetail = () => {
               <p className="text-foreground font-medium">{product.goldDetails.purity}</p>
             </div>
           )}
-          {product.goldDetails?.weight && (
-            <div>
-              <p className="text-muted-foreground">Weight</p>
-              <p className="text-foreground font-medium">{product.goldDetails.weight}g</p>
-            </div>
-          )}
+
+          {/* Weight details: Separate for Couple Rings vs Standard */}
+          {(() => {
+            const hasCoupleWeight = Boolean(product.coupleRing && (product.coupleRing.womenWeight || product.coupleRing.menWeight));
+            if (hasCoupleWeight) {
+              return (
+                <>
+                  {Boolean(product.coupleRing?.womenWeight) && (
+                    <div>
+                      <p className="text-muted-foreground">Women Weight</p>
+                      <p className="text-foreground font-medium">{product.coupleRing?.womenWeight} g</p>
+                    </div>
+                  )}
+                  {Boolean(product.coupleRing?.menWeight) && (
+                    <div>
+                      <p className="text-muted-foreground">Men Weight</p>
+                      <p className="text-foreground font-medium">{product.coupleRing?.menWeight} g</p>
+                    </div>
+                  )}
+                </>
+              );
+            }
+            if (product.goldDetails?.weight) {
+              return (
+                <div>
+                  <p className="text-muted-foreground">Weight</p>
+                  <p className="text-foreground font-medium">{product.goldDetails.weight} g</p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {product.specifications?.finish && (
             <div>
               <p className="text-muted-foreground">Finish</p>
@@ -1044,18 +1155,191 @@ const ProductDetail = () => {
               <p className="text-foreground font-medium">{product.specifications.occasion}</p>
             </div>
           )}
-          {product.specifications?.stoneType && product.specifications.stoneType !== "No Stone" && (
-            <div>
-              <p className="text-muted-foreground">Stone Type</p>
-              <p className="text-foreground font-medium">{product.specifications.stoneType}</p>
-            </div>
-          )}
-          {product.specifications?.stoneWeight && product.specifications.stoneWeight > 0 && (
-            <div>
-              <p className="text-muted-foreground">Stone Weight</p>
-              <p className="text-foreground font-medium">{product.specifications.stoneWeight} ct</p>
-            </div>
-          )}
+
+          {/* Couple Ring Stone Details (Women on left, Men on right in same row) */}
+          {(() => {
+            if (!isCoupleRing) return null;
+            const cr = product.coupleRing || {};
+            const specs = product.specifications || {};
+
+            const formatWeight = (w: any) => {
+              if (w === undefined || w === null) return '';
+              const str = String(w).trim();
+              if (!str || str === '0') return '';
+              return str.toLowerCase().includes('ct') ? str : `${str} ct`;
+            };
+
+            // Women Diamond
+            const wDiamond = cr.womenDiamond || specs.womenDiamond || (product as any).womenDiamond || '';
+            const wDWeightRaw = cr.womenDiamondWeight !== undefined && cr.womenDiamondWeight !== null ? cr.womenDiamondWeight : (specs.womenDiamondWeight ?? (product as any).womenDiamondWeight);
+            const wDWeight = formatWeight(wDWeightRaw);
+            const hasWD = Boolean((wDiamond && wDiamond.trim() !== '' && wDiamond.toLowerCase() !== 'none' && wDiamond.toLowerCase() !== 'no stone') || wDWeight);
+
+            // Men Diamond
+            const mDiamond = cr.menDiamond || specs.menDiamond || (product as any).menDiamond || '';
+            const mDWeightRaw = cr.menDiamondWeight !== undefined && cr.menDiamondWeight !== null ? cr.menDiamondWeight : (specs.menDiamondWeight ?? (product as any).menDiamondWeight);
+            const mDWeight = formatWeight(mDWeightRaw);
+            const hasMD = Boolean((mDiamond && mDiamond.trim() !== '' && mDiamond.toLowerCase() !== 'none' && mDiamond.toLowerCase() !== 'no stone') || mDWeight);
+
+            // Women Semi Precious
+            const wSemi = cr.womenSemiPreciousStone || specs.womenSemiPreciousStone || (product as any).womenSemiPreciousStone || '';
+            const wSWeightRaw = cr.womenSemiPreciousWeight !== undefined && cr.womenSemiPreciousWeight !== null ? cr.womenSemiPreciousWeight : (specs.womenSemiPreciousWeight ?? (product as any).womenSemiPreciousWeight);
+            const wSWeight = formatWeight(wSWeightRaw);
+            const hasWS = Boolean((wSemi && wSemi.trim() !== '' && wSemi.toLowerCase() !== 'none' && wSemi.toLowerCase() !== 'no stone') || wSWeight);
+
+            // Men Semi Precious
+            const mSemi = cr.menSemiPreciousStone || specs.menSemiPreciousStone || (product as any).menSemiPreciousStone || '';
+            const mSWeightRaw = cr.menSemiPreciousWeight !== undefined && cr.menSemiPreciousWeight !== null ? cr.menSemiPreciousWeight : (specs.menSemiPreciousWeight ?? (product as any).menSemiPreciousWeight);
+            const mSWeight = formatWeight(mSWeightRaw);
+            const hasMS = Boolean((mSemi && mSemi.trim() !== '' && mSemi.toLowerCase() !== 'none' && mSemi.toLowerCase() !== 'no stone') || mSWeight);
+
+            const hasDiamondRow = hasWD || hasMD;
+            const hasSemiRow = hasWS || hasMS;
+
+            if (!hasDiamondRow && !hasSemiRow) return null;
+
+            const getWDiamondLabel = () => {
+              if (wDiamond && wDiamond.toLowerCase() !== 'diamond') return `Women Diamond (${wDiamond})`;
+              return 'Women Diamond';
+            };
+
+            const getMDiamondLabel = () => {
+              if (mDiamond && mDiamond.toLowerCase() !== 'diamond') return `Men Diamond (${mDiamond})`;
+              return 'Men Diamond';
+            };
+
+            const getWSemiLabel = () => {
+              if (wSemi && wSemi.toLowerCase() !== 'semi precious stone' && wSemi.toLowerCase() !== 'semi precious') {
+                return `Women Semi Precious (${wSemi})`;
+              }
+              return 'Women Semi Precious';
+            };
+
+            const getMSemiLabel = () => {
+              if (mSemi && mSemi.toLowerCase() !== 'semi precious stone' && mSemi.toLowerCase() !== 'semi precious') {
+                return `Men Semi Precious (${mSemi})`;
+              }
+              return 'Men Semi Precious';
+            };
+
+            return (
+              <>
+                {/* Row 1: Diamond (Women on Left, Men on Right) */}
+                {hasDiamondRow && (
+                  <>
+                    {hasWD ? (
+                      <div>
+                        <p className="text-muted-foreground">{getWDiamondLabel()}</p>
+                        <p className="text-foreground font-medium">{wDWeight || '0 ct'}</p>
+                      </div>
+                    ) : (
+                      <div />
+                    )}
+
+                    {hasMD ? (
+                      <div>
+                        <p className="text-muted-foreground">{getMDiamondLabel()}</p>
+                        <p className="text-foreground font-medium">{mDWeight || '0 ct'}</p>
+                      </div>
+                    ) : (
+                      hasWD ? <div /> : null
+                    )}
+                  </>
+                )}
+
+                {/* Row 2: Semi Precious (Women on Left, Men on Right) */}
+                {hasSemiRow && (
+                  <>
+                    {hasWS ? (
+                      <div>
+                        <p className="text-muted-foreground">{getWSemiLabel()}</p>
+                        <p className="text-foreground font-medium">{wSWeight || '0 ct'}</p>
+                      </div>
+                    ) : (
+                      <div />
+                    )}
+
+                    {hasMS ? (
+                      <div>
+                        <p className="text-muted-foreground">{getMSemiLabel()}</p>
+                        <p className="text-foreground font-medium">{mSWeight || '0 ct'}</p>
+                      </div>
+                    ) : (
+                      hasWS ? <div /> : null
+                    )}
+                  </>
+                )}
+              </>
+            );
+          })()}
+
+          {/* Regular (Non-Couple) Product Stone Details */}
+          {(() => {
+            if (isCoupleRing) return null;
+            const specs = product.specifications || {};
+
+            const formatWeight = (w: any) => {
+              if (w === undefined || w === null) return '';
+              const str = String(w).trim();
+              if (!str || str === '0') return '';
+              return str.toLowerCase().includes('ct') ? str : `${str} ct`;
+            };
+
+            const diamondType = specs.diamond || (product as any).diamond || '';
+            const diamondWeightRaw = specs.diamondWeight !== undefined && specs.diamondWeight !== null ? specs.diamondWeight : (product as any).diamondWeight;
+            const diamondWeight = formatWeight(diamondWeightRaw);
+            const hasDiamond = Boolean((diamondType && diamondType.trim() !== '' && diamondType.toLowerCase() !== 'none' && diamondType.toLowerCase() !== 'no stone') || diamondWeight);
+
+            const semiStone = specs.semiPreciousStone || (product as any).semiPreciousStone || '';
+            const semiWeightRaw = specs.semiPreciousWeight !== undefined && specs.semiPreciousWeight !== null ? specs.semiPreciousWeight : (product as any).semiPreciousWeight;
+            const semiWeight = formatWeight(semiWeightRaw);
+            const hasSemi = Boolean((semiStone && semiStone.trim() !== '' && semiStone.toLowerCase() !== 'none' && semiStone.toLowerCase() !== 'no stone') || semiWeight);
+
+            if (!hasDiamond && !hasSemi) {
+              // Legacy fallback
+              if (specs.stoneType && specs.stoneType !== "No Stone" && specs.stoneType !== "none") {
+                return (
+                  <div>
+                    <p className="text-muted-foreground">{specs.stoneType}</p>
+                    <p className="text-foreground font-medium">
+                      {specs.stoneWeight && specs.stoneWeight > 0 ? `${specs.stoneWeight} ct` : ''}
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            }
+
+            const getDiamondLabel = () => {
+              if (diamondType && diamondType.toLowerCase() !== 'diamond') return `Diamond (${diamondType})`;
+              return 'Diamond';
+            };
+
+            const getSemiLabel = () => {
+              if (semiStone && semiStone.toLowerCase() !== 'semi precious stone' && semiStone.toLowerCase() !== 'semi precious') {
+                return `Semi Precious (${semiStone})`;
+              }
+              return 'Semi Precious Stone';
+            };
+
+            return (
+              <>
+                {hasDiamond && (
+                  <div>
+                    <p className="text-muted-foreground">{getDiamondLabel()}</p>
+                    <p className="text-foreground font-medium">{diamondWeight || '0 ct'}</p>
+                  </div>
+                )}
+                {hasSemi && (
+                  <div>
+                    <p className="text-muted-foreground">{getSemiLabel()}</p>
+                    <p className="text-foreground font-medium">{semiWeight || '0 ct'}</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
           {product.specifications?.warranty && (
             <div className="col-span-2">
               <p className="text-muted-foreground">Warranty</p>
@@ -1242,21 +1526,82 @@ const ProductDetail = () => {
     },
   ];
 
+  // ========== Precompute button states to avoid complex JSX ternaries ==========
+  const isUnavailable = (product as any).isAvailableForOrder === false;
+  const needsMaterial = requiresMaterialSelection();
+  const hasSizes = hasSelectedRequiredRingSize();
+  const isReadyForCart = !isUnavailable && !needsMaterial && hasSizes;
+
+  const getAddToCartLabel = (): string => {
+    if (isUnavailable) return 'CURRENTLY UNAVAILABLE';
+    if (needsMaterial) return 'SELECT GOLD OR ROSE GOLD';
+    if (!hasSizes) {
+      if (isCoupleRing) {
+        const opt = (selectedRingOption || '').toLowerCase();
+        const isBoth = opt.includes('both') || opt.includes('couple') || opt.includes('set');
+        const isWomen = !isBoth && opt.includes('women');
+        const isMen = !isBoth && opt.includes('men');
+        if (isWomen) return 'SELECT WOMEN SIZE FIRST';
+        if (isMen) return 'SELECT MEN SIZE FIRST';
+        // Both / Couple Set
+        if (!selectedWomenSize && !selectedMenSize) return 'SELECT SIZES FIRST';
+        if (!selectedWomenSize) return 'SELECT WOMEN SIZE FIRST';
+        return 'SELECT MEN SIZE FIRST';
+      }
+      return 'SELECT SIZE FIRST';
+    }
+    return 'ADD TO CART';
+  };
+
+  const getCheckoutLabel = (): string => {
+    if (isUnavailable) return 'CURRENTLY UNAVAILABLE';
+    if (needsMaterial) return 'SELECT GOLD OR ROSE GOLD TO CHECKOUT';
+    if (!hasSizes) {
+      if (isCoupleRing) {
+        const opt = (selectedRingOption || '').toLowerCase();
+        const isBoth = opt.includes('both') || opt.includes('couple') || opt.includes('set');
+        const isWomen = !isBoth && opt.includes('women');
+        const isMen = !isBoth && opt.includes('men');
+        if (isWomen) return 'SELECT WOMEN SIZE TO CHECKOUT';
+        if (isMen) return 'SELECT MEN SIZE TO CHECKOUT';
+        // Both / Couple Set
+        if (!selectedWomenSize && !selectedMenSize) return 'SELECT SIZES TO CHECKOUT';
+        if (!selectedWomenSize) return 'SELECT WOMEN SIZE TO CHECKOUT';
+        return 'SELECT MEN SIZE TO CHECKOUT';
+      }
+      return 'SELECT SIZE FIRST TO CHECKOUT';
+    }
+    return 'PROCEED TO CHECKOUT';
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Review Form Modal */}
+      {/* Review Form Modal - Mobile Optimized */}
       <AnimatePresence>
         {showReviewForm && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowReviewForm(false)} />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="w-full max-w-2xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setShowReviewForm(false)}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-2xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-0"
+              >
+                <div className="p-4 sm:p-6">
                   <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-10 pb-4 border-b">
-                    <h3 className="font-display text-xl text-foreground">Write a Review</h3>
-                    <button onClick={() => setShowReviewForm(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                    <h3 className="font-display text-lg sm:text-xl text-foreground">Write a Review</h3>
+                    <button onClick={() => setShowReviewForm(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
                   <form onSubmit={handleReviewSubmit} className="space-y-4">
                     <div>
@@ -1266,7 +1611,7 @@ const ProductDetail = () => {
                         required
                         value={reviewData.name}
                         onChange={(e) => setReviewData({ ...reviewData, name: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none"
+                        className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none text-sm sm:text-base"
                         placeholder="Your name"
                       />
                     </div>
@@ -1278,7 +1623,7 @@ const ProductDetail = () => {
                         required
                         value={reviewData.email}
                         onChange={(e) => setReviewData({ ...reviewData, email: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none"
+                        className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none text-sm sm:text-base"
                         placeholder="your.email@example.com"
                       />
                     </div>
@@ -1298,7 +1643,7 @@ const ProductDetail = () => {
                             setShowCitySearch(true);
                           }}
                           onFocus={() => setShowCitySearch(true)}
-                          className="w-full pl-10 pr-3 py-2 border rounded-md focus:border-primary outline-none"
+                          className="w-full pl-10 pr-3 py-2 border rounded-md focus:border-primary outline-none text-sm sm:text-base"
                           placeholder="Enter your city (e.g., Mumbai, Delhi, Bangalore)"
                         />
                       </div>
@@ -1312,7 +1657,7 @@ const ProductDetail = () => {
                                 key={city}
                                 type="button"
                                 onClick={() => handleCitySelect(city)}
-                                className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm"
+                                className="w-full text-left px-3 py-2.5 hover:bg-gray-100 text-sm touch-min"
                               >
                                 {city}
                               </button>
@@ -1328,15 +1673,15 @@ const ProductDetail = () => {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Rating *</label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 sm:gap-3">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
                             key={star}
                             type="button"
                             onClick={() => setReviewData({ ...reviewData, rating: star })}
-                            className="focus:outline-none"
+                            className="focus:outline-none p-1"
                           >
-                            <Star className={`w-6 h-6 ${star <= reviewData.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                            <Star className={`w-6 h-6 sm:w-7 sm:h-7 ${star <= reviewData.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
                           </button>
                         ))}
                       </div>
@@ -1347,11 +1692,15 @@ const ProductDetail = () => {
                       <label className="block text-sm font-medium mb-1">Upload Images (Optional, max 5)</label>
                       <div className="mt-2">
                         {reviewData.images.length > 0 && (
-                          <div className="grid grid-cols-3 gap-3 mb-3">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3 mb-3">
                             {reviewData.images.map((img, idx) => (
-                              <div key={idx} className="relative group">
-                                <img src={img.url} alt={`Review ${idx + 1}`} className="w-full h-24 object-cover rounded border" />
-                                <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div key={idx} className="relative group aspect-square">
+                                <img src={img.url} alt={`Review ${idx + 1}`} className="w-full h-full object-cover rounded border" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(idx)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
                                   <Trash2 className="w-3 h-3" />
                                 </button>
                               </div>
@@ -1360,11 +1709,14 @@ const ProductDetail = () => {
                         )}
 
                         {reviewData.images.length < 5 && (
-                          <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                          <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="border-2 border-dashed rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                          >
                             <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
-                            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Click to upload images</p>
-                            <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB each</p>
+                            <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mx-auto mb-2" />
+                            <p className="text-xs sm:text-sm text-gray-500">Click to upload images</p>
+                            <p className="text-[10px] sm:text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 5MB each</p>
                           </div>
                         )}
                       </div>
@@ -1372,15 +1724,32 @@ const ProductDetail = () => {
 
                     <div>
                       <label className="block text-sm font-medium mb-1">Review *</label>
-                      <textarea required rows={4} value={reviewData.comment} onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })} className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none resize-none" placeholder="Share your thoughts about this product..." />
+                      <textarea
+                        required
+                        rows={isMobile ? 3 : 4}
+                        value={reviewData.comment}
+                        onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md focus:border-primary outline-none resize-none text-sm sm:text-base"
+                        placeholder="Share your thoughts about this product..."
+                      />
                     </div>
 
-                    <div className="flex gap-3 pt-2">
-                      <button type="submit" disabled={uploadingImages} className="flex-1 bg-primary text-white py-2.5 rounded-md font-medium disabled:opacity-50 flex items-center justify-center gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={uploadingImages}
+                        className="w-full sm:flex-1 bg-primary text-white py-2.5 rounded-md font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base touch-min"
+                      >
                         {uploadingImages && <Loader2 className="w-4 h-4 animate-spin" />}
                         {uploadingImages ? 'Uploading...' : 'Submit Review'}
                       </button>
-                      <button type="button" onClick={() => setShowReviewForm(false)} className="flex-1 border rounded-md py-2.5 hover:bg-gray-50 transition-colors">Cancel</button>
+                      <button
+                        type="button"
+                        onClick={() => setShowReviewForm(false)}
+                        className="w-full sm:flex-1 border rounded-md py-2.5 hover:bg-gray-50 transition-colors text-sm sm:text-base touch-min"
+                      >
+                        Cancel
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -1390,29 +1759,42 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-      {/* Thank You Popup */}
+      {/* Thank You Popup - Mobile Optimized */}
       <AnimatePresence>
         {showThankYouPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-md bg-primary rounded-lg shadow-xl p-8 text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-white" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-primary rounded-lg shadow-xl p-6 sm:p-8 text-center mx-2 sm:mx-0"
+            >
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h3 className="font-display text-2xl text-white mb-2">Thank You!</h3>
-              <p className="text-white/90 mb-6">Your review has been submitted and will be published after admin approval.</p>
-              <button onClick={() => setShowThankYouPopup(false)} className="bg-white text-primary px-6 py-2 rounded-md font-medium">Close</button>
+              <h3 className="font-display text-xl sm:text-2xl text-white mb-2">Thank You!</h3>
+              <p className="text-white/90 text-sm sm:text-base mb-6">Your review has been submitted and will be published after admin approval.</p>
+              <button
+                onClick={() => setShowThankYouPopup(false)}
+                className="bg-white text-primary px-6 py-2 rounded-md font-medium text-sm sm:text-base touch-min"
+              >
+                Close
+              </button>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <main className="pt-16 lg:pt-24">
-        <InnerPageBanner title={product.name} breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Shop', path: '/shop' }, { label: product.name }]} />
+      <main className="pt-14 sm:pt-16 lg:pt-24">
+        <InnerPageBanner
+          title={product.name}
+          breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Shop', path: '/shop' }, { label: product.name }]}
+        />
 
-        <div className="container mx-auto px-4 lg:px-8 py-8 lg:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16">
-            {/* Image Gallery - FIXED */}
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-6 sm:py-8 lg:py-12">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16">
+            {/* Image Gallery - Mobile Optimized */}
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-3 sm:space-y-4">
               {/* Main Image */}
               <div className="relative aspect-square overflow-hidden rounded-sm border">
                 <AnimatePresence mode="wait">
@@ -1432,45 +1814,43 @@ const ProductDetail = () => {
                   />
                 </AnimatePresence>
 
-                {/* Navigation Arrows - Only show if more than 1 image */}
+                {/* Navigation Arrows */}
                 {galleryImages.length > 1 && (
                   <>
                     <button
                       onClick={() => setActiveImageIndex(i => i === 0 ? galleryImages.length - 1 : i - 1)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors"
+                      className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors touch-min"
                     >
-                      <ChevronLeft className="w-5 h-5" />
+                      <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button
                       onClick={() => setActiveImageIndex(i => i === galleryImages.length - 1 ? 0 : i + 1)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors"
+                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors touch-min"
                     >
-                      <ChevronRight className="w-5 h-5" />
+                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </>
                 )}
 
                 {/* Dots Indicator */}
                 {galleryImages.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2">
                     {galleryImages.map((_, idx) => (
                       <button
                         key={idx}
                         onClick={() => setActiveImageIndex(idx)}
-                        className={`w-2 h-2 rounded-full transition-colors ${activeImageIndex === idx ? 'bg-primary w-4' : 'bg-white/50'}`}
+                        className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors touch-min ${activeImageIndex === idx ? 'bg-primary w-3 sm:w-4' : 'bg-white/50'}`}
                       />
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Thumbnails - FIXED: Shows ALL images */}
+              {/* Thumbnails */}
               {galleryImages.length > 1 && (
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
                   {galleryImages.map((img, idx) => {
-                    // Get thumbnail URL (original size)
                     const thumbUrl = img;
-
                     return (
                       <button
                         key={`thumb-${idx}-${Date.now()}`}
@@ -1478,7 +1858,7 @@ const ProductDetail = () => {
                           console.log(`🖼️ Switching to image ${idx + 1}`);
                           setActiveImageIndex(idx);
                         }}
-                        className={`w-20 h-20 flex-shrink-0 overflow-hidden border-2 transition-colors ${activeImageIndex === idx ? 'border-primary' : 'border-gray-200'
+                        className={`w-14 h-14 sm:w-16 sm:h-20 flex-shrink-0 overflow-hidden border-2 transition-colors touch-min ${activeImageIndex === idx ? 'border-primary' : 'border-gray-200'
                           }`}
                       >
                         <img
@@ -1495,106 +1875,106 @@ const ProductDetail = () => {
                   })}
                 </div>
               )}
-
-
             </motion.div>
 
-            {/* Product Info */}
-            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+            {/* Product Info - Mobile Optimized */}
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-3 sm:space-y-4">
               <div>
-                <span className="text-primary text-sm tracking-wider uppercase">{product.category}</span>
-                <h1 className="font-display text-3xl lg:text-3xl text-foreground mt-0.5">{product.name}</h1>
-                <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-primary text-xs sm:text-sm tracking-wider uppercase">{product.category}</span>
+                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl text-foreground mt-0.5">{product.name}</h1>
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-1.5">
                   <div className="flex">
-                    {[1, 2, 3, 4, 5].map((i) => (<Star key={i} className={`w-4 h-4 ${i <= (reviewStats.rating || 4) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />))}
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className={`w-3 h-3 sm:w-4 sm:h-4 ${i <= (reviewStats.rating || 4) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                    ))}
                   </div>
-                  <span className="text-muted-foreground text-sm">({reviewStats.count || 0} Customer Reviews)</span>
+                  <span className="text-muted-foreground text-xs sm:text-sm">({reviewStats.count || 0} Customer Reviews)</span>
                 </div>
               </div>
 
               {/* Pricing section - Couple Ring dual price or standard single price */}
               {isCoupleRing ? (
-                <div className="space-y-3.5">
+                <div className="space-y-3 sm:space-y-3.5">
                   {/* Prominent Dual Price Highlight */}
-                  <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-gradient-to-br from-amber-50/90 via-amber-100/30 to-white border border-amber-200/90 shadow-xs">
-                    <div className="p-2.5 rounded-lg bg-white/95 border border-amber-200/80 shadow-xs">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 p-3 sm:p-3.5 rounded-xl bg-gradient-to-br from-amber-50/90 via-amber-100/30 to-white border border-amber-200/90 shadow-xs">
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-white/95 border border-amber-200/80 shadow-xs">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">Women’s Ring</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 font-bold">♀</span>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider">Women’s Ring</span>
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 font-bold">♀</span>
                       </div>
-                      <p className="text-lg sm:text-xl font-extrabold text-primary">{formatPrice(couplePrices.womenPrice)}</p>
-                      {couplePrices.womenWeight ? <p className="text-[11px] text-gray-500 font-medium">{couplePrices.womenWeight}g Gold</p> : null}
+                      <p className="text-base sm:text-lg lg:text-xl font-extrabold text-primary">{formatPrice(couplePrices.womenPrice)}</p>
+                      {couplePrices.womenWeight ? <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium">{couplePrices.womenWeight}g Gold</p> : null}
                     </div>
 
-                    <div className="p-2.5 rounded-lg bg-white/95 border border-blue-200/80 shadow-xs">
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-white/95 border border-blue-200/80 shadow-xs">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">Men’s Ring</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-900 font-bold">♂</span>
+                        <span className="text-[10px] sm:text-[11px] font-bold text-blue-900 uppercase tracking-wider">Men’s Ring</span>
+                        <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-900 font-bold">♂</span>
                       </div>
-                      <p className="text-lg sm:text-xl font-extrabold text-primary">{formatPrice(couplePrices.menPrice)}</p>
-                      {couplePrices.menWeight ? <p className="text-[11px] text-gray-500 font-medium">{couplePrices.menWeight}g Gold</p> : null}
+                      <p className="text-base sm:text-lg lg:text-xl font-extrabold text-primary">{formatPrice(couplePrices.menPrice)}</p>
+                      {couplePrices.menWeight ? <p className="text-[10px] sm:text-[11px] text-gray-500 font-medium">{couplePrices.menWeight}g Gold</p> : null}
                     </div>
                   </div>
 
                   {/* Ring Option Selector */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                      <label className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-1">
                         <span>Choose Your Ring</span>
                         <span className="text-red-600 font-extrabold">*</span>
                       </label>
-                      <span className="text-[11px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] sm:text-[11px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
                         {selectedRingOption}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                       {/* Women's Ring Button */}
                       <button
                         type="button"
                         onClick={() => setSelectedRingOption('Women’s Ring')}
-                        className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${selectedRingOption === 'Women’s Ring'
+                        className={`p-2 sm:p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer touch-min ${selectedRingOption === 'Women’s Ring'
                             ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xs'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-900">Women’s Ring</span>
-                          {selectedRingOption === 'Women’s Ring' && <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />}
+                          <span className="text-[11px] sm:text-xs font-bold text-gray-900">Women’s Ring</span>
+                          {selectedRingOption === 'Women’s Ring' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary stroke-[3]" />}
                         </div>
-                        <p className="text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.womenPrice)}</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.womenPrice)}</p>
                       </button>
 
                       {/* Men's Ring Button */}
                       <button
                         type="button"
                         onClick={() => setSelectedRingOption('Men’s Ring')}
-                        className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${selectedRingOption === 'Men’s Ring'
+                        className={`p-2 sm:p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer touch-min ${selectedRingOption === 'Men’s Ring'
                             ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xs'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-900">Men’s Ring</span>
-                          {selectedRingOption === 'Men’s Ring' && <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />}
+                          <span className="text-[11px] sm:text-xs font-bold text-gray-900">Men’s Ring</span>
+                          {selectedRingOption === 'Men’s Ring' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary stroke-[3]" />}
                         </div>
-                        <p className="text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.menPrice)}</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.menPrice)}</p>
                       </button>
 
                       {/* Both Rings Button */}
                       <button
                         type="button"
                         onClick={() => setSelectedRingOption('Both Rings (Couple Set)')}
-                        className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${selectedRingOption === 'Both Rings (Couple Set)'
+                        className={`p-2 sm:p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer touch-min ${selectedRingOption === 'Both Rings (Couple Set)'
                             ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-xs'
                             : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-900">Both Rings (Set)</span>
-                          {selectedRingOption === 'Both Rings (Couple Set)' && <Check className="w-3.5 h-3.5 text-primary stroke-[3]" />}
+                          <span className="text-[11px] sm:text-xs font-bold text-gray-900">Both Rings (Set)</span>
+                          {selectedRingOption === 'Both Rings (Couple Set)' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary stroke-[3]" />}
                         </div>
-                        <p className="text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.bothPrice)}</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-primary mt-1">{formatPrice(couplePrices.bothPrice)}</p>
                       </button>
                     </div>
                   </div>
@@ -1602,14 +1982,14 @@ const ProductDetail = () => {
                   {/* Active Price Breakdown */}
                   <div className="price-container-fixed space-y-0.5 pt-1">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-primary">
+                      <span className="text-xl sm:text-2xl font-bold text-primary">
                         {formatPrice(getEffectiveProductPrice())}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">
                         ({selectedRingOption})
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       + {product.gst ?? 3}% GST extra applicable
                     </p>
                   </div>
@@ -1617,72 +1997,71 @@ const ProductDetail = () => {
               ) : (
                 <div className="price-container-fixed space-y-1">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-primary">
+                    <span className="text-xl sm:text-2xl font-bold text-primary">
                       {formatPrice(product.price)}
                     </span>
                   </div>
-
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     + {product.gst ?? 3}% GST extra applicable
                   </p>
                 </div>
               )}
 
-              <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="text-xs sm:text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>SKU: {product.sku}</span>
-                <span>|</span>
+                <span className="hidden sm:inline">|</span>
                 {(product as any).isAvailableForOrder !== false ? (
-                  <span className="text-emerald-700 font-semibold inline-flex items-center gap-1 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 text-xs">
-                    ✨ Made to Order (Prepared on order)
+                  <span className="text-emerald-700 font-semibold inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px] sm:text-xs">
+                    ✨ Made to Order
                   </span>
                 ) : (
-                  <span className="text-red-600 font-semibold inline-flex items-center gap-1 bg-red-50 px-2.5 py-0.5 rounded border border-red-200 text-xs">
-                    ✗ Currently Unavailable
+                  <span className="text-red-600 font-semibold inline-flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded border border-red-200 text-[10px] sm:text-xs">
+                    ✗ Unavailable
                   </span>
                 )}
               </div>
 
-              <p className="text-sm text-muted-foreground leading-snug">
+              <p className="text-xs sm:text-sm text-muted-foreground leading-snug">
                 {product.description || "No description available."}
               </p>
 
-              {/* ========== Ring Size Selector ========== */}
+              {/* ========== Ring Size Selector - Mobile Optimized ========== */}
               {requiresRingSizeSelection() && (
                 <div
-                  className={`p-3 rounded-lg border transition-all ${sizeError
-                    ? 'border-red-600 bg-red-50/50'
-                    : 'border-gray-200 bg-gray-50/30'
+                  className={`p-2 sm:p-3 rounded-lg border transition-all ${sizeError
+                      ? 'border-red-600 bg-red-50/50'
+                      : 'border-gray-200 bg-gray-50/30'
                     }`}
                 >
                   {isCoupleRing ? (
                     <div className="space-y-3">
                       {selectedRingOption === 'Women’s Ring' && (
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-foreground text-sm font-bold flex items-center gap-1 text-amber-900">
+                          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                            <label className="block text-foreground text-xs sm:text-sm font-bold flex items-center gap-1 text-amber-900">
                               <span>Select Women’s Ring Size (♀)</span>
-                              <span className="text-red-600 font-extrabold text-sm">*</span>
+                              <span className="text-red-600 font-extrabold text-xs sm:text-sm">*</span>
                             </label>
                             {selectedWomenSize ? (
-                              <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                <Check className="w-3 h-3" />
-                                Size {selectedWomenSize} Selected
+                              <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                Size {selectedWomenSize}
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-[#612030] text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                              <span className="text-[9px] sm:text-[10px] bg-[#612030] text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                                 Required
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {getRingSizes().map((size) => (
                               <button
                                 key={`women-detail-${size}`}
                                 type="button"
                                 onClick={() => setSelectedWomenSize(selectedWomenSize === size ? '' : size)}
-                                className={`w-9 h-9 rounded-md font-semibold text-xs border transition-all duration-200 ${selectedWomenSize === size
-                                  ? 'border-amber-600 bg-amber-600 text-white shadow-xs scale-105'
-                                  : 'border-gray-300 bg-white hover:border-amber-600 hover:bg-amber-50 text-gray-800'
+                                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md font-semibold text-[10px] sm:text-xs border transition-all duration-200 touch-min ${selectedWomenSize === size
+                                    ? 'border-amber-600 bg-amber-600 text-white shadow-xs scale-105'
+                                    : 'border-gray-300 bg-white hover:border-amber-600 hover:bg-amber-50 text-gray-800'
                                   }`}
                               >
                                 {size}
@@ -1694,31 +2073,31 @@ const ProductDetail = () => {
 
                       {selectedRingOption === 'Men’s Ring' && (
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-foreground text-sm font-bold flex items-center gap-1 text-blue-900">
+                          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                            <label className="block text-foreground text-xs sm:text-sm font-bold flex items-center gap-1 text-blue-900">
                               <span>Select Men’s Ring Size (♂)</span>
-                              <span className="text-red-600 font-extrabold text-sm">*</span>
+                              <span className="text-red-600 font-extrabold text-xs sm:text-sm">*</span>
                             </label>
                             {selectedMenSize ? (
-                              <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                <Check className="w-3 h-3" />
-                                Size {selectedMenSize} Selected
+                              <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                Size {selectedMenSize}
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-[#612030] text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                              <span className="text-[9px] sm:text-[10px] bg-[#612030] text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                                 Required
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {getRingSizes().map((size) => (
                               <button
                                 key={`men-detail-${size}`}
                                 type="button"
                                 onClick={() => setSelectedMenSize(selectedMenSize === size ? '' : size)}
-                                className={`w-9 h-9 rounded-md font-semibold text-xs border transition-all duration-200 ${selectedMenSize === size
-                                  ? 'border-blue-600 bg-blue-600 text-white shadow-xs scale-105'
-                                  : 'border-gray-300 bg-white hover:border-blue-600 hover:bg-blue-50 text-gray-800'
+                                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md font-semibold text-[10px] sm:text-xs border transition-all duration-200 touch-min ${selectedMenSize === size
+                                    ? 'border-blue-600 bg-blue-600 text-white shadow-xs scale-105'
+                                    : 'border-gray-300 bg-white hover:border-blue-600 hover:bg-blue-50 text-gray-800'
                                   }`}
                               >
                                 {size}
@@ -1732,31 +2111,31 @@ const ProductDetail = () => {
                         <div className="space-y-3">
                           {/* Women Size Selector */}
                           <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="block text-foreground text-xs font-bold flex items-center gap-1 text-amber-900">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-foreground text-[10px] sm:text-xs font-bold flex items-center gap-1 text-amber-900">
                                 <span>1. Women’s Ring Size (♀)</span>
-                                <span className="text-red-600 font-extrabold text-xs">*</span>
+                                <span className="text-red-600 font-extrabold text-[10px] sm:text-xs">*</span>
                               </label>
                               {selectedWomenSize ? (
-                                <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                  <Check className="w-3 h-3" />
+                                <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                  <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                   Size {selectedWomenSize}
                                 </span>
                               ) : (
-                                <span className="text-[10px] bg-amber-800 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                                <span className="text-[9px] sm:text-[10px] bg-amber-800 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                                   Required
                                 </span>
                               )}
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-1 sm:gap-1.5">
                               {getRingSizes().map((size) => (
                                 <button
                                   key={`women-both-${size}`}
                                   type="button"
                                   onClick={() => setSelectedWomenSize(selectedWomenSize === size ? '' : size)}
-                                  className={`w-8 h-8 rounded-md font-semibold text-xs border transition-all duration-200 ${selectedWomenSize === size
-                                    ? 'border-amber-600 bg-amber-600 text-white shadow-xs scale-105'
-                                    : 'border-gray-300 bg-white hover:border-amber-600 hover:bg-amber-50 text-gray-800'
+                                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md font-semibold text-[9px] sm:text-xs border transition-all duration-200 touch-min ${selectedWomenSize === size
+                                      ? 'border-amber-600 bg-amber-600 text-white shadow-xs scale-105'
+                                      : 'border-gray-300 bg-white hover:border-amber-600 hover:bg-amber-50 text-gray-800'
                                     }`}
                                 >
                                   {size}
@@ -1766,32 +2145,32 @@ const ProductDetail = () => {
                           </div>
 
                           {/* Men Size Selector */}
-                          <div className="pt-2 border-t border-gray-200">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <label className="block text-foreground text-xs font-bold flex items-center gap-1 text-blue-900">
+                          <div className="pt-2 sm:pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-foreground text-[10px] sm:text-xs font-bold flex items-center gap-1 text-blue-900">
                                 <span>2. Men’s Ring Size (♂)</span>
-                                <span className="text-red-600 font-extrabold text-xs">*</span>
+                                <span className="text-red-600 font-extrabold text-[10px] sm:text-xs">*</span>
                               </label>
                               {selectedMenSize ? (
-                                <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                  <Check className="w-3 h-3" />
+                                <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                  <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                   Size {selectedMenSize}
                                 </span>
                               ) : (
-                                <span className="text-[10px] bg-blue-800 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                                <span className="text-[9px] sm:text-[10px] bg-blue-800 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
                                   Required
                                 </span>
                               )}
                             </div>
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-1 sm:gap-1.5">
                               {getRingSizes().map((size) => (
                                 <button
                                   key={`men-both-${size}`}
                                   type="button"
                                   onClick={() => setSelectedMenSize(selectedMenSize === size ? '' : size)}
-                                  className={`w-8 h-8 rounded-md font-semibold text-xs border transition-all duration-200 ${selectedMenSize === size
-                                    ? 'border-blue-600 bg-blue-600 text-white shadow-xs scale-105'
-                                    : 'border-gray-300 bg-white hover:border-blue-600 hover:bg-blue-50 text-gray-800'
+                                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md font-semibold text-[9px] sm:text-xs border transition-all duration-200 touch-min ${selectedMenSize === size
+                                      ? 'border-blue-600 bg-blue-600 text-white shadow-xs scale-105'
+                                      : 'border-gray-300 bg-white hover:border-blue-600 hover:bg-blue-50 text-gray-800'
                                     }`}
                                 >
                                   {size}
@@ -1804,33 +2183,31 @@ const ProductDetail = () => {
                     </div>
                   ) : (
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-foreground text-sm font-bold flex items-center gap-1">
+                      <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                        <label className="block text-foreground text-xs sm:text-sm font-bold flex items-center gap-1">
                           Select Ring Size
-                          <span className="text-red-600 font-extrabold text-sm">*</span>
+                          <span className="text-red-600 font-extrabold text-xs sm:text-sm">*</span>
                         </label>
-
                         {selectedSize ? (
-                          <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                            <Check className="w-3 h-3" />
-                            Size {selectedSize} Selected
+                          <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            Size {selectedSize}
                           </span>
                         ) : (
-                          <span className="text-[10px] bg-[#612030] text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                          <span className="text-[9px] sm:text-[10px] bg-[#612030] text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                             Required
                           </span>
                         )}
                       </div>
-
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {getRingSizes().map((size) => (
                           <button
                             key={size}
                             type="button"
                             onClick={() => handleSizeToggle(size)}
-                            className={`w-9 h-9 rounded-md font-semibold text-xs border transition-all duration-200 ${selectedSize === size
-                              ? 'border-primary bg-primary text-white shadow-sm scale-105'
-                              : 'border-gray-300 bg-white hover:border-primary hover:bg-primary/5 text-gray-800'
+                            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-md font-semibold text-[10px] sm:text-xs border transition-all duration-200 touch-min ${selectedSize === size
+                                ? 'border-primary bg-primary text-white shadow-sm scale-105'
+                                : 'border-gray-300 bg-white hover:border-primary hover:bg-primary/5 text-gray-800'
                               }`}
                           >
                             {size}
@@ -1842,68 +2219,62 @@ const ProductDetail = () => {
                 </div>
               )}
 
-              {/* Quantity and Gold / Rose Gold Options in a Clean Row */}
-              <div className="flex flex-wrap items-start gap-4 sm:gap-6 py-1">
+              {/* Quantity and Gold / Rose Gold Options in a Clean Row - Mobile Optimized */}
+              <div className="flex flex-col sm:flex-row flex-wrap items-start gap-3 sm:gap-4 lg:gap-6 py-1">
                 {/* Quantity */}
-                <div>
-                  <label className="block text-foreground text-sm font-medium mb-1.5">
+                <div className="w-full sm:w-auto">
+                  <label className="block text-foreground text-xs sm:text-sm font-medium mb-1.5">
                     Quantity
                   </label>
-
-                  <div className="inline-flex items-center border rounded-md bg-white">
+                  <div className="inline-flex items-center border rounded-md bg-white w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 border-r transition-colors"
+                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 border-r transition-colors touch-min"
                     >
                       <Minus className="w-3.5 h-3.5" />
                     </button>
-
                     <span className="w-10 text-center text-sm font-medium">
                       {quantity}
                     </span>
-
                     <button
                       type="button"
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 border-l transition-colors"
+                      className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 border-l transition-colors touch-min"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                {/* Gold / Rose Gold Material Options on Right Side */}
+                {/* Gold / Rose Gold Material Options */}
                 {availableMaterials.length > 0 && (
-                  <div className="flex-1 min-w-[210px]">
+                  <div className="flex-1 min-w-[180px] sm:min-w-[210px] w-full sm:w-auto">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-foreground text-sm font-medium flex items-center gap-1">
+                      <label className="block text-foreground text-xs sm:text-sm font-medium flex items-center gap-1">
                         Metal / Color
                         {availableMaterials.length > 1 && (
-                          <span className="text-red-600 font-extrabold text-sm">*</span>
+                          <span className="text-red-600 font-extrabold text-xs sm:text-sm">*</span>
                         )}
                       </label>
-
                       {availableMaterials.length > 1 && (
                         selectedMaterial ? (
-                          <span className="text-[10px] bg-green-700 text-white font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                            <Check className="w-3 h-3" />
-                            {selectedMaterial} Selected
+                          <span className="text-[9px] sm:text-[10px] bg-green-700 text-white font-bold px-1.5 sm:px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                            <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                            {selectedMaterial}
                           </span>
                         ) : (
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm ${materialError ? 'bg-red-700 text-white animate-pulse' : 'bg-[#612030] text-white'
+                          <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm ${materialError ? 'bg-red-700 text-white animate-pulse' : 'bg-[#612030] text-white'
                             }`}>
                             Required
                           </span>
                         )
                       )}
                     </div>
-
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {availableMaterials.map((mat) => {
                         const isSelected = selectedMaterial === mat;
                         const isGold = !mat.toLowerCase().includes('rose');
-
                         return (
                           <button
                             key={mat}
@@ -1912,7 +2283,7 @@ const ProductDetail = () => {
                               setSelectedMaterial(mat);
                               setMaterialError(false);
                             }}
-                            className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold flex items-center gap-2 border-2 transition-all duration-200 ${isSelected
+                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-md text-[10px] sm:text-xs lg:text-sm font-semibold flex items-center gap-1.5 sm:gap-2 border-2 transition-all duration-200 touch-min ${isSelected
                                 ? isGold
                                   ? 'border-amber-600 bg-amber-50 text-amber-950 shadow-sm ring-1 ring-amber-600/30'
                                   : 'border-rose-500 bg-rose-50 text-rose-950 shadow-sm ring-1 ring-rose-500/30'
@@ -1922,22 +2293,22 @@ const ProductDetail = () => {
                               }`}
                           >
                             <span
-                              className={`w-3 h-3 rounded-full inline-block shadow-sm ${isGold
+                              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full inline-block shadow-sm ${isGold
                                   ? 'bg-gradient-to-br from-amber-300 to-amber-500 border border-amber-600'
                                   : 'bg-gradient-to-br from-rose-300 to-rose-400 border border-rose-500'
                                 }`}
                             />
-                            <span>{mat}</span>
+                            <span className="hidden xs:inline">{mat}</span>
+                            <span className="xs:hidden">{isGold ? 'Gold' : 'Rose'}</span>
                             {isSelected && (
-                              <Check className="w-3.5 h-3.5 ml-0.5 stroke-[2.5]" />
+                              <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5 stroke-[2.5]" />
                             )}
                           </button>
                         );
                       })}
                     </div>
-
                     {materialError && !selectedMaterial && (
-                      <p className="text-xs text-red-600 mt-1 font-medium">
+                      <p className="text-[10px] sm:text-xs text-red-600 mt-1 font-medium">
                         Please select Gold or Rose Gold.
                       </p>
                     )}
@@ -1945,101 +2316,120 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Cart and Wishlist Buttons */}
-              <div className="flex items-center gap-3">
+              {/* Cart and Wishlist Buttons - Mobile Optimized */}
+              <div className="flex items-center gap-2 sm:gap-3">
                 {isInCart ? (
-                  <Link to="/cart" className="flex-1 bg-primary text-white hover:bg-primary/90 flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-md shadow-sm">
-                    <ShoppingBag className="w-5 h-5" /> GO TO CART
+                  <Link to="/cart" className="flex-1 bg-primary text-white hover:bg-primary/90 flex items-center justify-center gap-2 py-2.5 sm:py-3 text-xs sm:text-sm font-bold rounded-md shadow-sm touch-min">
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" /> PROCEED TO CHECKOUT
                   </Link>
                 ) : (
                   <button
                     onClick={handleAddToCart}
-                    disabled={(product as any).isAvailableForOrder === false}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-extrabold rounded-md shadow-sm transition-all ${(product as any).isAvailableForOrder === false
-                      ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                      : requiresMaterialSelection()
-                        ? 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
-                        : requiresRingSizeSelection() && !selectedSize
-                          ? 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
-                          : 'bg-primary text-white hover:bg-primary/90'
+                    disabled={isUnavailable}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 sm:py-3 text-[11px] sm:text-sm font-extrabold rounded-md shadow-sm transition-all touch-min ${isUnavailable
+                        ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                        : isReadyForCart
+                          ? 'bg-primary text-white hover:bg-primary/90'
+                          : 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
                       }`}
                   >
-                    <ShoppingBag className="w-4 h-4" />
-
-                    {(product as any).isAvailableForOrder === false
-                      ? 'CURRENTLY UNAVAILABLE'
-                      : requiresMaterialSelection()
-                        ? 'SELECT GOLD OR ROSE GOLD'
-                        : requiresRingSizeSelection() && !selectedSize
-                          ? 'SELECT SIZE FIRST'
-                          : 'ADD TO CART'}
+                    <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden xs:inline">{getAddToCartLabel()}</span>
+                    <span className="xs:hidden text-[10px]">
+                      {isUnavailable ? 'UNAVAILABLE' : needsMaterial ? 'SELECT METAL' : !hasSizes ? 'SELECT SIZE' : 'ADD'}
+                    </span>
                   </button>
                 )}
-                <button onClick={handleWishlistToggle} className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${inWishlist ? 'border-primary bg-primary text-white' : 'border-gray-300 hover:border-primary'}`}>
-                  <Heart className={`w-4.5 h-4.5 ${inWishlist ? 'fill-current' : ''}`} />
+                <button
+                  onClick={handleWishlistToggle}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 flex items-center justify-center transition-all touch-min ${inWishlist ? 'border-primary bg-primary text-white' : 'border-gray-300 hover:border-primary'
+                    }`}
+                >
+                  <Heart className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${inWishlist ? 'fill-current' : ''}`} />
                 </button>
               </div>
 
               {/* Important: Unboxing Video Warning */}
-              <div className="py-1.5 px-2.5 bg-amber-100/80 border-l-4 border-amber-600 rounded text-amber-950 text-xs leading-tight">
+              <div className="py-1.5 px-2.5 bg-amber-100/80 border-l-4 border-amber-600 rounded text-amber-950 text-[10px] sm:text-xs leading-tight">
                 <strong>Important:</strong> A complete box-opening / unboxing video is mandatory to be eligible for a return or exchange. The video must clearly show the sealed package being opened and the product inside. Requests without an unboxing video will not be accepted.
               </div>
 
-              {/* Shipping Info */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
-                <div className="flex items-center gap-2 text-sm text-black/80"><Truck className="w-5 h-5 text-primary" /><span>Estimated Delivery 12–15 days <br />from the date of order</span></div>
-                <div className="flex items-center gap-2 text-sm text-black/80"><Shield className="w-5 h-5 text-primary" /><span>Secure Payment</span></div>
-                <div className="flex items-center gap-2 text-sm text-black/80"><RotateCcw className="w-5 h-5 text-primary" /><span>7-Day Returns & Exchange</span></div>
-                <div className="flex items-center gap-2 text-sm text-black/80"><Award className="w-5 h-5 text-primary" /><span>Certified Quality</span></div>
+              {/* Shipping Info - Mobile Optimized */}
+              <div className="grid grid-cols-2 gap-x-2 sm:gap-x-4 gap-y-2 sm:gap-y-3 pt-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-black/80">
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="leading-tight">Delivery 12–15 days</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-black/80">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="leading-tight">Secure Payment</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-black/80">
+                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="leading-tight">7-Day Returns</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-sm text-black/80">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="leading-tight">Certified Quality</span>
+                </div>
               </div>
 
-              {/* Checkout Button */}
+              {/* Checkout Button - Mobile Optimized */}
               <button
                 onClick={handleProceedToCheckout}
-                disabled={(product as any).isAvailableForOrder === false}
-                className={`w-full py-3 text-sm tracking-wider font-extrabold rounded-md shadow-sm transition-all ${(product as any).isAvailableForOrder === false
-                  ? 'bg-gray-400 cursor-not-allowed text-gray-200'
-                  : requiresMaterialSelection()
-                    ? 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
-                    : requiresRingSizeSelection() && !selectedSize
-                      ? 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
-                      : 'bg-primary text-white hover:bg-primary/90'
+                disabled={isUnavailable}
+                className={`w-full py-2.5 sm:py-3 text-[11px] sm:text-sm tracking-wider font-extrabold rounded-md shadow-sm transition-all touch-min ${isUnavailable
+                    ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+                    : isReadyForCart
+                      ? 'bg-primary text-white hover:bg-primary/90'
+                      : 'bg-[#612030] text-white hover:bg-[#4a1824] border-2 border-red-900 shadow-md'
                   }`}
               >
-                {(product as any).isAvailableForOrder === false
-                  ? 'CURRENTLY UNAVAILABLE'
-                  : requiresMaterialSelection()
-                    ? 'SELECT GOLD OR ROSE GOLD TO CHECKOUT'
-                    : requiresRingSizeSelection() && !selectedSize
-                      ? 'SELECT SIZE FIRST TO CHECKOUT'
-                      : 'PROCEED TO CHECKOUT'}
+                <span className="hidden xs:inline">{getCheckoutLabel()}</span>
+                <span className="xs:hidden">
+                  {isUnavailable ? 'UNAVAILABLE' : needsMaterial ? 'SELECT METAL' : !hasSizes ? 'SELECT SIZE' : 'CHECKOUT'}
+                </span>
               </button>
             </motion.div>
           </div>
 
-          {/* Accordion Sections */}
-          <div className="mt-17 lg:mt-20 max-w-7xl mx-auto space-y-5 px-4">                  {accordionSections.map((section) => (
-            <div key={section.id} className={`border rounded-md overflow-hidden transition-all duration-300 ${expandedSection === section.id ? 'border-primary/40 bg-gray-50' : 'border-primary/20'}`}>
-              <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between px-6 py-4 text-left bg-primary">
-                <h3 className="font-display text-xl font-semibold text-white">{section.title}</h3>
-                <ChevronRight className={`w-5 h-5 text-white transition-all duration-300 ${expandedSection === section.id ? 'rotate-90' : ''}`} />
-              </button>
-              <AnimatePresence>
-                {expandedSection === section.id && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                    <div className="px-6 pb-6 pt-4 text-sm text-gray-700 border-t">{section.content}</div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
+          {/* Accordion Sections - Mobile Optimized */}
+          <div className="mt-12 sm:mt-17 lg:mt-20 max-w-7xl mx-auto space-y-3 sm:space-y-5 px-2 sm:px-4">
+            {accordionSections.map((section) => (
+              <div key={section.id} className={`border rounded-md overflow-hidden transition-all duration-300 ${expandedSection === section.id ? 'border-primary/40 bg-gray-50' : 'border-primary/20'
+                }`}>
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 text-left bg-primary touch-min"
+                >
+                  <h3 className="font-display text-base sm:text-xl font-semibold text-white">{section.title}</h3>
+                  <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-white transition-all duration-300 ${expandedSection === section.id ? 'rotate-90' : ''
+                    }`} />
+                </button>
+                <AnimatePresence>
+                  {expandedSection === section.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-3 sm:pt-4 text-xs sm:text-sm text-gray-700 border-t">
+                        {section.content}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
           </div>
 
-          {/* ========== RELATED PRODUCTS - FIXED ========== */}
+          {/* ========== RELATED PRODUCTS - Mobile Optimized ========== */}
           {relatedProducts.length > 0 && (
-            <section className="mt-16 lg:mt-24">
-              <h2 className="font-display text-2xl text-foreground mb-8 text-center">Related Products</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <section className="mt-12 sm:mt-16 lg:mt-24">
+              <h2 className="font-display text-xl sm:text-2xl text-foreground mb-6 sm:mb-8 text-center">Related Products</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                 {relatedProducts.map((p) => {
                   const ringSizes =
                     Array.isArray(p.ringSizes) && p.ringSizes.length > 0
@@ -2048,7 +2438,6 @@ const ProductDetail = () => {
                         ? p.specifications.ringSizes
                         : ['Free Size'];
 
-                  // Ring validation must come from category, not from the size array.
                   const categoryName = typeof p.category === 'string' ? p.category.toLowerCase().trim() : '';
                   const isRing =
                     !categoryName.includes('earring') &&
@@ -2069,7 +2458,6 @@ const ProductDetail = () => {
                         tags: p.tags,
                         specifications: p.specifications,
                         coupleRing: p.coupleRing || (p as any).specifications?.coupleRing || undefined,
-                        // ⭐ CRITICAL FIX: Pass ring sizes directly
                         ringSizes: ringSizes,
                         isRingProduct: isRing,
                         gst: p.gst ?? 3,

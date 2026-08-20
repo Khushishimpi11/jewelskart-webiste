@@ -9,6 +9,7 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
+import { formatCoupleOrRingSize } from '@/utils/coupleRing';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -329,6 +330,7 @@ const Checkout = () => {
           price: item.product.price,
           size: item.size,
           material: item.material || item.product?.material || '',
+          ringOption: item.ringOption || item.product?.ringOption || '',
           name: item.product.name,
           image: item.product.image
         })),
@@ -1001,6 +1003,7 @@ const Checkout = () => {
                     checkoutItems.map((item, idx) => {
                       const itemMaterial = item.material || item.product?.material;
                       const itemRingOption = item.ringOption || item.product?.ringOption;
+                      const displaySize = item.size ? formatCoupleOrRingSize(item.size, itemRingOption) : '';
                       return (
                         <div key={`${item.product.id}-${item.size}-${itemMaterial}-${itemRingOption}-${idx}`} className="flex items-start gap-4">
                           <img src={item.product.image} alt={item.product.name} className="w-16 h-16 object-cover rounded-sm flex-shrink-0" />
@@ -1008,9 +1011,8 @@ const Checkout = () => {
                             <p className="text-foreground font-medium">{item.product.name}</p>
                             <p className="text-muted-foreground text-sm">
                               Qty: {item.quantity}
-                              {itemRingOption && ` • Ring: ${itemRingOption}`}
                               {itemMaterial && ` • Metal: ${itemMaterial}`}
-                              {item.size && ` • Size: ${item.size}`}
+                              {displaySize && ` • Size: ${displaySize}`}
                             </p>
                             <p className="text-xs text-muted-foreground">+ {item.product.gst ?? 3}% GST applicable</p>
                           </div>

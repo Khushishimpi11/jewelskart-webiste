@@ -7,6 +7,7 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useAuthStore } from '@/store/authStore';
 import { useOrderStore, SimpleOrder } from '@/store/orderStore';
 import { useExchange } from '@/context/ExchangeContext';
+import { formatCoupleOrRingSize } from '@/utils/coupleRing';
 import {
   Package, Eye, Loader2, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle,
   Copy, Check, User, RefreshCw, XCircle, Upload, X, CreditCard, Banknote, Plus, Search, MinusCircle,
@@ -98,7 +99,6 @@ const OrderSummary = () => {
   // Image/Video upload states
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  // Mandatory unboxing video state
   const [unboxingVideo, setUnboxingVideo] = useState<File | null>(null);
   const [unboxingVideoUrl, setUnboxingVideoUrl] = useState<string>('');
   const [unboxingVideoBase64, setUnboxingVideoBase64] = useState<string>('');
@@ -409,7 +409,7 @@ const OrderSummary = () => {
     }
   }, [isAuthenticated, fetchMyOrders, token]);
 
-  // Re-fetch orders when tab regains focus (so CMS status changes are reflected)
+  // Re-fetch orders when tab regains focus
   useEffect(() => {
     const handleFocus = () => {
       if (isAuthenticated) {
@@ -1008,7 +1008,6 @@ const OrderSummary = () => {
     setUnboxingVideo(file);
     setUnboxingVideoUrl(URL.createObjectURL(file));
 
-    // Convert video to Base64 string for upload
     const reader = new FileReader();
     reader.onloadend = () => {
       setUnboxingVideoBase64(reader.result as string);
@@ -1154,7 +1153,7 @@ const OrderSummary = () => {
       let products = allProducts.filter((p: any) => {
         if (!p || !p._id) return false;
         if (p._id === currentProcessingItem?.productId) return false;
-        if (p.stock <= 0) return false;
+        if (p.isAvailableForOrder === false) return false;
         if (p.status && p.status !== 'Published') return false;
         return true;
       });
@@ -1220,26 +1219,27 @@ const OrderSummary = () => {
           breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Order Summary' }]}
         />
 
-        <div className="container mx-auto px-4 lg:px-8 py-16">
+        <div className="container mx-auto px-4 py-8 lg:py-16">
           <div className="max-w-4xl mx-auto">
 
             {/* Customer ID Card */}
+
             <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="flex flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                     <User className="h-5 w-5 text-primary" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Your Customer ID</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-mono font-semibold text-primary text-lg">
+                      <p className="font-mono font-semibold text-primary text-sm sm:text-lg truncate">
                         {getCustomerId()}
                       </p>
                       {user?.customerId && (
                         <button
                           onClick={() => copyToClipboard(getCustomerId(), 'customer-id')}
-                          className="p-1 hover:bg-primary/10 rounded transition-colors"
+                          className="p-1 hover:bg-primary/10 rounded transition-colors flex-shrink-0"
                         >
                           {copiedId === 'customer-id' ?
                             <Check className="w-4 h-4 text-green-500" /> :
@@ -1248,18 +1248,19 @@ const OrderSummary = () => {
                         </button>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Use this ID for customer support</p>
+                    <p className="text-xs text-muted-foreground hidden sm:block">Use this ID for customer support</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <p className="text-xs text-muted-foreground">Total Orders</p>
                   <p className="text-2xl font-bold text-primary">{orders.length}</p>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground sm:hidden mt-1">Use this ID for customer support</p>
             </div>
 
             {orders.length > 0 ? (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {orders.map((order, index) => {
                   const existingRequest = getRequestForOrder(order.id);
                   const hasPendingRequest = existingRequest && existingRequest.status === 'pending';
@@ -1269,7 +1270,6 @@ const OrderSummary = () => {
                   const isRequestApproved = existingRequest?.status === 'approved';
                   const isRequestRejected = existingRequest?.status === 'rejected';
 
-                  // 7-day return/exchange window from delivery date
                   const deliveredAt = order.deliveredAt || order.updatedAt || order.date;
                   const daysSinceDelivery = deliveredAt
                     ? Math.floor((Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24))
@@ -1283,18 +1283,20 @@ const OrderSummary = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="bg-card border border-border/30 p-6 rounded-sm"
+                      className="bg-card border border-border/30 p-4 sm:p-6 rounded-lg"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-border/30">
+                      {/* Order Header - Responsive */}
+                      {/* Desktop View: 4 columns */}
+                      <div className="hidden sm:grid grid-cols-4 gap-4 mb-4 pb-4 border-b border-border/30">
                         <div>
                           <p className="text-sm text-muted-foreground">Order ID</p>
                           <div className="flex items-center gap-2">
-                            <p className="font-display text-lg text-foreground">
+                            <p className="font-display text-lg text-foreground truncate">
                               {getDisplayOrderId(order)}
                             </p>
                             <button
                               onClick={() => copyToClipboard(getDisplayOrderId(order), `order-${order.id}`)}
-                              className="p-1 hover:bg-primary/10 rounded transition-colors"
+                              className="p-1 hover:bg-primary/10 rounded transition-colors flex-shrink-0"
                             >
                               {copiedId === `order-${order.id}` ?
                                 <Check className="w-4 h-4 text-green-500" /> :
@@ -1305,7 +1307,7 @@ const OrderSummary = () => {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Date</p>
-                          <p className="text-foreground">{formatDate(order.date)}</p>
+                          <p className="text-sm text-foreground">{formatDate(order.date)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Status</p>
@@ -1314,6 +1316,46 @@ const OrderSummary = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Total</p>
                           <p className="font-display text-lg text-primary">{formatPrice(order.total)}</p>
+                        </div>
+                      </div>
+
+                      {/* Mobile View: Order ID + Date on one line, Status + Total on another line */}
+                      <div className="sm:hidden mb-4 pb-4 border-b border-border/30">
+                        {/* Line 1: Order ID + Date */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Order ID</p>
+                            <div className="flex items-center gap-1">
+                              <p className="font-display text-sm font-semibold text-foreground truncate">
+                                {getDisplayOrderId(order)}
+                              </p>
+                              <button
+                                onClick={() => copyToClipboard(getDisplayOrderId(order), `order-${order.id}`)}
+                                className="p-0.5 hover:bg-primary/10 rounded transition-colors flex-shrink-0"
+                              >
+                                {copiedId === `order-${order.id}` ?
+                                  <Check className="w-3 h-3 text-green-500" /> :
+                                  <Copy className="w-3 h-3 text-muted-foreground" />
+                                }
+                              </button>
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <p className="text-xs text-muted-foreground">Date</p>
+                            <p className="text-xs text-foreground">{formatDate(order.date)}</p>
+                          </div>
+                        </div>
+
+                        {/* Line 2: Status + Total */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground">Status</p>
+                            <StatusBadge status={order.status || 'Confirmed'} />
+                          </div>
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="font-display text-base font-bold text-primary">{formatPrice(order.total)}</p>
+                          </div>
                         </div>
                       </div>
 
@@ -1326,9 +1368,9 @@ const OrderSummary = () => {
                             : 'border-gray-200'
                           }`}>
                           <div className="p-3 bg-gray-50">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                              <div className="flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-primary" />
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary flex-shrink-0" />
                                 <span className="text-sm font-medium">
                                   {existingRequest.requestType === 'cancel' && 'Cancellation Request'}
                                   {existingRequest.requestType === 'return' && 'Return Request'}
@@ -1354,7 +1396,6 @@ const OrderSummary = () => {
                               )}
                             </div>
                           </div>
-                          {/* Rejection banner */}
                           {existingRequest.status === 'rejected' && (
                             <div className="bg-red-50 border-t border-red-200 px-3 py-2 flex items-start gap-2">
                               <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
@@ -1368,7 +1409,6 @@ const OrderSummary = () => {
                               </div>
                             </div>
                           )}
-                          {/* Approval banner */}
                           {existingRequest.status === 'approved' && existingRequest.requestType !== 'cancel' && (
                             <div className="bg-green-50 border-t border-green-200 px-3 py-2 flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
@@ -1385,16 +1425,14 @@ const OrderSummary = () => {
                         </div>
                       )}
 
-                      {/* ========== ORDER ITEMS DISPLAY - FINAL WORKING VERSION ========== */}
-                      {/* ========== ORDER ITEMS DISPLAY - UPDATED WITH FREE SIZE ========== */}
+                      {/* ========== ORDER ITEMS - FULL CARD CLICKABLE ========== */}
                       <div className="space-y-3 mb-4">
                         {order.items && order.items.length > 0 ? (
                           order.items.map((item, idx) => {
-                            // ✅ Size from backend - show Free Size if no size
                             const productSize = item.size || item.selectedSize || '';
-                            const displaySize = (!productSize || productSize === '') ? 'Free Size' : productSize;
+                            const itemRingOption = item.ringOption || (item as any).selectedRingOption || '';
+                            const displaySize = formatCoupleOrRingSize(productSize, itemRingOption);
 
-                            // ✅ Image - Priority order
                             let productImage = '';
 
                             if (productImagesMap && productImagesMap[item.productId]) {
@@ -1414,14 +1452,20 @@ const OrderSummary = () => {
                             const productPrice = item.price || 0;
                             const productQuantity = item.quantity || 1;
                             const isLoading = !imagesFetched && !productImagesMap[item.productId];
-                            // Proportional shipping per item
                             const totalQty = order.items.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
                             const itemShippingShare = ((productQuantity / (totalQty || 1)) * (order.shippingCharge || 1200));
                             const itemGst = productPrice * productQuantity * (item.gstPercent || 3) / 100;
                             const itemTotalWithAll = productPrice * productQuantity + itemGst + itemShippingShare;
 
+                            // Create product detail page URL
+                            const productDetailUrl = `/product/${item.productId}`;
+
                             return (
-                              <div key={idx} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                              <Link
+                                key={idx}
+                                to={productDetailUrl}
+                                className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-200 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30"
+                              >
                                 {/* Product Image */}
                                 <div className="w-16 h-16 flex-shrink-0">
                                   {isLoading ? (
@@ -1440,33 +1484,33 @@ const OrderSummary = () => {
                                   )}
                                 </div>
 
-                                {/* Product Details */}
-                                <div className="flex-1">
-                                  <p className="text-foreground text-sm font-medium">{productName}</p>
-
-                                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                                    <p className="text-muted-foreground text-xs">Qty: {productQuantity}</p>
-
-                                    {/* ✅ RING OPTION BADGE */}
-                                    {item.ringOption && (
-                                      <span className="inline-flex items-center gap-1 text-xs bg-primary/10 px-2.5 py-0.5 rounded-full text-primary font-semibold border border-primary/20">
-                                        Ring: {item.ringOption}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-foreground text-sm font-medium truncate">
+                                      {productName}
+                                    </span>
+                                    {/* SKU Code next to product name */}
+                                    {item.productSku && (
+                                      <span className="text-xs text-muted-foreground font-mono bg-gray-200/50 px-1.5 py-0.5 rounded">
+                                        SKU: {item.productSku}
                                       </span>
                                     )}
+                                  </div>
 
-                                    {/* ✅ SIZE BADGE - Always show Free Size if no size */}
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <span className="text-muted-foreground text-xs">Qty: {productQuantity}</span>
+
                                     <span className="inline-flex items-center gap-1 text-xs bg-primary/20 px-2 py-0.5 rounded-full text-primary font-medium">
                                       {displaySize === 'Free Size' ? ' Free Size' : `Size: ${displaySize}`}
                                     </span>
 
-                                    {/* ✅ METAL BADGE */}
                                     {(() => {
                                       const metal = item.material || (item as any).metal || (item as any).selectedMaterial || 'Gold';
                                       const isRose = metal.toLowerCase().includes('rose');
                                       return (
                                         <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium border ${isRose
-                                            ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                                          ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                          : 'bg-amber-50 text-amber-800 border-amber-200'
                                           }`}>
                                           <span className={`w-1.5 h-1.5 rounded-full ${isRose ? 'bg-rose-500' : 'bg-amber-500'
                                             }`} />
@@ -1474,25 +1518,20 @@ const OrderSummary = () => {
                                         </span>
                                       );
                                     })()}
-
-                                    {item.productSku && (
-                                      <p className="text-muted-foreground text-xs">SKU: {item.productSku}</p>
-                                    )}
                                   </div>
 
-                                  <p className="text-muted-foreground text-[11px] mt-1">
+                                  <span className="text-muted-foreground text-[11px] mt-1 block">
                                     {formatPrice(productPrice)} each
-                                  </p>
+                                  </span>
                                 </div>
 
-                                {/* Total Price */}
-                                <div className="text-right">
+                                <div className="text-left sm:text-right flex-shrink-0 w-full sm:w-auto">
                                   <span className="text-primary text-sm font-semibold">
                                     {formatPrice(itemTotalWithAll)}
                                   </span>
-                                  <p className="text-[10px] text-muted-foreground mt-0.5">incl. GST + shipping</p>
+                                  <span className="text-[10px] text-muted-foreground block mt-0.5">incl. GST + shipping</span>
                                 </div>
-                              </div>
+                              </Link>
                             );
                           })
                         ) : (
@@ -1502,11 +1541,11 @@ const OrderSummary = () => {
                         )}
                       </div>
 
-                      {/* ========== PRICE BREAKDOWN ========== */}
+                      {/* Price Breakdown */}
                       <details className="mb-4 pt-3 border-t border-border/30 group">
                         <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-medium text-foreground py-2 outline-none">
                           <span className="font-semibold">Price Breakdown</span>
-                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                          <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180 flex-shrink-0" />
                         </summary>
                         <div className="mt-2 space-y-2 pb-2">
                           <div className="flex justify-between items-center text-sm">
@@ -1523,14 +1562,14 @@ const OrderSummary = () => {
                           </div>
                           <div className="flex justify-between items-center font-semibold pt-2 border-t border-border/30">
                             <span className="text-foreground">Final Payable Amount</span>
-                            <span className="text-primary text-lg">{formatPrice(order.total)}</span>
+                            <span className="text-primary text-sm sm:text-lg">{formatPrice(order.total)}</span>
                           </div>
                         </div>
                       </details>
 
-
+                      {/* Estimated Delivery */}
                       {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                        <div className="mb-4 p-3 bg-primary/5 rounded-sm flex items-center justify-between flex-wrap gap-2">
+                        <div className="mb-4 p-3 bg-primary/5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <Truck className="w-4 h-4 text-primary flex-shrink-0" />
                             <p className="text-sm text-muted-foreground">
@@ -1541,20 +1580,21 @@ const OrderSummary = () => {
                         </div>
                       )}
 
+                      {/* Tracking Number */}
                       {order.trackingNumber && (
-                        <div className="mb-4 p-3 bg-primary/10 rounded-sm">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 flex-1">
-                              <Truck className="w-5 h-5 text-primary" />
-                              <div>
+                        <div className="mb-4 p-3 bg-primary/10 rounded-lg">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                              <Truck className="w-5 h-5 text-primary flex-shrink-0" />
+                              <div className="min-w-0">
                                 <p className="text-sm text-muted-foreground">Tracking Number</p>
                                 <div className="flex items-center gap-2">
-                                  <p className="text-primary font-mono text-sm font-semibold">
+                                  <p className="text-primary font-mono text-sm font-semibold truncate">
                                     {order.trackingNumber}
                                   </p>
                                   <button
                                     onClick={() => copyToClipboard(order.trackingNumber, `tracking-${order.id}`)}
-                                    className="p-1 hover:bg-primary/20 rounded transition-colors"
+                                    className="p-1 hover:bg-primary/20 rounded transition-colors flex-shrink-0"
                                   >
                                     {copiedId === `tracking-${order.id}` ?
                                       <Check className="w-3 h-3 text-green-500" /> :
@@ -1567,7 +1607,7 @@ const OrderSummary = () => {
                             <Link
                               to="/track-order"
                               state={{ trackingId: order.trackingNumber }}
-                              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+                              className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors w-full sm:w-auto"
                             >
                               <Eye className="w-4 h-4" />
                               Track Order
@@ -1577,12 +1617,12 @@ const OrderSummary = () => {
                       )}
 
                       {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t">
+                      <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4 pt-3 border-t">
                         {(order.status === 'Confirmed' || order.status === 'Pending Payment') && !isCancelled && !hasPendingRequest && !hasReturnRequest && !hasExchangeRequest && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-500 border-red-500 hover:bg-red-50"
+                            className="text-red-500 border-red-500 hover:bg-red-50 hover:text-red-600 w-full sm:w-auto"
                             onClick={() => {
                               setSelectedOrder(order);
                               setShowCancelModal(true);
@@ -1603,11 +1643,11 @@ const OrderSummary = () => {
                             ) : (
                               <>
                                 {order.items && order.items.length === 1 ? (
-                                  <>
+                                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="text-orange-500 border-orange-500 hover:bg-orange-50"
+                                      className="text-orange-600 border-orange-400 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-500 w-full sm:w-auto transition-all duration-200"
                                       onClick={() => {
                                         setSelectedOrder(order);
                                         setSelectedProduct(order.items[0]);
@@ -1631,7 +1671,7 @@ const OrderSummary = () => {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="text-blue-500 border-blue-500 hover:bg-blue-50"
+                                      className="text-blue-600 border-blue-400 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-500 w-full sm:w-auto transition-all duration-200"
                                       onClick={() => {
                                         setSelectedOrder(order);
                                         setSelectedProduct(order.items[0]);
@@ -1652,12 +1692,12 @@ const OrderSummary = () => {
                                       <RefreshCw className="w-3 h-3 mr-1" />
                                       Exchange
                                     </Button>
-                                  </>
+                                  </div>
                                 ) : (
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="text-purple-500 border-purple-500 hover:bg-purple-50"
+                                    className="text-purple-600 border-purple-400 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-500 w-full sm:w-auto transition-all duration-200"
                                     onClick={() => {
                                       setSelectedOrder(order);
                                       setSelectedItems(order.items.map((item: any) => ({
@@ -1681,28 +1721,28 @@ const OrderSummary = () => {
                         )}
 
                         {hasPendingRequest && (
-                          <div className="text-sm text-yellow-600 bg-yellow-50 px-3 py-2 rounded-md flex items-center gap-2">
+                          <div className="text-sm text-yellow-600 bg-yellow-50 px-3 py-2 rounded-md flex items-center gap-2 w-full">
                             <Clock className="w-4 h-4" />
                             Your {existingRequest?.requestType} request is pending review
                           </div>
                         )}
 
                         {hasReturnRequest && existingRequest?.status === 'approved' && (
-                          <div className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2">
+                          <div className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md flex items-center gap-2 w-full">
                             <CheckCircle className="w-4 h-4" />
                             Return request approved. Pickup will be scheduled soon.
                           </div>
                         )}
 
                         {hasExchangeRequest && existingRequest?.status === 'approved' && (
-                          <div className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md flex items-center gap-2">
+                          <div className="text-sm text-blue-600 bg-blue-50 px-3 py-2 rounded-md flex items-center gap-2 w-full">
                             <RefreshCw className="w-4 h-4" />
                             Exchange request approved. Please return your product.
                           </div>
                         )}
 
                         {isCancelled && (
-                          <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md flex items-center gap-2">
+                          <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md flex items-center gap-2 w-full">
                             <XCircle className="w-4 h-4" />
                             This order has been cancelled
                           </div>
@@ -1729,7 +1769,7 @@ const OrderSummary = () => {
 
       {/* Cancel Order Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cancel Order</DialogTitle>
           </DialogHeader>
@@ -1739,7 +1779,7 @@ const OrderSummary = () => {
               <select
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full mt-1 p-2 border rounded-lg bg-background"
+                className="w-full mt-1 p-2 border rounded-lg bg-background text-sm"
               >
                 <option value="">Select a reason</option>
                 {cancelReasons.map(reason => (
@@ -1748,9 +1788,9 @@ const OrderSummary = () => {
               </select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelModal(false)}>Close</Button>
-            <Button variant="destructive" onClick={handleCancelOrderSubmit} disabled={submitting}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowCancelModal(false)} className="w-full sm:w-auto">Close</Button>
+            <Button variant="destructive" onClick={handleCancelOrderSubmit} disabled={submitting} className="w-full sm:w-auto">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Submit Cancellation
             </Button>
@@ -1758,7 +1798,7 @@ const OrderSummary = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Multi-Item Selection Modal */}
+      {/* Multi-Item Selection Modal - Full Card Clickable */}
       <Dialog open={showMultiItemModal} onOpenChange={(open) => !open && setShowMultiItemModal(false)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1768,22 +1808,31 @@ const OrderSummary = () => {
             {selectedOrder?.items.map((item, idx) => {
               const selectedItem = selectedItems.find(i => i.productId === item.productId);
               const itemImage = productImagesMap[item.productId] || item.productImage || item.image || 'https://placehold.co/200x200?text=Product';
+              const productDetailUrl = `/product/${item.productId}`;
+
               return (
                 <div key={idx} className="border rounded-lg p-4">
-                  <div className="flex gap-4">
-                    <img
-                      src={itemImage}
-                      alt={item.name}
-                      className="w-16 h-16 object-cover rounded"
-                      onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
+                  <Link
+                    to={productDetailUrl}
+                    className="flex gap-4 hover:opacity-80 transition-opacity cursor-pointer"
+                  >
+                    <div className="w-16 h-16 flex-shrink-0">
+                      <img
+                        src={itemImage}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded"
+                        onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
+                      />
                     </div>
-                  </div>
-                  <div className="flex gap-2 mt-3 pt-3 border-t">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm truncate block">
+                        {item.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground block">Qty: {item.quantity}</span>
+                      <span className="text-sm font-bold text-primary block">{formatPrice(item.price)}</span>
+                    </div>
+                  </Link>
+                  <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
                     <Button
                       size="sm"
                       variant={selectedItem?.actionType === 'return' ? 'default' : 'outline'}
@@ -1815,67 +1864,69 @@ const OrderSummary = () => {
               );
             })}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMultiItemModal(false)}>Cancel</Button>
-            <Button onClick={handleProceedToDetails}>Continue to Details</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowMultiItemModal(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button onClick={handleProceedToDetails} className="w-full sm:w-auto">Continue to Details</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Return/Exchange Details Modal */}
+      {/* Return/Exchange Details Modal - Full Card Clickable */}
       <Dialog open={showReturnModal} onOpenChange={(open) => !open && setShowReturnModal(false)}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
               {currentProcessingItem?.actionType === 'return' || requestType === 'return' ? 'Return Product' : 'Exchange Product'}
               {currentProcessingItem && ` - ${currentProcessingItem.productName}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Product Info */}
+            {/* Product Info - Full Card Clickable */}
             {(currentProcessingItem || selectedProduct) && (
-              <div className="flex gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <img
-                  src={currentProcessingItem?.productImage || selectedProduct?.image || originalProductImage || 'https://placehold.co/200x200?text=Product'}
-                  alt={currentProcessingItem?.productName || selectedProduct?.name || 'Original Product'}
-                  className="w-16 h-16 object-cover rounded"
-                  onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Original: {currentProcessingItem?.productName || selectedProduct?.name}</p>
-                  <p className="text-xs text-muted-foreground">Qty: {currentProcessingItem?.quantity || selectedProduct?.quantity || 1}</p>
-                  <p className="text-sm font-bold text-orange-600">{formatPrice(currentProcessingItem?.price || selectedProduct?.price || 0)}</p>
+              <Link
+                to={`/product/${currentProcessingItem?.productId || selectedProduct?.productId}`}
+                className="flex gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors cursor-pointer"
+              >
+                <div className="w-16 h-16 flex-shrink-0">
+                  <img
+                    src={currentProcessingItem?.productImage || selectedProduct?.image || originalProductImage || 'https://placehold.co/200x200?text=Product'}
+                    alt={currentProcessingItem?.productName || selectedProduct?.name || 'Original Product'}
+                    className="w-16 h-16 object-cover rounded"
+                    onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
+                  />
                 </div>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-sm truncate block">
+                    Original: {currentProcessingItem?.productName || selectedProduct?.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground block">Qty: {currentProcessingItem?.quantity || selectedProduct?.quantity || 1}</span>
+                  <span className="text-sm font-bold text-orange-600 block">{formatPrice(currentProcessingItem?.price || selectedProduct?.price || 0)}</span>
+                </div>
+              </Link>
             )}
 
-            {/* Selected Exchange Product */}
+            {/* Selected Exchange Product - Full Card Clickable */}
             {selectedExchangeProduct && (
-              <div className="flex gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                <img
-                  src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
-                  alt={selectedExchangeProduct.name}
-                  className="w-16 h-16 object-cover rounded"
-                  onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
-                />
-                <div className="flex-1">
-                  <p className="font-medium text-sm">Exchange: {selectedExchangeProduct.name}</p>
-                  <p className="text-xs text-green-600">Selected for exchange</p>
-                  <p className="text-sm font-bold text-green-600">{formatPrice(selectedExchangeProduct.price)}</p>
+              <Link
+                to={`/product/${selectedExchangeProduct.id}`}
+                className="flex gap-3 p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors cursor-pointer"
+              >
+                <div className="w-16 h-16 flex-shrink-0">
+                  <img
+                    src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
+                    alt={selectedExchangeProduct.name}
+                    className="w-16 h-16 object-cover rounded"
+                    onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
+                  />
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedExchangeProduct(null);
-                    setExchangeProductId('');
-                    setPriceDifference(0);
-                  }}
-                  className="text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-sm truncate block text-green-800">
+                    Exchange: {selectedExchangeProduct.name}
+                  </span>
+                  <span className="text-xs text-green-600 block">Selected for exchange</span>
+                  <span className="text-sm font-bold text-green-600 block">{formatPrice(selectedExchangeProduct.price)}</span>
+                </div>
+              </Link>
             )}
 
             {/* Progress indicator */}
@@ -1891,7 +1942,7 @@ const OrderSummary = () => {
               <select
                 value={returnReason}
                 onChange={(e) => setReturnReason(e.target.value)}
-                className="w-full mt-1 p-2 border rounded-lg bg-background"
+                className="w-full mt-1 p-2 border rounded-lg bg-background text-sm"
               >
                 <option value="">Select a reason</option>
                 {returnReasons.map(reason => (
@@ -1908,7 +1959,7 @@ const OrderSummary = () => {
                 value={returnDescription}
                 onChange={(e) => setReturnDescription(e.target.value)}
                 rows={3}
-                className="mt-1"
+                className="mt-1 text-sm"
               />
             </div>
 
@@ -1923,7 +1974,7 @@ const OrderSummary = () => {
               </p>
             </div>
 
-            {/* Video Upload Field (Required) */}
+            {/* Video Upload Field */}
             <div>
               <Label className="flex items-center gap-1 font-semibold text-red-600">
                 Upload Unboxing Video * <span className="text-xs text-muted-foreground font-normal">(MP4, MOV, WEBM - Required)</span>
@@ -1957,7 +2008,7 @@ const OrderSummary = () => {
                       setUnboxingVideo(null);
                       setUnboxingVideoUrl('');
                     }}
-                    className="text-red-500 hover:text-red-700 ml-2"
+                    className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -2016,13 +2067,13 @@ const OrderSummary = () => {
                         setRefundMethod('original');
                         setShowNewRefundForm(false);
                       }}
-                      className="w-4 h-4 text-primary"
+                      className="w-4 h-4 text-primary flex-shrink-0"
                     />
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">Original Payment Method</p>
                       <p className="text-xs text-gray-500">Amount will be credited to your original payment source</p>
                     </div>
-                    <CreditCard className="w-5 h-5 text-gray-400" />
+                    <CreditCard className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   </label>
 
                   {(() => {
@@ -2041,14 +2092,14 @@ const OrderSummary = () => {
                             setSelectedUpiId(bankDetails.upiId);
                             setShowNewRefundForm(false);
                           }}
-                          className="w-4 h-4 text-primary"
+                          className="w-4 h-4 text-primary flex-shrink-0"
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm">Saved UPI ID</p>
-                          <p className="text-xs text-gray-500">{bankDetails.upiId}</p>
+                          <p className="text-xs text-gray-500 truncate">{bankDetails.upiId}</p>
                           <p className="text-xs text-green-600 mt-0.5">✓ Saved in your profile</p>
                         </div>
-                        <CreditCard className="w-5 h-5 text-green-500" />
+                        <CreditCard className="w-5 h-5 text-green-500 flex-shrink-0" />
                       </label>
                     ) : null;
                   })()}
@@ -2074,16 +2125,16 @@ const OrderSummary = () => {
                             });
                             setShowNewRefundForm(false);
                           }}
-                          className="w-4 h-4 text-primary"
+                          className="w-4 h-4 text-primary flex-shrink-0"
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm">Saved Bank Account</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 truncate">
                             {bankDetails.bankName || 'Bank'} - XXXX{bankDetails.accountNumber.slice(-4)}
                           </p>
                           <p className="text-xs text-green-600 mt-0.5">✓ Saved in your profile</p>
                         </div>
-                        <Banknote className="w-5 h-5 text-blue-500" />
+                        <Banknote className="w-5 h-5 text-blue-500 flex-shrink-0" />
                       </label>
                     ) : null;
                   })()}
@@ -2109,7 +2160,7 @@ const OrderSummary = () => {
                               name="refundOption"
                               checked={refundMethod === 'new-upi'}
                               onChange={() => setRefundMethod('new-upi')}
-                              className="w-4 h-4 text-primary"
+                              className="w-4 h-4 text-primary flex-shrink-0"
                             />
                             <span className="text-sm font-medium">New UPI ID</span>
                           </label>
@@ -2130,7 +2181,7 @@ const OrderSummary = () => {
                               name="refundOption"
                               checked={refundMethod === 'new-bank'}
                               onChange={() => setRefundMethod('new-bank')}
-                              className="w-4 h-4 text-primary"
+                              className="w-4 h-4 text-primary flex-shrink-0"
                             />
                             <span className="text-sm font-medium">New Bank Account</span>
                           </label>
@@ -2148,7 +2199,7 @@ const OrderSummary = () => {
                                 onChange={(e) => setNewBankDetails({ ...newBankDetails, accountNumber: e.target.value })}
                                 className="text-sm"
                               />
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <Input
                                   placeholder="Bank Name"
                                   value={newBankDetails.bankName}
@@ -2183,16 +2234,26 @@ const OrderSummary = () => {
 
                 {selectedExchangeProduct ? (
                   <div className="bg-green-100 rounded-lg p-3 mb-3 border border-green-300">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
-                        alt={selectedExchangeProduct.name}
-                        className="w-20 h-20 object-cover rounded-lg"
-                        onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
-                      />
-                      <div className="flex-1">
-                        <p className="font-semibold text-green-800">{selectedExchangeProduct.name}</p>
-                        <p className="text-primary font-bold text-lg">₹{selectedExchangeProduct.price.toLocaleString()}</p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <Link
+                        to={`/product/${selectedExchangeProduct.id}`}
+                        className="w-20 h-20 flex-shrink-0"
+                      >
+                        <img
+                          src={selectedExchangeProduct.image || selectedExchangeProduct.productImage || 'https://placehold.co/200x200?text=Product'}
+                          alt={selectedExchangeProduct.name}
+                          className="w-20 h-20 object-cover rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+                          onError={(e) => (e.currentTarget.src = 'https://placehold.co/200x200?text=No+Image')}
+                        />
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          to={`/product/${selectedExchangeProduct.id}`}
+                          className="font-semibold text-green-800 text-sm truncate hover:text-primary transition-colors cursor-pointer block"
+                        >
+                          {selectedExchangeProduct.name}
+                        </Link>
+                        <p className="text-primary font-bold text-base sm:text-lg">₹{selectedExchangeProduct.price.toLocaleString()}</p>
                         <p className="text-xs text-green-600 mt-1">✓ Selected for exchange</p>
                       </div>
                       <Button
@@ -2203,7 +2264,7 @@ const OrderSummary = () => {
                           setExchangeProductId('');
                           setPriceDifference(0);
                         }}
-                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto"
                       >
                         <X className="w-4 h-4" />
                         Change
@@ -2212,7 +2273,7 @@ const OrderSummary = () => {
 
                     {priceDifference !== 0 && (
                       <div className={`mt-3 pt-3 border-t ${priceDifference > 0 ? 'border-orange-200' : 'border-green-200'}`}>
-                        <div className="flex justify-between items-center mb-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                           <div>
                             <p className="text-sm font-medium">Price Difference</p>
                             <p className="text-xs text-gray-600">
@@ -2240,15 +2301,15 @@ const OrderSummary = () => {
                                   setDifferencePaymentMethod('original');
                                   setShowNewDifferenceForm(false);
                                 }}
-                                className="w-4 h-4 text-primary"
+                                className="w-4 h-4 text-primary flex-shrink-0"
                               />
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium">Original Payment Method</p>
                                 <p className="text-xs text-gray-500">
                                   {priceDifference > 0 ? 'Pay using same card/UPI used for order' : 'Refund to original payment source'}
                                 </p>
                               </div>
-                              <CreditCard className="w-5 h-5 text-gray-400" />
+                              <CreditCard className="w-5 h-5 text-gray-400 flex-shrink-0" />
                             </label>
 
                             {(() => {
@@ -2266,13 +2327,13 @@ const OrderSummary = () => {
                                       setDifferencePaymentMethod('saved-upi');
                                       setShowNewDifferenceForm(false);
                                     }}
-                                    className="w-4 h-4 text-primary"
+                                    className="w-4 h-4 text-primary flex-shrink-0"
                                   />
-                                  <div className="flex-1">
+                                  <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">Saved UPI ID</p>
-                                    <p className="text-xs text-gray-500">{bankDetails.upiId}</p>
+                                    <p className="text-xs text-gray-500 truncate">{bankDetails.upiId}</p>
                                   </div>
-                                  <CreditCard className="w-5 h-5 text-green-500" />
+                                  <CreditCard className="w-5 h-5 text-green-500 flex-shrink-0" />
                                 </label>
                               ) : null;
                             })()}
@@ -2292,15 +2353,15 @@ const OrderSummary = () => {
                                       setDifferencePaymentMethod('saved-bank');
                                       setShowNewDifferenceForm(false);
                                     }}
-                                    className="w-4 h-4 text-primary"
+                                    className="w-4 h-4 text-primary flex-shrink-0"
                                   />
-                                  <div className="flex-1">
+                                  <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">Saved Bank Account</p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-gray-500 truncate">
                                       {bankDetails.bankName || 'Bank'} - XXXX{bankDetails.accountNumber?.slice(-4) || '****'}
                                     </p>
                                   </div>
-                                  <Banknote className="w-5 h-5 text-blue-500" />
+                                  <Banknote className="w-5 h-5 text-blue-500 flex-shrink-0" />
                                 </label>
                               ) : null;
                             })()}
@@ -2324,7 +2385,7 @@ const OrderSummary = () => {
                                         name="newDiffType"
                                         checked={differencePaymentMethod === 'new-upi'}
                                         onChange={() => setDifferencePaymentMethod('new-upi')}
-                                        className="w-4 h-4 text-primary"
+                                        className="w-4 h-4 text-primary flex-shrink-0"
                                       />
                                       <span className="text-sm font-medium">New UPI ID</span>
                                     </label>
@@ -2345,7 +2406,7 @@ const OrderSummary = () => {
                                         name="newDiffType"
                                         checked={differencePaymentMethod === 'new-bank'}
                                         onChange={() => setDifferencePaymentMethod('new-bank')}
-                                        className="w-4 h-4 text-primary"
+                                        className="w-4 h-4 text-primary flex-shrink-0"
                                       />
                                       <span className="text-sm font-medium">New Bank Account</span>
                                     </label>
@@ -2363,7 +2424,7 @@ const OrderSummary = () => {
                                           onChange={(e) => setDifferenceBankDetails({ ...differenceBankDetails, accountNumber: e.target.value })}
                                           className="text-sm"
                                         />
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                           <Input
                                             placeholder="Bank Name"
                                             value={differenceBankDetails.bankName}
@@ -2420,7 +2481,7 @@ const OrderSummary = () => {
                   type="checkbox"
                   checked={acceptedTerms}
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="mt-0.5"
+                  className="mt-0.5 flex-shrink-0"
                 />
                 <span className="text-xs text-gray-600">
                   I agree to the{' '}
@@ -2440,7 +2501,7 @@ const OrderSummary = () => {
                   type="checkbox"
                   checked={acceptedCondition}
                   onChange={(e) => setAcceptedCondition(e.target.checked)}
-                  className="mt-0.5"
+                  className="mt-0.5 flex-shrink-0"
                 />
                 <span className="text-xs text-gray-600">
                   I confirm the product is unused and in original condition as per our{' '}
@@ -2456,14 +2517,15 @@ const OrderSummary = () => {
               </label>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => {
               setShowReturnModal(false);
               resetReturnModal();
-            }}>Cancel</Button>
+            }} className="w-full sm:w-auto">Cancel</Button>
             <Button
               onClick={handleSingleItemSubmit}
               disabled={submitting || isProcessingPayment}
+              className="w-full sm:w-auto"
             >
               {(submitting || isProcessingPayment) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {isProcessingPayment ? "Processing Payment..." : "Submit Request"}

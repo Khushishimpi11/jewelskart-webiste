@@ -25,7 +25,7 @@ export default function Jewellery({ products: propProducts, isLoading = false }:
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 2) % jewelryProducts.length);
-    }, 5000); // Increased from 4000 to 5000 for slower transition
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [jewelryProducts.length, isPaused]);
@@ -77,13 +77,13 @@ export default function Jewellery({ products: propProducts, isLoading = false }:
   };
 
   return (
-    <section className="w-full bg-[#ffff] py-16 px-6 md:px-12 overflow-hidden">
-      <div className="grid lg:grid-cols-2 gap-8 items-center max-w-[1350px] mx-auto">
+    <section className="w-full bg-[#ffff] py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-12 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-8 items-center max-w-[1350px] mx-auto">
 
         {/* LEFT SECTION - Image with Shop Now Button */}
-        <div className="relative w-full flex justify-center lg:justify-start">
+        <div className="relative w-full flex justify-center lg:justify-start order-1 lg:order-none">
           <div
-            className="relative w-full max-w-[550px] aspect-[4/5] group cursor-pointer overflow-hidden rounded-t-full shadow-2xl"
+            className="relative w-full max-w-[380px] sm:max-w-[450px] lg:max-w-[550px] aspect-[4/5] group cursor-pointer overflow-hidden rounded-t-full shadow-2xl"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
@@ -93,46 +93,46 @@ export default function Jewellery({ products: propProducts, isLoading = false }:
                 alt="Jewelry Banner"
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
               />
-              <div className="absolute bottom-10 left-10 right-10 h-[50%] border-l border-r border-b border-white/60 pointer-events-none z-20"></div>
+              <div className="absolute bottom-4 sm:bottom-6 lg:bottom-10 left-4 sm:left-6 lg:left-10 right-4 sm:right-6 lg:right-10 h-[50%] border-l border-r border-b border-white/60 pointer-events-none z-20"></div>
             </div>
 
             <button
               onClick={() => navigate("/shop")}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-             w-24 h-24 rounded-full 
-             flex flex-col items-center justify-center text-center
-             font-serif text-xs tracking-[2.5px] leading-tight
-             transition-all duration-500 shadow-xl z-40
-             bg-[#FBF5F6]/95 backdrop-blur-md text-black
-             hover:bg-primary hover:text-white"
+                w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full 
+                flex flex-col items-center justify-center text-center
+                font-serif text-[8px] sm:text-[10px] lg:text-xs tracking-[1.5px] sm:tracking-[2px] lg:tracking-[2.5px] leading-tight
+                transition-all duration-500 shadow-xl z-40
+                bg-[#FBF5F6]/95 backdrop-blur-md text-black
+                hover:bg-primary hover:text-white"
             >
-              <span className="mb-1">SHOP</span>
+              <span className="mb-0.5 sm:mb-1">SHOP</span>
               <span>NOW</span>
             </button>
           </div>
         </div>
 
         {/* RIGHT SECTION - Content & Product Cards */}
-        <div className="flex flex-col lg:pl-4">
-          <div className="mb-10 text-center lg:text-left">
-            <div className="mb-4 flex justify-center lg:justify-start">
-              <span className="inline-flex items-center bg-primary text-white px-4 py-1.5 font-body text-[10px] sm:text-xs tracking-widest uppercase rounded-full shadow-sm">
+        <div className="flex flex-col lg:pl-4 order-2 lg:order-none">
+          <div className="mb-4 sm:mb-6 lg:mb-10 text-center lg:text-left">
+            <div className="mb-2 sm:mb-3 lg:mb-4 flex justify-center lg:justify-start">
+              <span className="inline-flex items-center bg-primary text-white px-3 py-1 sm:px-4 sm:py-1.5 font-body text-[8px] sm:text-[10px] lg:text-xs tracking-widest uppercase rounded-full shadow-sm">
                 <img
                   src={exploreIcon}
                   alt="Explore"
-                  className="w-4 h-4 sm:w-5 sm:h-5 mr-2 object-contain"
+                  className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 mr-1.5 sm:mr-2 object-contain"
                 />
                 Limited Collection
               </span>
             </div>
 
-            <h2 className="text-4xl md:text-5xl font-serif text-zinc-900 leading-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-zinc-900 leading-tight">
               Own Something Truly Rare
             </h2>
           </div>
 
           {/* PRODUCT GRID */}
-          <div className="grid grid-cols-2 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
             <AnimatePresence mode="wait" custom={currentIndex}>
               {visibleProducts.map((product, idx) => (
                 <motion.div
@@ -152,7 +152,7 @@ export default function Jewellery({ products: propProducts, isLoading = false }:
 
           {/* PROGRESS BAR */}
           {jewelryProducts.length > 2 && (
-            <div className="flex gap-3 mt-12 justify-center lg:justify-start">
+            <div className="flex gap-2 sm:gap-3 mt-6 sm:mt-8 lg:mt-12 justify-center lg:justify-start">
               {Array.from({ length: Math.ceil(jewelryProducts.length / 2) }).map((_, idx) => (
                 <button
                   key={idx}
@@ -161,7 +161,9 @@ export default function Jewellery({ products: propProducts, isLoading = false }:
                     setIsPaused(true);
                     setTimeout(() => setIsPaused(false), 3000);
                   }}
-                  className={`h-[1.5px] transition-all duration-500 ${Math.floor(currentIndex / 2) === idx ? "w-16 bg-primary" : "w-8 bg-zinc-300"
+                  className={`h-[1.5px] transition-all duration-500 ${Math.floor(currentIndex / 2) === idx
+                      ? "w-8 sm:w-10 lg:w-16 bg-primary"
+                      : "w-4 sm:w-5 lg:w-8 bg-zinc-300"
                     }`}
                   aria-label={`Go to slide ${idx + 1}`}
                 />

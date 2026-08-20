@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
-import promoBanner from "../../assets/banner2.png";
+import promoBanner from "../../assets/banner3.jpeg";
 
 export const PromoBanner = () => {
   return (

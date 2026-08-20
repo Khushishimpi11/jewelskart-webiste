@@ -133,18 +133,43 @@ export const Footer = () => {
             ) : categories.length === 0 ? (
               <div className="text-white/60 text-sm">No categories</div>
             ) : (
-              <ul className="space-y-3">
-                {categories.map((category) => (
-                  <li key={category.name}>
+              <>
+                {/* Desktop View - Vertical List */}
+                <ul className="hidden md:block space-y-3">
+                  {categories.map((category) => (
+                    <li key={category.name}>
+                      <Link
+                        to={`/shop?category=${category.slug}`}
+                        className="text-white/80 text-sm hover:underline hover:decoration-white underline-offset-4 transition-all duration-300"
+                      >
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Mobile View - Horizontal Scrollable Row */}
+                <div className="md:hidden flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  {categories.map((category) => (
                     <Link
+                      key={category.name}
                       to={`/shop?category=${category.slug}`}
-                      className="text-white/80 text-sm hover:underline hover:decoration-white underline-offset-4 transition-all duration-300"
+                      className="flex-shrink-0 flex flex-col items-center gap-1 group w-20"
                     >
-                      {category.name}
+                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10 group-hover:border-white/30 transition-all">
+                        <img
+                          src={category.img}
+                          alt={category.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="text-white/80 text-[10px] text-center leading-tight line-clamp-2">
+                        {category.name}
+                      </span>
                     </Link>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
@@ -191,12 +216,20 @@ export const Footer = () => {
                 <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Mail className="w-3 h-3 text-primary" />
                 </div>
-                <a
-                  href="mailto:aanchal@jewelskartindia.com"
-                  className="hover:text-white transition-colors"
-                >
-                  aanchal@jewelskartindia.com
-                </a>
+                <div className="flex flex-col gap-1">
+                  <a
+                    href="mailto:aanchal@jewelskartindia.com"
+                    className="hover:text-white transition-colors"
+                  >
+                    aanchal@jewelskartindia.com
+                  </a>
+                  <a
+                    href="mailto:info@jewelskartindia.com"
+                    className="hover:text-white transition-colors"
+                  >
+                    info@jewelskartindia.com
+                  </a>
+                </div>
               </li>
             </ul>
           </div>
@@ -224,12 +257,23 @@ export const Footer = () => {
               Pawar Technologies and Services
             </a>
           </p>
-          <div className="flex items-center gap-6 text-white/60 text-sm justify-center md:justify-start">
+          <div className="flex items-center gap-6 text-white/60 text-sm justify-center md:justify-start flex-wrap">
             <Link to="/RefundCancellationPage" className="hover:text-white transition-colors">Refund & Cancellation Policy</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </div>
+
+      {/* Add this style tag for scrollbar hiding */}
+      <style>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </footer>
   );
 };

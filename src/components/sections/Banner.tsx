@@ -8,6 +8,7 @@ import braceletBg from "../../assets/bracelet.png";
 import earringBg from "../../assets/earring.png";
 import pendantBg from "../../assets/pendant.png";
 import necklaceBg from "../../assets/necklace.png";
+import coupleRingBg from "../../assets/couple-ring.png";
 import exploreIcon from "../../assets/logoicon.png";
 
 const categories = [
@@ -39,7 +40,13 @@ const categories = [
     id: "necklaces",
     title: "NECKLACES",
     image: necklaceBg,
-    category: "necklaces",
+    category: "necklace",
+  },
+  {
+    id: "couple-rings",
+    title: "COUPLE RINGS",
+    image: coupleRingBg,
+    category: "couple-ring",
   },
 ];
 
@@ -91,11 +98,6 @@ const Banner: React.FC = () => {
         ? 2
         : 4;
 
-  /*
-    Original cards ke baad cloned cards.
-    Isliye last card ke baad naturally first card
-    right side se continue hota hua aayega.
-  */
   const displayItems = [
     ...categories,
     ...categories.slice(0, visibleCards),
@@ -139,14 +141,6 @@ const Banner: React.FC = () => {
 
     isSnapping.current = true;
 
-    /*
-      Pehle cloned first card tak normal animation hoti hai.
-      Animation complete hone ke baad instantly original
-      first card par snap hota hai.
-
-      User ko snap visible nahi hota because dono
-      cards exactly same hain.
-    */
     const timer = setTimeout(() => {
       setEnableTransition(false);
       setCurrentIndex(0);
@@ -178,13 +172,8 @@ const Banner: React.FC = () => {
   const slideLeft = () => {
     if (isSnapping.current) return;
 
-    /*
-      First card par left click hone par
-      directly last card position set karenge.
-    */
     if (currentIndex === 0) {
       setEnableTransition(false);
-
       setCurrentIndex(categories.length);
 
       requestAnimationFrame(() => {
@@ -220,12 +209,11 @@ const Banner: React.FC = () => {
   };
 
   // ----------------------------------------
-  // Shop Navigation
+  // Shop Navigation - Sirf category bhejo
   // ----------------------------------------
   const handleShopNavigation = (category: string) => {
-    navigate(
-      `/shop?brand=jewelskart&category=${category.toLowerCase()}`
-    );
+    // Sirf category parameter bhejo (brand nahi)
+    navigate(`/shop?category=${category.toLowerCase()}`);
 
     window.scrollTo({
       top: 0,
@@ -252,25 +240,12 @@ const Banner: React.FC = () => {
     <section className="w-full overflow-hidden bg-[#FBF5F6] py-10 sm:py-14 lg:py-20 xl:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* =========================
-            HEADER
-        ========================== */}
-
+        {/* HEADER */}
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 20,
-          }}
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{
-            once: true,
-          }}
-          transition={{
-            duration: 0.6,
-          }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
           className="mb-8 text-center sm:mb-10"
         >
           <div className="mb-4 flex justify-center">
@@ -280,7 +255,6 @@ const Banner: React.FC = () => {
                 alt="Explore"
                 className="mr-2 h-4 w-4 object-contain sm:h-5 sm:w-5"
               />
-
               Top Categories
             </span>
           </div>
@@ -297,11 +271,7 @@ const Banner: React.FC = () => {
           <div className="section-divider mt-4" />
         </motion.div>
 
-        {/* =========================
-            MOBILE
-            1 FULL CARD
-        ========================== */}
-
+        {/* MOBILE */}
         <div
           className="relative block w-full overflow-hidden sm:hidden"
           onTouchStart={() => setIsPaused(true)}
@@ -309,25 +279,14 @@ const Banner: React.FC = () => {
         >
           <motion.div
             className="flex w-full"
-            animate={{
-              x: `-${currentIndex * 100}%`,
-            }}
+            animate={{ x: `-${currentIndex * 100}%` }}
             transition={
               enableTransition
-                ? {
-                  type: "tween",
-                  duration: 0.6,
-                  ease: "easeInOut",
-                }
-                : {
-                  duration: 0,
-                }
+                ? { type: "tween", duration: 0.6, ease: "easeInOut" }
+                : { duration: 0 }
             }
             drag="x"
-            dragConstraints={{
-              left: 0,
-              right: 0,
-            }}
+            dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.1}
             onDragEnd={handleDragEnd}
           >
@@ -335,39 +294,23 @@ const Banner: React.FC = () => {
               <div
                 key={`${category.id}-${index}`}
                 className="relative aspect-[4/3] w-full min-w-full flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl shadow-xl"
-                onClick={() =>
-                  handleShopNavigation(category.category)
-                }
+                onClick={() => handleShopNavigation(category.category)}
               >
-                {/* IMAGE */}
-
                 <div
                   className="absolute inset-0 bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${category.image})`,
-                  }}
+                  style={{ backgroundImage: `url(${category.image})` }}
                 />
-
-                {/* GRADIENT */}
-
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-
-                {/* CONTENT */}
-
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-5 text-white">
-                  <h3 className="mb-2 font-serif text-xl font-bold leading-tight tracking-wide drop-shadow-lg">
+                  <h3 className="font-serif text-xl font-bold leading-tight tracking-wide drop-shadow-lg">
                     {category.title}
                   </h3>
-
                   <button
                     type="button"
                     className="border-b border-white pb-0.5 text-[11px] font-medium uppercase tracking-widest drop-shadow-lg transition-opacity hover:opacity-80"
                     onClick={(e) => {
                       e.stopPropagation();
-
-                      handleShopNavigation(
-                        category.category
-                      );
+                      handleShopNavigation(category.category);
                     }}
                   >
                     Shop {category.category}
@@ -378,10 +321,7 @@ const Banner: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* =========================
-            TABLET / DESKTOP
-        ========================== */}
-
+        {/* TABLET / DESKTOP */}
         <div
           className="relative hidden overflow-hidden sm:block"
           onMouseEnter={() => setIsPaused(true)}
@@ -389,19 +329,11 @@ const Banner: React.FC = () => {
         >
           <motion.div
             className="flex gap-4 lg:gap-6"
-            animate={{
-              x: getTranslateX(),
-            }}
+            animate={{ x: getTranslateX() }}
             transition={
               enableTransition
-                ? {
-                  type: "tween",
-                  duration: 0.6,
-                  ease: "easeInOut",
-                }
-                : {
-                  duration: 0,
-                }
+                ? { type: "tween", duration: 0.6, ease: "easeInOut" }
+                : { duration: 0 }
             }
           >
             {displayItems.map((category, index) => (
@@ -414,39 +346,23 @@ const Banner: React.FC = () => {
                       ? "calc((100% - 16px) / 2)"
                       : "calc((100% - 72px) / 4)",
                 }}
-                onClick={() =>
-                  handleShopNavigation(category.category)
-                }
+                onClick={() => handleShopNavigation(category.category)}
               >
-                {/* IMAGE */}
-
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-110"
-                  style={{
-                    backgroundImage: `url(${category.image})`,
-                  }}
+                  style={{ backgroundImage: `url(${category.image})` }}
                 />
-
-                {/* GRADIENT */}
-
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
-
-                {/* CONTENT */}
-
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-4 text-white xl:p-5">
-                  <h3 className="mb-2 font-serif text-lg font-bold leading-tight tracking-wide drop-shadow-lg md:text-xl">
+                  <h3 className="font-serif text-lg font-bold leading-tight tracking-wide drop-shadow-lg md:text-xl">
                     {category.title}
                   </h3>
-
                   <button
                     type="button"
                     className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest drop-shadow-lg transition-opacity hover:opacity-80"
                     onClick={(e) => {
                       e.stopPropagation();
-
-                      handleShopNavigation(
-                        category.category
-                      );
+                      handleShopNavigation(category.category);
                     }}
                   >
                     Shop {category.category}
@@ -457,17 +373,10 @@ const Banner: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* =========================
-            MOBILE DOTS
-        ========================== */}
-
+        {/* MOBILE DOTS */}
         <div className="mt-5 flex items-center justify-center gap-1.5 sm:hidden">
           {categories.map((_, index) => {
-            const activeIndex =
-              currentIndex >= categories.length
-                ? 0
-                : currentIndex;
-
+            const activeIndex = currentIndex >= categories.length ? 0 : currentIndex;
             return (
               <button
                 key={index}
@@ -489,22 +398,11 @@ const Banner: React.FC = () => {
           })}
         </div>
 
-        {/* =========================
-            NAVIGATION
-        ========================== */}
-
+        {/* NAVIGATION */}
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          whileInView={{
-            opacity: 1,
-            y: 0,
-          }}
-          viewport={{
-            once: true,
-          }}
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
           className="mt-7 flex items-center justify-center gap-3 sm:mt-9 sm:gap-5 lg:mt-10 lg:gap-6"
         >
           <button
@@ -520,11 +418,7 @@ const Banner: React.FC = () => {
             type="button"
             onClick={() => {
               navigate("/shop");
-
-              window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-              });
+              window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             className="inline-flex min-h-[44px] items-center justify-center whitespace-nowrap px-1 font-body text-[10px] uppercase tracking-[0.14em] text-primary transition-colors hover:text-primary/80 sm:text-xs md:text-sm"
           >

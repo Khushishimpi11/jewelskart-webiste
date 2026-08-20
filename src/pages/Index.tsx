@@ -75,7 +75,11 @@ const Index = () => {
               purchasePrice: Number(p.purchasePrice),
               coupleRing: p.coupleRing || p.specifications?.coupleRing || undefined,
               images: uniqueImages.length > 0 ? uniqueImages : ['/placeholder-image.jpg'],
-              image: uniqueImages[0] || '/placeholder-image.jpg', // fallback for featured display
+              image: uniqueImages[0] || '/placeholder-image.jpg',
+              // Pass purity/diamond fields so ProductCard can compute meta
+              goldDetails: p.goldDetails || undefined,
+              specifications: p.specifications || undefined,
+              tags: Array.isArray(p.tags) ? p.tags : [],
             };
           });
 

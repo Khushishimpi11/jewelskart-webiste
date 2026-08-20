@@ -104,13 +104,7 @@ const Cart = () => {
     }).format(price);
   };
 
-  const getDeliveryDate = () => {
-    const date = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
   const getDisplaySize = (item: any) => {
-    // If size is not present or empty, show "Free Size" for non-ring products
     if (!item.size) {
       return 'Free Size';
     }
@@ -119,10 +113,8 @@ const Cart = () => {
 
   const selectedCount = getSelectedCount();
   const selectedTotal = getSelectedTotal();
-  // Fixed ₹1,200 shipping pan-India (applied when items are selected)
   const shipping = selectedCount > 0 ? 1200 : 0;
 
-  // GST breakdown for selected items (GST is EXCLUSIVE — calculated on top of product price)
   const selectedCartItems = items.filter(item => selectedItems.has(getItemKey(item)));
   const gstTotal = selectedCartItems.reduce((sum, item) => {
     const gst = item.product.gst ?? 3;
@@ -130,7 +122,7 @@ const Cart = () => {
     const gstAmount = itemTotal * (gst / 100);
     return sum + gstAmount;
   }, 0);
-  const totalExclGst = selectedTotal; // price is already excl. GST
+  const totalExclGst = selectedTotal;
   const finalTotal = selectedTotal + gstTotal + shipping;
 
   if (items.length === 0) {
@@ -142,18 +134,18 @@ const Cart = () => {
             title="Shopping Cart"
             breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Cart' }]}
           />
-          <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
+          <div className="container mx-auto px-4 py-8">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 lg:py-20"
+              className="text-center py-12"
             >
-              <ShoppingBag className="w-12 h-12 lg:w-16 lg:h-16 text-muted-foreground mx-auto mb-4 lg:mb-6" />
-              <h2 className="font-display text-xl lg:text-2xl text-foreground mb-3 lg:mb-4">Your cart is empty</h2>
-              <p className="text-muted-foreground mb-6 lg:mb-8 text-sm lg:text-base">Discover our exquisite collection and find your perfect piece.</p>
+              <ShoppingBag className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
+              <h2 className="font-display text-2xl text-foreground mb-4">Your cart is empty</h2>
+              <p className="text-muted-foreground mb-8">Discover our exquisite collection and find your perfect piece.</p>
               <Link
                 to="/shop"
-                className="bg-primary text-white px-6 py-3 min-h-[44px] rounded-md inline-flex items-center justify-center transition-all duration-300 hover:bg-primary/90"
+                className="bg-primary text-white px-8 py-3 rounded-md inline-flex items-center justify-center transition-all duration-300 hover:bg-primary/90"
               >
                 Continue Shopping
               </Link>
@@ -173,20 +165,22 @@ const Cart = () => {
           title="Shopping Cart"
           breadcrumbs={[{ label: 'Home', path: '/' }, { label: 'Cart' }]}
         />
-        <div className="container mx-auto px-3 sm:px-4 lg:px-8 py-6 lg:py-8">
-          <p className="text-muted-foreground mb-4 lg:mb-6 text-sm">
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-muted-foreground mb-6 text-sm">
             {items.length} {items.length === 1 ? 'item' : 'items'} in your cart
             {selectedCount > 0 && selectedCount !== items.length && (
               <span className="ml-2 text-primary">({selectedCount} selected)</span>
             )}
           </p>
 
-          <div className="grid lg:grid-cols-3 gap-6 lg:gap-12">
-            <div className="lg:col-span-2 space-y-3 lg:space-y-4">
-              <div className="bg-card p-4 border border-border/30 rounded-sm flex items-center justify-between">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Cart Items Section */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Select All / Remove Controls */}
+              <div className="bg-card p-4 border border-border/30 rounded-lg flex flex-wrap items-center justify-between gap-3">
                 <button
                   onClick={toggleSelectAll}
-                  className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors min-h-[44px]"
+                  className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
                 >
                   {selectAll ? (
                     <CheckSquare className="w-5 h-5 text-primary" />
@@ -200,7 +194,7 @@ const Cart = () => {
                 {selectedCount > 0 && (
                   <button
                     onClick={removeSelectedItems}
-                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors min-h-[44px]"
+                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition-colors"
                   >
                     <Trash className="w-4 h-4" />
                     <span>Remove Selected ({selectedCount})</span>
@@ -208,6 +202,7 @@ const Cart = () => {
                 )}
               </div>
 
+              {/* Cart Items */}
               {items.map((item, index) => {
                 const selectedSize = getDisplaySize(item);
                 const itemKey = getItemKey(item);
@@ -219,153 +214,154 @@ const Cart = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`flex gap-3 sm:gap-6 p-3 sm:p-6 bg-card border rounded-sm hover:shadow-md transition-shadow ${isSelected ? 'border-primary/50 border-2' : 'border-border/30'
+                    className={`bg-card border rounded-lg p-4 hover:shadow-md transition-shadow ${isSelected ? 'border-primary/50 border-2' : 'border-border/30'
                       }`}
                   >
-                    <div className="flex-shrink-0 pt-2">
-                      <button
-                        onClick={() => toggleItemSelection(itemKey)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      >
-                        {isSelected ? (
-                          <CheckSquare className="w-6 h-6 text-primary" />
-                        ) : (
-                          <Square className="w-6 h-6 text-muted-foreground" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* ✅ Product Image Link with size and material */}
-                    <Link
-                      to={`/product/${item.product.id}`}
-                      state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
-                      className="flex-shrink-0 group"
-                    >
-                      <div className="relative overflow-hidden rounded-sm">
-                        <img
-                          src={item.product.image || item.product.images?.[0]}
-                          alt={item.product.name}
-                          className="w-20 h-20 sm:w-24 sm:h-24 lg:w-32 lg:h-32 object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      </div>
-                    </Link>
-
-                    <div className="flex-1 flex flex-col min-w-0">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="min-w-0 flex-1">
-                          {/* ✅ Product Name Link with size and material */}
-                          <Link
-                            to={`/product/${item.product.id}`}
-                            state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
-                            className="font-display text-sm sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
-                          >
-                            {item.product.name}
-                          </Link>
-                          {item.product.category && (
-                            <p className="text-muted-foreground text-[10px] sm:text-xs uppercase tracking-wider mt-0.5 sm:mt-1">
-                              {item.product.category}
-                            </p>
+                    <div className="flex gap-4">
+                      {/* Select Checkbox */}
+                      <div className="flex-shrink-0 pt-1">
+                        <button
+                          onClick={() => toggleItemSelection(itemKey)}
+                          className="flex items-center justify-center"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-5 h-5 text-primary" />
+                          ) : (
+                            <Square className="w-5 h-5 text-muted-foreground" />
                           )}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <span className={`font-display text-sm sm:text-lg ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {formatPrice(item.product.price * item.quantity)}
-                          </span>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            + {item.product.gst ?? 3}% GST applicable
-                          </p>
-                        </div>
+                        </button>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 sm:gap-3 mt-1 sm:mt-2">
-                        {(item.ringOption || item.product?.ringOption) && (
-                          <div className="flex items-center gap-1.5 text-xs sm:text-sm px-2.5 py-1 rounded border font-semibold bg-primary/10 text-primary border-primary/20">
-                            <span>Ring: <strong>{item.ringOption || item.product?.ringOption}</strong></span>
+                      {/* Product Image */}
+                      <Link
+                        to={`/product/${item.product.id}`}
+                        state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
+                        className="flex-shrink-0 group"
+                      >
+                        <div className="relative overflow-hidden rounded-lg w-24 h-24 sm:w-28 sm:h-28">
+                          <img
+                            src={item.product.image || item.product.images?.[0]}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        </div>
+                      </Link>
+
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        {/* Product Name & Price Row */}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                          <div>
+                            <Link
+                              to={`/product/${item.product.id}`}
+                              state={{ selectedSize: selectedSize, selectedMaterial: item.material || item.product?.material }}
+                              className="font-display text-base sm:text-lg text-foreground hover:text-primary transition-colors line-clamp-2"
+                            >
+                              {item.product.name}
+                            </Link>
+                            {item.product.category && (
+                              <p className="text-muted-foreground text-xs uppercase tracking-wider mt-0.5">
+                                {item.product.category}
+                              </p>
+                            )}
                           </div>
-                        )}
-                        {(item.material || item.product?.material) && (
-                          <div className={`flex items-center gap-1.5 text-xs sm:text-sm px-2.5 py-1 rounded border font-medium ${
-                            (item.material || item.product?.material || '').toLowerCase().includes('rose')
+                          <div className="text-left sm:text-right flex-shrink-0">
+                            <span className={`font-display text-base sm:text-lg ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {formatPrice(item.product.price * item.quantity)}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              + {item.product.gst ?? 3}% GST applicable
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Product Attributes - Metal & Size */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          {(item.material || item.product?.material) && (
+                            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border font-medium ${(item.material || item.product?.material || '').toLowerCase().includes('rose')
                               ? 'bg-rose-500/10 text-rose-950 border-rose-400/40'
                               : 'bg-amber-500/10 text-amber-950 border-amber-400/40'
-                          }`}>
-                            <span className={`w-2.5 h-2.5 rounded-full inline-block ${
-                              (item.material || item.product?.material || '').toLowerCase().includes('rose')
-                                ? 'bg-gradient-to-br from-rose-300 to-rose-500 border border-rose-400'
-                                : 'bg-gradient-to-br from-amber-300 to-amber-500 border border-amber-400'
-                            }`} />
-                            <span>Metal: <strong className="font-semibold">{item.material || item.product?.material}</strong></span>
-                          </div>
-                        )}
-                        {selectedSize ? (
-                          <div className="flex items-center gap-1 text-xs sm:text-sm bg-primary/10 px-2 py-1 rounded border border-primary/20">
-                            <span className="font-medium text-primary">Size:</span>
-                            <span className="text-foreground font-semibold">
-                              {selectedSize === 'Free Size' ? 'Free Size' : selectedSize}
+                              }`}>
+                              <span className={`w-2 h-2 rounded-full inline-block ${(item.material || item.product?.material || '').toLowerCase().includes('rose')
+                                ? 'bg-gradient-to-br from-rose-300 to-rose-500'
+                                : 'bg-gradient-to-br from-amber-300 to-amber-500'
+                                }`} />
+                              <span>Metal: <strong className="font-semibold">{item.material || item.product?.material}</strong></span>
+                            </div>
+                          )}
+                          {selectedSize && (
+                            <div className="flex items-center gap-1 text-xs bg-primary/10 px-2.5 py-1 rounded border border-primary/20">
+                              <span className="font-medium text-primary">Size:</span>
+                              <span className="text-foreground font-semibold">
+                                {selectedSize === 'Free Size' ? 'Free Size' : selectedSize}
+                              </span>
+                            </div>
+                          )}
+                          {/* {(item.ringOption || item.product?.ringOption) && (
+                            <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border font-semibold bg-primary/10 text-primary border-primary/20">
+                              <span>Ring: <strong>{item.ringOption || item.product?.ringOption}</strong></span>
+                            </div>
+                          )} */}
+                        </div>
+
+                        {/* Quantity & Actions Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-border/20">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center border border-border/50 rounded">
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity - 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
+                                className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-8 text-center text-foreground text-sm font-medium">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
+                                className="w-8 h-8 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <span className="text-xs sm:text-sm text-muted-foreground">
+                              {formatPrice(item.product.price)} each
                             </span>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground bg-muted/30 px-2 py-1 rounded">
-                            <span className="font-medium">Size:</span>
-                            <span className="text-foreground">Standard</span>
+
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Truck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                              <span>12-15 days</span>
+                            </div>
+                            <button
+                              onClick={() => removeItem(item.product.id, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
+                              className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-sm"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between flex-wrap gap-2 mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-border/20">
-                        <div className="flex items-center border border-border/50 rounded-sm">
-                          <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
-                            className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
-                          <span className="w-8 sm:w-10 text-center text-foreground text-xs sm:text-sm font-medium">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
-                            className="w-8 h-8 sm:w-8 sm:h-8 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-foreground hover:bg-muted transition-colors"
-                          >
-                            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </button>
                         </div>
-
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Truck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                          <span>Estimated Delivery: 12–15 days from the date of order.</span>
-                        </div>
-
-                        <div className="text-xs sm:text-sm text-muted-foreground">
-                          {formatPrice(item.product.price)} each
-                        </div>
-
-                        <button
-                          onClick={() => removeItem(item.product.id, selectedSize, item.material || item.product?.material, item.ringOption || item.product?.ringOption)}
-                          className="flex items-center gap-1 text-muted-foreground hover:text-destructive transition-colors text-xs sm:text-sm min-h-[44px] px-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="hidden sm:inline">Remove</span>
-                        </button>
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
 
-              <div className="flex items-center justify-between pt-4">
+              {/* Bottom Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 <button
                   onClick={clearCart}
-                  className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm hover:text-destructive transition-colors min-h-[44px]"
+                  className="flex items-center gap-2 text-muted-foreground text-sm hover:text-destructive transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear Cart
                 </button>
                 <Link
                   to="/shop"
-                  className="flex items-center gap-2 text-primary text-xs sm:text-sm hover:underline min-h-[44px]"
+                  className="flex items-center gap-2 text-primary text-sm hover:underline"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Continue Shopping
@@ -373,13 +369,14 @@ const Cart = () => {
               </div>
             </div>
 
+            {/* Order Summary */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               className="lg:col-span-1"
             >
-              <div className="bg-card p-4 sm:p-6 lg:p-8 border border-border/30 rounded-sm sticky top-28">
-                <h2 className="font-display text-lg lg:text-xl text-foreground mb-4 lg:mb-6">
+              <div className="bg-card p-6 border border-border/30 rounded-lg sticky top-28">
+                <h2 className="font-display text-xl text-foreground mb-6">
                   Order Summary
                   {selectedCount > 0 && selectedCount !== items.length && (
                     <span className="text-sm text-muted-foreground ml-2">
@@ -407,9 +404,9 @@ const Cart = () => {
 
                 <div className="border-t border-border/30 pt-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-base lg:text-lg text-foreground">Total Payable</span>
+                    <span className="font-display text-lg text-foreground">Total Payable</span>
                     <div className="text-right">
-                      <span className="font-display text-xl lg:text-2xl text-primary">
+                      <span className="font-display text-2xl text-primary">
                         {selectedCount > 0 ? formatPrice(Math.round(finalTotal)) : formatPrice(0)}
                       </span>
                       <p className="text-xs text-muted-foreground">Incl. GST + ₹1,200 Shipping</p>
@@ -420,7 +417,7 @@ const Cart = () => {
                 <button
                   onClick={handleProceedToCheckout}
                   disabled={selectedCount === 0}
-                  className={`w-full py-3 min-h-[44px] rounded-md flex items-center justify-center gap-2 transition-all duration-300 group text-sm lg:text-base ${selectedCount === 0
+                  className={`w-full py-3 rounded-md flex items-center justify-center gap-2 transition-all duration-300 group text-sm ${selectedCount === 0
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-primary text-white hover:bg-primary/90'
                     }`}
@@ -435,10 +432,10 @@ const Cart = () => {
                   </p>
                 )}
 
-                <div className="mt-4 lg:mt-6 space-y-2 lg:space-y-3">
+                <div className="mt-6 space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Truck className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Estimated Delivery: 12–15 days from the date of order.</span>
+                    <span>Estimated Delivery: 12–15 days from order date</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -450,11 +447,11 @@ const Cart = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 lg:mt-8 pt-4 lg:pt-6 border-t border-border/30">
+                <div className="mt-6 pt-4 border-t border-border/30">
                   <p className="text-muted-foreground text-xs mb-3 text-center">We accept</p>
-                  <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
                     {['Visa', 'Mastercard', 'UPI', 'Zoho Payments', 'Paytm'].map((method) => (
-                      <span key={method} className="text-xs bg-muted px-2 py-1 rounded text-muted-foreground">
+                      <span key={method} className="text-xs bg-muted px-3 py-1.5 rounded text-muted-foreground">
                         {method}
                       </span>
                     ))}

@@ -90,7 +90,15 @@ export const Header = () => {
   const wishlistCount = useWishlistStore((state) => state.items.length);
   const { user, isAuthenticated, logout } = useAuthStore();
 
+  // Calculate heights dynamically
   const ANNOUNCEMENT_HEIGHT = 38;
+  // For mobile, navbar height is 64px (h-16) and for desktop it's 80px (h-20) or 96px (h-24)
+  const getNavbarHeight = () => {
+    if (window.innerWidth < 640) return 64; // sm: h-16
+    if (window.innerWidth < 1024) return 80; // lg: h-20
+    return 96; // lg: h-24
+  };
+
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   const getCategoryImage = (cat: any) => {
@@ -116,7 +124,6 @@ export const Header = () => {
       const data = await response.json();
 
       if (data.success && data.categories) {
-        // Sirf Active + Featured categories hi show karein
         const activeCategories = data.categories
           .filter((cat: any) => cat.isActive === true && cat.featured === true)
           .map((cat: any) => ({
@@ -139,6 +146,7 @@ export const Header = () => {
       setLoadingCategories(false);
     }
   };
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -197,6 +205,8 @@ export const Header = () => {
   const hoverColor = 'hover:text-primary-foreground';
 
   const navTopOffset = showAnnouncementBar ? ANNOUNCEMENT_HEIGHT : 0;
+  const navbarHeight = getNavbarHeight();
+  const totalHeaderHeight = navTopOffset + navbarHeight;
 
   const activeAnnouncement = announcements[announcementIndex];
 
@@ -439,14 +449,6 @@ export const Header = () => {
                         >
                           <Package className="w-4 h-4" /> Track Order
                         </Link>
-                        {/* 
-                        <Link
-                          to="/profile"
-                          onClick={() => setShowDropdown(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-                        >
-                          <User className="w-4 h-4" /> Profile
-                        </Link> */}
 
                         <Link
                           to="/order-summary"
@@ -526,7 +528,7 @@ export const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Fixed positioning with proper top offset */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -534,9 +536,13 @@ export const Header = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="lg:hidden fixed inset-0 top-16 sm:top-20 bg-background z-40 overflow-y-auto"
+              className="lg:hidden fixed inset-0 bg-background z-40 overflow-y-auto"
+              style={{
+                top: `${totalHeaderHeight}px`,
+                height: `calc(100vh - ${totalHeaderHeight}px)`
+              }}
             >
-              <nav className="container mx-auto px-4 py-6 flex flex-col gap-1">
+              <nav className="container mx-auto px-4 py-6 flex flex-col gap-1 h-full overflow-y-auto">
                 <Link
                   to="/"
                   onClick={() => setIsMenuOpen(false)}

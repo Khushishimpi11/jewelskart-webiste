@@ -155,7 +155,7 @@ const Shop = () => {
   const { exchangeData, setExchangeData, setIsExchangeMode } = useExchange();
 
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState([0, 500000]);
+  const [priceRange, setPriceRange] = useState([0, 2000000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedGoldPurity, setSelectedGoldPurity] = useState<string[]>([]);
@@ -208,14 +208,26 @@ const Shop = () => {
       const data = await response.json();
 
       if (data.success && data.categories) {
-        const featuredCategories = data.categories.filter(
-          (cat: Category) => cat.isActive === true && cat.featured === true
+        // SARI active categories lo
+        const activeCategories = data.categories.filter(
+          (cat: Category) => cat.isActive === true
         );
-        setCategories(featuredCategories);
+        setCategories(activeCategories);
 
         const mapping: Record<string, string> = {};
-        featuredCategories.forEach((cat: Category) => {
-          mapping[cat.slug] = cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
+        activeCategories.forEach((cat: Category) => {
+          const capName = cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
+          mapping[cat.slug] = capName;
+          mapping[cat.name.toLowerCase()] = capName;
+          if (cat.slug.endsWith('s')) {
+            mapping[cat.slug.slice(0, -1)] = capName;
+          } else {
+            mapping[`${cat.slug}s`] = capName;
+          }
+          if (cat.slug.includes('-')) {
+            mapping[cat.slug.replace(/-/g, ' ')] = capName;
+            mapping[cat.slug.replace(/-/g, '')] = capName;
+          }
         });
         setCategoryMapping(mapping);
       }
@@ -251,6 +263,8 @@ const Shop = () => {
   };
 
   // Fetch products with Cloudinary support
+  // Shop Page mein fetchProducts function ka updated version
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -306,11 +320,37 @@ const Shop = () => {
             mainImage: p.mainImage,
             galleryImages: p.galleryImages,
             ringSizes: cmsRingSizes,
-            coupleRing: p.coupleRing || (p as any).specifications?.coupleRing || undefined,
-            specifications: {
+            // ✅ FIX: Properly preserve goldDetails
+            goldDetails: p.goldDetails ? {
+              weight: Number(p.goldDetails.weight),
+              purity: p.goldDetails.purity,
+              makingCharge: Number(p.goldDetails.makingCharge)
+            } : undefined,
+            // ✅ FIX: Properly preserve complete coupleRing object with all stone details
+            coupleRing: p.coupleRing ? {
+              ...p.coupleRing,
+              womenPrice: p.coupleRing.womenPrice ? Number(p.coupleRing.womenPrice) : undefined,
+              womenWeight: p.coupleRing.womenWeight ? Number(p.coupleRing.womenWeight) : undefined,
+              menPrice: p.coupleRing.menPrice ? Number(p.coupleRing.menPrice) : undefined,
+              menWeight: p.coupleRing.menWeight ? Number(p.coupleRing.menWeight) : undefined,
+            } : (p as any).specifications?.coupleRing ? {
+              ...(p as any).specifications.coupleRing,
+              womenPrice: (p as any).specifications.coupleRing.womenPrice ? Number((p as any).specifications.coupleRing.womenPrice) : undefined,
+              womenWeight: (p as any).specifications.coupleRing.womenWeight ? Number((p as any).specifications.coupleRing.womenWeight) : undefined,
+              menPrice: (p as any).specifications.coupleRing.menPrice ? Number((p as any).specifications.coupleRing.menPrice) : undefined,
+              menWeight: (p as any).specifications.coupleRing.menWeight ? Number((p as any).specifications.coupleRing.menWeight) : undefined,
+            } : undefined,
+            // ✅ FIX: Properly preserve specifications with stoneType and all stone attributes
+            specifications: p.specifications ? {
               ...p.specifications,
+              ringSizes: cmsRingSizes,
+              stoneType: p.specifications.stoneType,
+              stoneWeight: p.specifications.stoneWeight ? Number(p.specifications.stoneWeight) : undefined,
+            } : {
               ringSizes: cmsRingSizes
-            }
+            },
+            // ✅ FIX: Ensure tags is always an array
+            tags: Array.isArray(p.tags) ? p.tags : [],
           };
         });
 
@@ -365,13 +405,24 @@ const Shop = () => {
     scrollToSection();
   };
 
+  const getNormalizedCategoryMatch = (productCategory?: string, targetCategory?: string) => {
+    if (!productCategory || !targetCategory) return false;
+    const p = productCategory.toLowerCase().trim().replace(/[-_\s]+/g, '');
+    const t = targetCategory.toLowerCase().trim().replace(/[-_\s]+/g, '');
+    if (p === t) return true;
+    const pSingular = p.endsWith('s') ? p.slice(0, -1) : p;
+    const tSingular = t.endsWith('s') ? t.slice(0, -1) : t;
+    return pSingular === tSingular;
+  };
+
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
-      const categoryDisplayName = categoryMapping[categoryFromUrl];
+    if (categoryFromUrl) {
+      const categoryDisplayName = categoryMapping[categoryFromUrl] || categoryFromUrl;
       filtered = filtered.filter((product) =>
-        product.category?.toLowerCase() === categoryDisplayName?.toLowerCase()
+        getNormalizedCategoryMatch(product.category, categoryDisplayName) ||
+        getNormalizedCategoryMatch(product.category, categoryFromUrl)
       );
     }
 
@@ -390,7 +441,7 @@ const Shop = () => {
     if (selectedCategories.length > 0) {
       filtered = filtered.filter((product) =>
         selectedCategories.some(cat =>
-          product.category?.toLowerCase() === cat.toLowerCase()
+          getNormalizedCategoryMatch(product.category, cat)
         )
       );
     }
@@ -430,12 +481,13 @@ const Shop = () => {
     }
   }, [filteredProducts, sortBy]);
 
-  // Filter products for exchange mode - Only show in-stock products
+  // Filter products for exchange mode - Only show available products
   const exchangeAvailableProducts = useMemo(() => {
     if (!isExchangeMode) return sortedProducts;
-    // Only show products with stock > 0 and not the current product
+    // Only show products that are available for order and not the current product
     return sortedProducts.filter(product =>
-      product.stock > 0 && (product._id || product.id) !== exchangeReturnProductId
+      (product as any).isAvailableForOrder !== false &&
+      (product._id || product.id) !== exchangeReturnProductId
     );
   }, [sortedProducts, isExchangeMode, exchangeReturnProductId]);
 
@@ -452,7 +504,7 @@ const Shop = () => {
     setSelectedCategories([]);
     setSelectedTags([]);
     setSelectedGoldPurity([]);
-    setPriceRange([0, 100000]);
+    setPriceRange([0, 2000000]);
     setSortBy('default');
     setCurrentPage(1);
     scrollToSection();
@@ -465,8 +517,11 @@ const Shop = () => {
       return 'Select Exchange Product';
     }
     // Check category first, then brand
-    if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
-      return categoryMapping[categoryFromUrl];
+    if (categoryFromUrl) {
+      if (categoryMapping[categoryFromUrl]) return categoryMapping[categoryFromUrl];
+      const foundCat = categories.find(c => getNormalizedCategoryMatch(c.slug, categoryFromUrl) || getNormalizedCategoryMatch(c.name, categoryFromUrl));
+      if (foundCat) return foundCat.name.charAt(0).toUpperCase() + foundCat.name.slice(1);
+      return categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1);
     }
     if (brandFromUrl) {
       return brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1);
@@ -480,10 +535,12 @@ const Shop = () => {
     if (isExchangeMode) {
       breadcrumbs.push({ label: 'Order Summary', path: '/order-summary' });
       breadcrumbs.push({ label: 'Select Exchange Product', path: '/shop' });
-    } else if (categoryFromUrl && categoryMapping[categoryFromUrl]) {
-      // Category takes priority
+    } else if (categoryFromUrl) {
+      const label = categoryMapping[categoryFromUrl] ||
+        categories.find(c => getNormalizedCategoryMatch(c.slug, categoryFromUrl) || getNormalizedCategoryMatch(c.name, categoryFromUrl))?.name ||
+        categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1);
       breadcrumbs.push({
-        label: categoryMapping[categoryFromUrl],
+        label: typeof label === 'string' ? (label.charAt(0).toUpperCase() + label.slice(1)) : categoryFromUrl,
         path: `/shop?category=${categoryFromUrl}`
       });
     } else if (brandFromUrl) {
@@ -498,8 +555,8 @@ const Shop = () => {
     return breadcrumbs;
   };
 
-  // Handle exchange product selection with size
-  const handleSelectForExchange = (product: Product, selectedSize?: string) => {
+  // Handle exchange product selection with size and metal/ring option
+  const handleSelectForExchange = (product: Product, selectedSize?: string, selectedMetal?: string, selectedRingOption?: string) => {
     const productId = product._id || product.id;
 
     if (!exchangeData) {
@@ -508,13 +565,26 @@ const Shop = () => {
       return;
     }
 
-    // Check if product is a ring and size is required but not selected
+    // Check if product is a single ring and size is required but not selected
+    const isCouple = product.coupleRing || product.category?.toLowerCase().includes('couple');
     const isRingProduct = product.category?.toLowerCase().includes('ring') ||
       product.tags?.some(tag => tag.toLowerCase().includes('ring'));
 
-    if (isRingProduct && !selectedSize) {
+    if (isRingProduct && !isCouple && !selectedSize) {
       toast.error("Please select a ring size before proceeding");
       return;
+    }
+
+    let effectivePrice = Number(product.price);
+    if (selectedRingOption && product.coupleRing) {
+      if (selectedRingOption.includes('Women')) {
+        effectivePrice = Number(product.coupleRing.womenPrice) || product.price;
+      } else if (selectedRingOption.includes('Men')) {
+        effectivePrice = Number(product.coupleRing.menPrice) || product.price;
+      } else {
+        const both = (Number(product.coupleRing.womenPrice) || 0) + (Number(product.coupleRing.menPrice) || 0);
+        effectivePrice = both > 0 ? both : product.price;
+      }
     }
 
     // Update Context with selected product and size
@@ -522,14 +592,14 @@ const Shop = () => {
       ...exchangeData,
       selectedExchangeProduct: {
         id: productId,
-        name: selectedSize
-          ? (selectedSize === 'Free Size'
-            ? product.name
-            : `${product.name} (Size ${selectedSize})`)
+        name: selectedSize && selectedSize !== 'Free Size'
+          ? `${product.name} (${selectedSize})`
           : product.name,
-        price: product.price,
+        price: effectivePrice,
         image: getProductImageUrl(product),
         sku: product.sku,
+        material: selectedMetal || 'Gold',
+        ringOption: selectedRingOption,
         selectedSize: selectedSize || 'Free Size',
       },
       step: 'complete' as const,
@@ -540,7 +610,7 @@ const Shop = () => {
 
     // Show appropriate success message
     if (selectedSize && selectedSize !== 'Free Size') {
-      toast.success(`Selected ${product.name} - Size ${selectedSize} for exchange`);
+      toast.success(`Selected ${product.name} - ${selectedSize} for exchange`);
     } else {
       toast.success(`Selected ${product.name} for exchange`);
     }
@@ -680,8 +750,8 @@ const Shop = () => {
                       value={priceRange}
                       onValueChange={(val) => { setPriceRange(val); setCurrentPage(1); }}
                       min={0}
-                      max={100000}
-                      step={500}
+                      max={2000000}
+                      step={1000}
                       className="mb-4"
                     />
                     <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
@@ -782,6 +852,7 @@ const Shop = () => {
                           transition={{ delay: Math.min(index * 0.05, 0.5) }}
                           className="relative group"
                         >
+
                           <ProductCard
                             product={{
                               id: product._id || product.id || `product-${index}`,
@@ -796,18 +867,17 @@ const Shop = () => {
                               rating: product.reviews?.rating || 4.5,
                               reviewCount: product.reviews?.count || 0,
                               stock: product.stock,
+                              // ✅ PASS ALL FIELDS PROPERLY
+                              goldDetails: product.goldDetails,
+                              coupleRing: product.coupleRing,
                               specifications: product.specifications,
-                              coupleRing: product.coupleRing || (product as any).specifications?.coupleRing || undefined,
-                              // ✅ Pass the exact sizes configured in CMS
-                              ringSizes: product.ringSizes?.length
-                                ? product.ringSizes
-                                : (product.specifications?.ringSizes?.length
-                                  ? product.specifications.ringSizes
-                                  : ['Free Size']),
+                              ringSizes: product.ringSizes?.length ? product.ringSizes : ['Free Size'],
                               isRingProduct: (() => {
                                 const cat = product.category?.toLowerCase().trim() || '';
                                 return (cat === 'ring' || cat === 'rings' || cat.includes('ring')) && !cat.includes('earring');
-                              })()
+                              })(),
+                              // ✅ Pass GST
+                              gst: (product as any).gst || 3,
                             }}
                             isExchangeMode={isExchangeMode}
                             onExchangeSelect={handleSelectForExchange}

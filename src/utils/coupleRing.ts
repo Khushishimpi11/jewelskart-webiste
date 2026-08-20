@@ -54,3 +54,42 @@ export const getCoupleRingPrices = (prod?: any): CoupleRingPrices => {
     menWeight,
   };
 };
+
+/**
+ * Format ring size cleanly with Men/Women identification if applicable
+ */
+export const formatCoupleOrRingSize = (size?: string, ringOption?: string): string => {
+  if (!size || size.trim() === '' || size.trim().toLowerCase() === 'free size') {
+    return 'Free Size';
+  }
+  const cleanSize = size.trim();
+
+  // If already formatted with Women: or Men:, return as is
+  if (cleanSize.includes('Women:') || cleanSize.includes('Men:')) {
+    return cleanSize;
+  }
+
+  const rawSizeVal = cleanSize.replace(/^Size\s*/i, '').trim();
+
+  if (ringOption) {
+    const opt = ringOption.toLowerCase();
+    if (opt.includes('women')) {
+      return `Women: Size ${rawSizeVal}`;
+    }
+    if (opt.includes('men')) {
+      return `Men: Size ${rawSizeVal}`;
+    }
+    if (opt.includes('both') || opt.includes('couple')) {
+      // If it contains a comma or slash separating two sizes (e.g. "7, 10" or "7 / 10")
+      if (rawSizeVal.includes(',') || rawSizeVal.includes('/')) {
+        const parts = rawSizeVal.split(/[,/]/).map(p => p.trim().replace(/^Size\s*/i, ''));
+        if (parts.length >= 2) {
+          return `Women: Size ${parts[0]}, Men: Size ${parts[1]}`;
+        }
+      }
+    }
+  }
+
+  return cleanSize;
+};
+

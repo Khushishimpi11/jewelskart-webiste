@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ShoppingBag, Eye, RefreshCw, ChevronDown, Check, Star, X } from 'lucide-react';
+import { Heart, ShoppingBag, Eye, RefreshCw, ChevronDown, Check, Star, X, CheckCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useNavigate } from 'react-router-dom';
@@ -101,6 +101,7 @@ interface Product {
     stoneType?: string;
     stoneWeight?: number;
     warranty?: string;
+    purity?: string;
   };
   reviews?: {
     rating: number;
@@ -110,10 +111,10 @@ interface Product {
   rating?: number;
   reviewCount?: number;
   gst?: number;
-  // ⭐ ADD THESE - For passing ring sizes from parent
   ringSizes?: string[];
   isRingProduct?: boolean;
   ringOption?: string;
+  isCoupleRing?: boolean; // Add this field
 }
 
 // ============================================================
@@ -122,12 +123,12 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   isExchangeMode?: boolean;
-  onExchangeSelect?: (product: Product, selectedSize?: string) => void;
+  onExchangeSelect?: (product: Product, selectedSize?: string, selectedMetal?: string, selectedRingOption?: string) => void;
   isCurrentProduct?: boolean;
 }
 
 // ============================================================
-// MATERIAL PARSER HELPER (Gold / Rose Gold)
+// MATERIAL PARSER HELPER
 // ============================================================
 const getAvailableMaterials = (prod?: Product | null): string[] => {
   if (!prod) return ['Gold'];
@@ -153,6 +154,138 @@ const getAvailableMaterials = (prod?: Product | null): string[] => {
 };
 
 // ============================================================
+// HELPER: Get Gold Purity & Stone Info from CMS
+// ============================================================
+
+// Maps raw CMS stoneType values → display labels
+const getStoneLabel = (raw?: string | null): string => {
+  if (!raw) return '';
+  const s = String(raw).toLowerCase().trim();
+  if (s === 'diamond') return 'Diamond';
+  if (s === 'semi_precious' || s === 'semiprecious' || s === 'semi precious' || s === 'semi-precious') return 'Semi Precious Stone';
+  if (s === 'both') return 'Diamond & Semi Precious';
+  return '';
+};
+
+// Returns true if the value explicitly means "no stone" or is empty
+const isExplicitNoStone = (v?: string | null): boolean => {
+  if (v === undefined || v === null) return true;
+  const s = String(v).toLowerCase().trim();
+  return s === '' || s === 'none' || s === 'no stone' || s === 'no' || s === 'false' || s === 'null' || s === 'undefined';
+};
+
+const getProductMeta = (product: Product) => {
+  // ── 1. Purity ──────────────────────────────────────────────
+  let rawPurity = '';
+  if (product.goldDetails?.purity) {
+    rawPurity = String(product.goldDetails.purity).trim();
+  } else if (product.specifications?.purity) {
+    rawPurity = String(product.specifications.purity).trim();
+  } else if ((product as any).purity) {
+    rawPurity = String((product as any).purity).trim();
+  }
+
+  // Format: "18K" → "18K Gold", "9K" → "9K Gold", "18K Gold" → unchanged
+  let formattedPurity = '';
+  if (rawPurity) {
+    formattedPurity = rawPurity.toLowerCase().includes('gold')
+      ? rawPurity
+      : `${rawPurity} Gold`;
+  }
+
+  // ── 2. Stone label — ONLY from explicit CMS fields ────────
+  let stoneLabel = '';
+  const isCouple = (product as any).isCoupleRing === true || Boolean(product.coupleRing) || (product.category && product.category.toLowerCase().includes('couple'));
+
+  if (isCouple && product.coupleRing) {
+    const cr = product.coupleRing as any;
+    const spec = (product.specifications || {}) as any;
+    const specStoneType = String(spec.stoneType || '').toLowerCase().trim();
+
+    if (specStoneType === 'none') {
+      stoneLabel = '';
+    } else {
+      const hasWD = (!isExplicitNoStone(cr.womenDiamond) && String(cr.womenDiamond || '').trim().toLowerCase() === 'diamond') ||
+                    (!isExplicitNoStone(spec.womenDiamond) && String(spec.womenDiamond || '').trim().toLowerCase() === 'diamond');
+      const hasMD = (!isExplicitNoStone(cr.menDiamond) && String(cr.menDiamond || '').trim().toLowerCase() === 'diamond') ||
+                    (!isExplicitNoStone(spec.menDiamond) && String(spec.menDiamond || '').trim().toLowerCase() === 'diamond');
+      const hasWDWeight = Number(cr.womenDiamondWeight) > 0 || Number(spec.womenDiamondWeight) > 0;
+      const hasMDWeight = Number(cr.menDiamondWeight) > 0 || Number(spec.menDiamondWeight) > 0;
+      const hasSpecDia = specStoneType === 'diamond' || specStoneType === 'both';
+      const hasDia = hasWD || hasMD || hasWDWeight || hasMDWeight || hasSpecDia;
+
+      const hasWSP = (!isExplicitNoStone(cr.womenSemiPreciousStone) && String(cr.womenSemiPreciousStone || '').trim() !== '') ||
+                     (!isExplicitNoStone(spec.womenSemiPreciousStone) && String(spec.womenSemiPreciousStone || '').trim() !== '');
+      const hasMSP = (!isExplicitNoStone(cr.menSemiPreciousStone) && String(cr.menSemiPreciousStone || '').trim() !== '') ||
+                     (!isExplicitNoStone(spec.menSemiPreciousStone) && String(spec.menSemiPreciousStone || '').trim() !== '');
+      const hasWSPWeight = Number(cr.womenSemiPreciousWeight) > 0 || Number(spec.womenSemiPreciousWeight) > 0;
+      const hasMSPWeight = Number(cr.menSemiPreciousWeight) > 0 || Number(spec.menSemiPreciousWeight) > 0;
+      const hasSpecSP = specStoneType === 'semi_precious' || specStoneType === 'both';
+      const hasSP = hasWSP || hasMSP || hasWSPWeight || hasMSPWeight || hasSpecSP;
+
+      if (hasDia && hasSP) {
+        stoneLabel = 'Diamond & Semi Precious';
+      } else if (hasDia) {
+        stoneLabel = 'Diamond';
+      } else if (hasSP) {
+        stoneLabel = 'Semi Precious Stone';
+      } else {
+        stoneLabel = '';
+      }
+    }
+  } else {
+    // Standard (Single) Products
+    // Logic:
+    // 1. If stoneType is set and NOT "none" → use stoneType as the authority
+    // 2. Always ALSO check individual diamond/semiPreciousStone fields
+    //    This handles cases where stoneType="none" but diamond field was later filled in CMS
+    const rawStoneType = product.specifications?.stoneType;
+    const spec = (product.specifications || {}) as any;
+
+    // Check explicit individual stone fields (always, regardless of stoneType)
+    const hasDiaField = !isExplicitNoStone(spec.diamond) && String(spec.diamond || '').trim().toLowerCase() === 'diamond';
+    const hasDiaWeight = Number(spec.diamondWeight) > 0;
+    const hasSPField = !isExplicitNoStone(spec.semiPreciousStone) && String(spec.semiPreciousStone || '').trim() !== '';
+    const hasSPWeight = Number(spec.semiPreciousWeight) > 0;
+
+    if (rawStoneType !== undefined && rawStoneType !== null && String(rawStoneType).trim() !== '' && !isExplicitNoStone(rawStoneType)) {
+      // stoneType dropdown has an explicit non-none value — use it as authority
+      const fromDropdown = getStoneLabel(rawStoneType);
+      if (fromDropdown) {
+        stoneLabel = fromDropdown;
+      } else {
+        // dropdown value is unknown string — fall back to individual fields
+        const hasDia = hasDiaField || hasDiaWeight;
+        const hasSP = hasSPField || hasSPWeight;
+        if (hasDia && hasSP) stoneLabel = 'Diamond & Semi Precious';
+        else if (hasDia) stoneLabel = 'Diamond';
+        else if (hasSP) stoneLabel = 'Semi Precious Stone';
+      }
+    } else {
+      // stoneType is "none", missing, or empty → check individual fields
+      // This is the generic fix: CMS individual fields override stoneType="none"
+      const hasDia = hasDiaField || hasDiaWeight;
+      const hasSP = hasSPField || hasSPWeight;
+      if (hasDia && hasSP) stoneLabel = 'Diamond & Semi Precious';
+      else if (hasDia) stoneLabel = 'Diamond';
+      else if (hasSP) stoneLabel = 'Semi Precious Stone';
+    }
+  }
+
+  // ── 3. Build meta string ───────────────────────────────────
+  const metaParts: string[] = [];
+  if (formattedPurity) metaParts.push(formattedPurity);
+  if (stoneLabel) metaParts.push(stoneLabel);
+
+  return {
+    purity: formattedPurity,
+    stoneLabel,
+    hasDiamond: stoneLabel.toLowerCase().includes('diamond'),
+    metaString: metaParts.join(' • ')
+  };
+};
+
+// ============================================================
 // PRODUCT CARD COMPONENT
 // ============================================================
 export const ProductCard = ({
@@ -169,9 +302,12 @@ export const ProductCard = ({
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
   const [currentImage, setCurrentImage] = useState<string>('');
   const [showMetalModal, setShowMetalModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'cart' | 'wishlist' | 'buynow' | null>(null);
+  const [pendingAction, setPendingAction] = useState<'cart' | 'wishlist' | 'buynow' | 'exchange' | null>(null);
+  const [showAddedAnimation, setShowAddedAnimation] = useState(false);
 
-  // Couple Ring Modal specific states
+  const [ringSelectedSize, setRingSelectedSize] = useState<string>('');
+  const [ringSelectedMetal, setRingSelectedMetal] = useState<string>('Gold');
+
   const [selectedCoupleOption, setSelectedCoupleOption] = useState<'Women’s Ring' | 'Men’s Ring' | 'Both Rings (Couple Set)'>('Both Rings (Couple Set)');
   const [selectedWomenSize, setSelectedWomenSize] = useState<string>('');
   const [selectedMenSize, setSelectedMenSize] = useState<string>('');
@@ -190,18 +326,26 @@ export const ProductCard = ({
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
 
   // ============================================================
-  // DERIVED STATE & COUPLE RING SUPPORT
+  // DERIVED STATE
   // ============================================================
   const inWishlist = isInWishlist(product.id || '');
   const isUnavailable = (product as any).isAvailableForOrder === false;
   const isOutOfStock = isUnavailable;
 
-  const isCoupleRing = useMemo(() => isCoupleRingProduct(product), [product]);
+  // Check for couple ring - check BOTH the utility function AND the product.isCoupleRing flag
+  const isCoupleRing = useMemo(() => {
+    // First check if product has isCoupleRing flag set to true
+    if (product.isCoupleRing === true) return true;
+    // Then check using the utility function
+    return isCoupleRingProduct(product);
+  }, [product]);
+
   const couplePrices = useMemo(() => getCoupleRingPrices(product), [product]);
   const [selectedMetal, setSelectedMetal] = useState<string>('Gold');
 
   const productImage = product.images?.[0] || product.image || '/placeholder-image.jpg';
-  const hoverImage = product.images?.[1] || product.images?.[0] || product.image || '/placeholder-image.jpg';
+
+  const productMeta = useMemo(() => getProductMeta(product), [product]);
 
   // ============================================================
   // EFFECTS
@@ -210,12 +354,17 @@ export const ProductCard = ({
     setCurrentImage(productImage);
   }, [productImage]);
 
+  // Debug log to check if couple ring is detected
+  useEffect(() => {
+    if (isCoupleRing) {
+      console.log('✅ Couple Ring Detected:', product.name, product.isCoupleRing);
+    }
+  }, [isCoupleRing, product]);
+
   // ============================================================
-  // PRODUCT TYPE CHECKERS - FIXED
+  // PRODUCT TYPE CHECKERS
   // ============================================================
   const isRingProduct = useMemo(() => {
-    // Ring detection must come from category/explicit flag, NOT from size array.
-    // This prevents Earrings/Necklaces with "Free Size" from being treated as rings.
     if (product.isRingProduct === true) return true;
     if (!product?.category) return false;
 
@@ -225,36 +374,21 @@ export const ProductCard = ({
   }, [product, isCoupleRing]);
 
   const availableSizes = useMemo(() => {
-    // 1) Exact sizes passed from CMS at top level
     if (Array.isArray(product.ringSizes) && product.ringSizes.length > 0) {
       return product.ringSizes;
     }
-
-    // 2) Exact sizes inside specifications from CMS
     if (
       Array.isArray(product.specifications?.ringSizes) &&
       product.specifications.ringSizes.length > 0
     ) {
       return product.specifications.ringSizes;
     }
-
-    // 3) No size configured in CMS -> show Free Size
     return ['Free Size'];
   }, [product]);
-
-  const hasOnlyFreeSize = useMemo(() => {
-    return isRingProduct && availableSizes.length === 1 && availableSizes[0] === 'Free Size';
-  }, [isRingProduct, availableSizes]);
 
   const hasMultipleSizes = useMemo(() => {
     return isRingProduct && availableSizes.length > 1;
   }, [isRingProduct, availableSizes]);
-
-  useEffect(() => {
-    if (hasOnlyFreeSize) {
-      setSelectedSize('Free Size');
-    }
-  }, [hasOnlyFreeSize]);
 
   const availableMaterials = useMemo(() => getAvailableMaterials(product), [product]);
   const hasMultipleMaterials = useMemo(() => availableMaterials.length > 1, [availableMaterials]);
@@ -262,8 +396,19 @@ export const ProductCard = ({
   useEffect(() => {
     if (availableMaterials.length > 0) {
       setSelectedMetal(availableMaterials[0]);
+      setRingSelectedMetal(availableMaterials[0]);
     }
   }, [availableMaterials]);
+
+  // ============================================================
+  // ADD TO CART & WISHLIST ANIMATION
+  // ============================================================
+  const triggerAddAnimation = () => {
+    setShowAddedAnimation(true);
+    setTimeout(() => {
+      setShowAddedAnimation(false);
+    }, 1500);
+  };
 
   // ============================================================
   // HANDLER FUNCTIONS
@@ -274,10 +419,14 @@ export const ProductCard = ({
     const prodWithMat = { ...product, price: effectivePrice, material: metal, ringOption };
     addToCart(prodWithMat, sizeToPass, metal, ringOption);
 
+    triggerAddAnimation();
+
     const details = [
       ringOption,
       metal,
-      sizeToPass && sizeToPass !== 'Free Size' ? `Size ${sizeToPass}` : null
+      sizeToPass && sizeToPass !== 'Free Size'
+        ? (sizeToPass.includes('Women:') || sizeToPass.includes('Men:') || sizeToPass.startsWith('Size ') ? sizeToPass : `Size ${sizeToPass}`)
+        : null
     ].filter(Boolean).join(' • ');
 
     if (details) {
@@ -311,10 +460,14 @@ export const ProductCard = ({
 
     addToWishlist(wishlistProduct, sizeToPass, metal, ringOption);
 
+    triggerAddAnimation();
+
     const details = [
       ringOption,
       metal,
-      sizeToPass && sizeToPass !== 'Free Size' ? `Size ${sizeToPass}` : null
+      sizeToPass && sizeToPass !== 'Free Size'
+        ? (sizeToPass.includes('Women:') || sizeToPass.includes('Men:') || sizeToPass.startsWith('Size ') ? sizeToPass : `Size ${sizeToPass}`)
+        : null
     ].filter(Boolean).join(' • ');
 
     if (details) {
@@ -358,14 +511,34 @@ export const ProductCard = ({
     });
   };
 
-  const handleMetalSelect = (metal: string) => {
+  // ============================================================
+  // EXCHANGE HANDLER
+  // ============================================================
+  const executeExchange = (metal: string, ringOption?: string, customSize?: string) => {
+    const sizeToPass = customSize !== undefined ? customSize : (isRingProduct ? selectedSize : undefined);
+    if (onExchangeSelect && !isCurrentProduct && !isOutOfStock) {
+      onExchangeSelect(product, sizeToPass, metal, ringOption);
+      setNotification({ message: `${product.name} selected for exchange`, type: 'success' });
+    }
+  };
+
+  // ============================================================
+  // RING MODAL HANDLERS
+  // ============================================================
+  const handleRingModalConfirm = () => {
+    const metal = ringSelectedMetal || availableMaterials[0] || 'Gold';
+    const size = ringSelectedSize || 'Free Size';
+
     setShowMetalModal(false);
+
     if (pendingAction === 'cart') {
-      executeAddToCart(metal);
+      executeAddToCart(metal, undefined, product.price, size);
     } else if (pendingAction === 'wishlist') {
-      executeAddToWishlist(metal);
+      executeAddToWishlist(metal, undefined, product.price, size);
     } else if (pendingAction === 'buynow') {
-      executeBuyNow(metal);
+      executeBuyNow(metal, undefined, product.price, size);
+    } else if (pendingAction === 'exchange') {
+      executeExchange(metal, undefined, size);
     }
     setPendingAction(null);
   };
@@ -382,7 +555,7 @@ export const ProductCard = ({
         setNotification({ message: 'Please select Women’s ring size', type: 'error' });
         return;
       }
-      finalSize = selectedWomenSize ? `Size ${selectedWomenSize}` : 'Free Size';
+      finalSize = selectedWomenSize ? `Women: Size ${selectedWomenSize.replace(/^Size\s*/i, '').trim()}` : 'Free Size';
     } else if (selectedCoupleOption === 'Men’s Ring') {
       chosenPrice = couplePrices.menPrice;
       if (hasMultipleSizes && !selectedMenSize) {
@@ -390,9 +563,8 @@ export const ProductCard = ({
         setNotification({ message: 'Please select Men’s ring size', type: 'error' });
         return;
       }
-      finalSize = selectedMenSize ? `Size ${selectedMenSize}` : 'Free Size';
+      finalSize = selectedMenSize ? `Men: Size ${selectedMenSize.replace(/^Size\s*/i, '').trim()}` : 'Free Size';
     } else {
-      // Both Rings (Couple Set)
       chosenPrice = couplePrices.bothPrice;
       if (hasMultipleSizes && (!selectedWomenSize || !selectedMenSize)) {
         setCoupleSizeError(true);
@@ -400,11 +572,11 @@ export const ProductCard = ({
         return;
       }
       if (selectedWomenSize && selectedMenSize) {
-        finalSize = `Women: Size ${selectedWomenSize}, Men: Size ${selectedMenSize}`;
+        finalSize = `Women: Size ${selectedWomenSize.replace(/^Size\s*/i, '').trim()}, Men: Size ${selectedMenSize.replace(/^Size\s*/i, '').trim()}`;
       } else if (selectedWomenSize) {
-        finalSize = `Women: Size ${selectedWomenSize}`;
+        finalSize = `Women: Size ${selectedWomenSize.replace(/^Size\s*/i, '').trim()}`;
       } else if (selectedMenSize) {
-        finalSize = `Men: Size ${selectedMenSize}`;
+        finalSize = `Men: Size ${selectedMenSize.replace(/^Size\s*/i, '').trim()}`;
       } else {
         finalSize = 'Free Size';
       }
@@ -419,61 +591,48 @@ export const ProductCard = ({
       executeAddToWishlist(chosenMetal, selectedCoupleOption, chosenPrice, finalSize);
     } else if (pendingAction === 'buynow') {
       executeBuyNow(chosenMetal, selectedCoupleOption, chosenPrice, finalSize);
+    } else if (pendingAction === 'exchange') {
+      executeExchange(chosenMetal, selectedCoupleOption, finalSize);
     }
     setPendingAction(null);
   };
 
+  // ============================================================
+  // MAIN HANDLERS
+  // ============================================================
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // If couple ring -> always show selection popup to choose ring and sizes
     if (isCoupleRing) {
       setPendingAction('cart');
       setShowMetalModal(true);
       return;
     }
 
-    if (isRingProduct && !selectedSize) {
-      setNotification({ message: 'Please select a ring size first', type: 'error' });
-      setShowSizeDropdown(true);
-      return;
-    }
-
-    // If both Gold & Rose Gold are available -> show small popup
-    if (hasMultipleMaterials) {
+    if (isRingProduct) {
       setPendingAction('cart');
       setShowMetalModal(true);
       return;
     }
 
-    // Single metal -> add directly
     executeAddToCart(availableMaterials[0] || 'Gold');
   };
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // If couple ring -> always show selection popup to choose ring and sizes
     if (isCoupleRing) {
       setPendingAction('buynow');
       setShowMetalModal(true);
       return;
     }
 
-    if (isRingProduct && !selectedSize) {
-      setNotification({ message: 'Please select a ring size first', type: 'error' });
-      setShowSizeDropdown(true);
-      return;
-    }
-
-    // If both Gold & Rose Gold are available -> show small popup
-    if (hasMultipleMaterials) {
+    if (isRingProduct) {
       setPendingAction('buynow');
       setShowMetalModal(true);
       return;
     }
 
-    // Single metal -> proceed directly
     executeBuyNow(availableMaterials[0] || 'Gold');
   };
 
@@ -488,48 +647,48 @@ export const ProductCard = ({
       return;
     }
 
-    // If couple ring -> always show selection popup
     if (isCoupleRing) {
       setPendingAction('wishlist');
       setShowMetalModal(true);
       return;
     }
 
-    if (isRingProduct && !selectedSize) {
-      setNotification({ message: 'Please select a ring size first', type: 'error' });
-      setShowSizeDropdown(true);
-      return;
-    }
-
-    // If both Gold & Rose Gold are available -> show small popup
-    if (hasMultipleMaterials) {
+    if (isRingProduct) {
       setPendingAction('wishlist');
       setShowMetalModal(true);
       return;
     }
 
-    // Single metal -> add directly
+    triggerAddAnimation();
     executeAddToWishlist(availableMaterials[0] || 'Gold');
   };
 
   const handleCardClick = () => {
     if (isExchangeMode) return;
-    navigate(`/product/${product.id}`, {
-      state: isRingProduct && selectedSize ? { selectedSize: selectedSize } : {}
-    });
+    navigate(`/product/${product.id}`);
   };
 
   const handleExchangeSelect = (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (hasMultipleSizes && !selectedSize) {
-      setNotification({ message: 'Please select a ring size first', type: 'error' });
-      setShowSizeDropdown(true);
+    // If product is a couple ring, show popup
+    if (isCoupleRing) {
+      setPendingAction('exchange');
+      setShowMetalModal(true);
       return;
     }
 
+    // If product has multiple sizes/materials, show popup
+    if (isRingProduct || hasMultipleMaterials) {
+      setPendingAction('exchange');
+      setShowMetalModal(true);
+      return;
+    }
+
+    // For simple products without size/metal options
     if (onExchangeSelect && !isCurrentProduct && !isOutOfStock) {
-      onExchangeSelect(product, isRingProduct ? selectedSize : undefined);
+      onExchangeSelect(product, undefined, availableMaterials[0] || 'Gold', undefined);
+      setNotification({ message: `${product.name} selected for exchange`, type: 'success' });
     }
   };
 
@@ -553,20 +712,14 @@ export const ProductCard = ({
     setCurrentImage(productImage);
   };
 
-  const handleSizeSelect = (size: string) => {
-    setSelectedSize(size);
-    setShowSizeDropdown(false);
-    setNotification({ message: `Size ${size} selected`, type: 'success' });
-  };
-
   // ============================================================
-  // EXCHANGE MODE RENDER
+  // EXCHANGE MODE RENDER - UPDATED TO MATCH REGULAR CARDS
   // ============================================================
   if (isExchangeMode) {
     return (
       <>
         <motion.div
-          className="group product-card relative cursor-pointer bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-visible"
+          className="group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 hover:border-primary/30 h-full flex flex-col overflow-hidden"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onClick={handleCardClick}
@@ -576,7 +729,7 @@ export const ProductCard = ({
           transition={{ duration: 0.5 }}
         >
           {/* ========== IMAGE SECTION ========== */}
-          <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 rounded-t-lg">
+          <div className="relative aspect-square overflow-hidden bg-gray-50 flex-shrink-0">
             <img
               src={currentImage}
               alt={product.name}
@@ -586,101 +739,535 @@ export const ProductCard = ({
                 e.currentTarget.src = '/placeholder-image.jpg';
               }}
             />
+
             {isOutOfStock && (
-              <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10">
-                OUT OF STOCK
+              <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 uppercase">
+                Out of Stock
               </span>
             )}
+
             {isCurrentProduct && (
               <span className="absolute top-2 right-2 bg-gray-600 text-white text-[10px] font-medium tracking-wider px-3 py-1 rounded-full z-10">
                 CURRENT
               </span>
             )}
+
+            {Number(product.originalPrice) > 0 && (
+              <span className="absolute bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 top-2 left-2">
+                SALE
+              </span>
+            )}
+
+            {/* Couple Ring Badge */}
+            {isCoupleRing && (
+              <span className="absolute bottom-2 left-2 bg-primary/90 text-white text-[8px] sm:text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full z-10">
+                COUPLE RING
+              </span>
+            )}
           </div>
 
           {/* ========== CONTENT SECTION ========== */}
-          <div className="p-3 space-y-1.5">
-            <h3 className="font-medium text-gray-800 text-sm line-clamp-2 group-hover:text-primary transition-colors">
+          <div className="p-2 sm:p-3 lg:p-4 space-y-0.5 sm:space-y-1 flex flex-col flex-grow">
+            {/* Category Badge */}
+            <span className="text-[8px] sm:text-[10px] font-medium text-primary uppercase tracking-wider">
+              {product.category || 'Product'}
+            </span>
+
+            {/* Product Name */}
+            <h3 className="font-medium text-gray-800 text-xs sm:text-sm lg:text-base line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-primary">
-                {formatPrice(product.price)}
+
+            {/* Product Meta */}
+            {productMeta.metaString && (
+              <span className="text-[10px] sm:text-xs font-medium text-gray-500 tracking-wide">
+                {productMeta.metaString}
               </span>
-              {Number(product.originalPrice) > 0 && (
-                <span className="text-xs text-gray-400 line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
-            </div>
+            )}
 
-            {/* ==========================================================
-                EXCHANGE MODE - SIZE SELECTOR
-                ========================================================== */}
-            {hasMultipleSizes && !isCurrentProduct && !isOutOfStock && (
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowSizeDropdown(!showSizeDropdown);
-                  }}
-                  className="w-full px-2.5 py-1 text-xs border border-gray-200 rounded-lg bg-gray-50 hover:border-primary transition-colors flex items-center justify-between"
-                >
-                  <span className={selectedSize ? 'text-gray-800' : 'text-gray-400'}>
-                    {selectedSize ? `Size: ${selectedSize}` : 'Select Ring Size'}
+            {/* Price - Handle Couple Ring separately */}
+            {isCoupleRing ? (
+              <>
+                <div className="flex flex-wrap items-center gap-1 text-[9px] sm:text-[10px] lg:text-[11px] text-gray-600 font-medium">
+                  <span>Women: <strong className="text-gray-900">{formatPrice(couplePrices.womenPrice)}</strong></span>
+                  <span className="text-gray-300">•</span>
+                  <span>Men: <strong className="text-gray-900">{formatPrice(couplePrices.menPrice)}</strong></span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary">
+                    {formatPrice(couplePrices.bothPrice)}
                   </span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
-                </button>
-                {/* ===== EXCHANGE MODE - DROPDOWN ===== */}
-                {showSizeDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    <div className="grid grid-cols-4 gap-1 p-1.5">
-                      {availableSizes.map((size) => (
-                        <button
-                          key={size}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSizeSelect(size);
-                          }}
-                          className={`px-1.5 py-1 text-xs text-center rounded-md transition-colors ${selectedSize === size
-                            ? 'bg-primary text-white'
-                            : 'hover:bg-primary/10 text-gray-700'
-                            }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  <span className="text-[10px] sm:text-[11px] text-black/60">
+                    + {product.gst ?? 3}% GST extra
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-0 mt-0.5 sm:mt-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary">
+                    {formatPrice(product.price)}
+                  </span>
+                  {Number(product.originalPrice) > 0 && (
+                    <span className="text-[9px] sm:text-xs text-gray-400 line-through">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
+                  + {product.gst ?? 3}% GST extra
+                </p>
               </div>
             )}
 
-            {hasOnlyFreeSize && !isCurrentProduct && !isOutOfStock && (
-              <div className="w-full px-2.5 py-1 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
-                Free Size
-              </div>
-            )}
-
+            {/* Exchange Button */}
             <button
               onClick={handleExchangeSelect}
-              disabled={isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)}
-              className={`w-full mt-1.5 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${isCurrentProduct || isOutOfStock || (hasMultipleSizes && !selectedSize)
+              disabled={isCurrentProduct || isOutOfStock}
+              className={`w-full mt-1.5 sm:mt-2 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${isCurrentProduct || isOutOfStock
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-primary text-white hover:bg-primary/90'
                 }`}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               {isCurrentProduct
                 ? 'Current Product'
                 : isOutOfStock
                   ? 'Out of Stock'
-                  : hasMultipleSizes && !selectedSize
-                    ? 'Select Size First'
-                    : 'Select for Exchange'}
+                  : 'Select for Exchange'}
             </button>
           </div>
         </motion.div>
+
+        {/* ========== SELECTION MODAL FOR EXCHANGE ========== */}
+        <AnimatePresence>
+          {showMetalModal && pendingAction === 'exchange' && (
+            <div
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMetalModal(false);
+                setPendingAction(null);
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 10 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-white rounded-2xl p-5 sm:p-6 shadow-2xl border border-gray-100 text-left max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-gray-900">
+                      {isCoupleRing ? 'Select Couple Ring for Exchange' : 'Select Size & Metal for Exchange'}
+                    </h4>
+                    <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMetalModal(false);
+                      setPendingAction(null);
+                    }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {isCoupleRing ? (
+                  // ========== COUPLE RING EXCHANGE MODAL ==========
+                  <div className="space-y-4 mt-3">
+                    {hasMultipleMaterials && (
+                      <div className="pb-3 border-b border-gray-100">
+                        <p className="text-xs text-gray-700 font-bold mb-2">1. Select Metal:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {availableMaterials.map((mat) => {
+                            const isSelected = selectedMetal === mat;
+                            const isGold = !mat.toLowerCase().includes('rose');
+                            return (
+                              <button
+                                key={mat}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMetal(mat);
+                                }}
+                                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isSelected
+                                  ? isGold
+                                    ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/30'
+                                    : 'border-rose-500 bg-rose-50 text-rose-950 ring-2 ring-rose-500/30'
+                                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                  }`}
+                              >
+                                <span
+                                  className={`w-3 h-3 rounded-full ${isGold ? 'bg-amber-400 border border-amber-600' : 'bg-rose-400 border border-rose-500'
+                                    }`}
+                                />
+                                <span>{mat}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-xs text-gray-700 font-bold mb-2">
+                        {hasMultipleMaterials ? '2. ' : '1. '}Choose Your Ring Option:
+                      </p>
+                      <div className="grid grid-cols-1 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCoupleOption('Women’s Ring');
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Women’s Ring'
+                            ? 'border-amber-500 bg-amber-50/90 shadow-sm ring-1 ring-amber-500/30'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 font-bold text-xs">
+                              ♀
+                            </div>
+                            <div>
+                              <span className="text-sm font-bold text-gray-900 block">Women’s Ring</span>
+                              <span className="text-[11px] text-gray-500 font-medium">Single Ring</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-extrabold text-primary block">
+                              {formatPrice(couplePrices.womenPrice)}
+                            </span>
+                            {selectedCoupleOption === 'Women’s Ring' && (
+                              <span className="text-[10px] text-amber-800 font-bold bg-amber-200/70 px-1.5 py-0.2 rounded-full">Selected</span>
+                            )}
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCoupleOption('Men’s Ring');
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Men’s Ring'
+                            ? 'border-blue-500 bg-blue-50/90 shadow-sm ring-1 ring-blue-500/30'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center text-blue-900 font-bold text-xs">
+                              ♂
+                            </div>
+                            <div>
+                              <span className="text-sm font-bold text-gray-900 block">Men’s Ring</span>
+                              <span className="text-[11px] text-gray-500 font-medium">Single Ring</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-extrabold text-primary block">
+                              {formatPrice(couplePrices.menPrice)}
+                            </span>
+                            {selectedCoupleOption === 'Men’s Ring' && (
+                              <span className="text-[10px] text-blue-800 font-bold bg-blue-200/70 px-1.5 py-0.2 rounded-full">Selected</span>
+                            )}
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCoupleOption('Both Rings (Couple Set)');
+                          }}
+                          className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Both Rings (Couple Set)'
+                            ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                              ✨
+                            </div>
+                            <div>
+                              <span className="text-sm font-extrabold text-gray-900 block">Both Rings (Couple Set)</span>
+                              <span className="text-[11px] text-primary font-bold">Complete Pair</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm sm:text-base font-extrabold text-primary block">
+                              {formatPrice(couplePrices.bothPrice)}
+                            </span>
+                            {selectedCoupleOption === 'Both Rings (Couple Set)' && (
+                              <span className="text-[10px] text-primary font-bold bg-primary/20 px-1.5 py-0.2 rounded-full">Selected</span>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {hasMultipleSizes && (
+                      <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-200/80 space-y-3">
+                        {selectedCoupleOption === 'Women’s Ring' && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                                <span>Women’s Size (♀)</span>
+                                <span className="text-red-600">*</span>
+                              </label>
+                              {selectedWomenSize ? (
+                                <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                                  {selectedWomenSize}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-amber-700 font-bold">Select</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {availableSizes.map((size) => (
+                                <button
+                                  key={size}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedWomenSize(size);
+                                  }}
+                                  className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedWomenSize === size
+                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
+                                    : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
+                                    }`}
+                                >
+                                  {size}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedCoupleOption === 'Men’s Ring' && (
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                                <span>Men’s Size (♂)</span>
+                                <span className="text-red-600">*</span>
+                              </label>
+                              {selectedMenSize ? (
+                                <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                                  {selectedMenSize}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-blue-700 font-bold">Select</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {availableSizes.map((size) => (
+                                <button
+                                  key={size}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedMenSize(size);
+                                  }}
+                                  className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedMenSize === size
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
+                                    : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
+                                    }`}
+                                >
+                                  {size}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedCoupleOption === 'Both Rings (Couple Set)' && (
+                          <div className="space-y-3">
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                                  <span>1. Women’s Size (♀)</span>
+                                  <span className="text-red-600">*</span>
+                                </label>
+                                {selectedWomenSize ? (
+                                  <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                                    {selectedWomenSize}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-amber-700 font-bold">Select</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {availableSizes.map((size) => (
+                                  <button
+                                    key={`women-${size}`}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedWomenSize(size);
+                                    }}
+                                    className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedWomenSize === size
+                                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
+                                      : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
+                                      }`}
+                                  >
+                                    {size}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-200/80">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-xs font-bold text-blue-900 flex items-center gap-1">
+                                  <span>2. Men’s Size (♂)</span>
+                                  <span className="text-red-600">*</span>
+                                </label>
+                                {selectedMenSize ? (
+                                  <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                                    {selectedMenSize}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-blue-700 font-bold">Select</span>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {availableSizes.map((size) => (
+                                  <button
+                                    key={`men-${size}`}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedMenSize(size);
+                                    }}
+                                    className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedMenSize === size
+                                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
+                                      : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
+                                      }`}
+                                  >
+                                    {size}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCoupleModalConfirm();
+                      }}
+                      className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Confirm Exchange</span>
+                    </button>
+                  </div>
+                ) : (
+                  // ========== REGULAR RING MODAL FOR EXCHANGE ==========
+                  <div className="space-y-4 mt-3">
+                    {hasMultipleSizes && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                            <span>Select Ring Size</span>
+                            <span className="text-red-600">*</span>
+                          </label>
+                          {ringSelectedSize ? (
+                            <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                              {ringSelectedSize}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-amber-700 font-bold">Select</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {availableSizes.map((size) => (
+                            <button
+                              key={size}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRingSelectedSize(size);
+                              }}
+                              className={`w-10 h-10 text-xs font-semibold rounded-lg border transition-all ${ringSelectedSize === size
+                                ? 'bg-primary text-white border-primary shadow-xs scale-105'
+                                : 'bg-white text-gray-800 border-gray-300 hover:border-primary'
+                                }`}
+                            >
+                              {size}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {hasMultipleMaterials && (
+                      <div className={hasMultipleSizes ? 'pt-3 border-t border-gray-100' : ''}>
+                        <p className="text-xs text-gray-700 font-bold mb-2">Select Metal:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {availableMaterials.map((mat) => {
+                            const isSelected = ringSelectedMetal === mat;
+                            const isGold = !mat.toLowerCase().includes('rose');
+                            return (
+                              <button
+                                key={mat}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRingSelectedMetal(mat);
+                                }}
+                                className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isSelected
+                                  ? isGold
+                                    ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/30'
+                                    : 'border-rose-500 bg-rose-50 text-rose-950 ring-2 ring-rose-500/30'
+                                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                  }`}
+                              >
+                                <span
+                                  className={`w-3 h-3 rounded-full ${isGold ? 'bg-amber-400 border border-amber-600' : 'bg-rose-400 border border-rose-500'
+                                    }`}
+                                />
+                                <span>{mat}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (hasMultipleSizes && !ringSelectedSize) {
+                          setNotification({ message: 'Please select a ring size', type: 'error' });
+                          return;
+                        }
+                        handleRingModalConfirm();
+                      }}
+                      className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Confirm Exchange</span>
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {notification && (
@@ -696,12 +1283,12 @@ export const ProductCard = ({
   }
 
   // ============================================================
-  // REGULAR MODE RENDER
+  // REGULAR MODE RENDER - MOBILE OPTIMIZED
   // ============================================================
   return (
     <>
       <motion.div
-        className="group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 hover:border-primary/30"
+        className="group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-200 hover:border-primary/30 h-full flex flex-col overflow-hidden"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleCardClick}
@@ -711,7 +1298,7 @@ export const ProductCard = ({
         transition={{ duration: 0.5 }}
       >
         {/* ========== IMAGE SECTION ========== */}
-        <div className="relative aspect-square overflow-hidden bg-gray-50 rounded-t-lg">
+        <div className="relative aspect-square overflow-hidden bg-gray-50 flex-shrink-0">
           <img
             src={currentImage}
             alt={product.name}
@@ -722,25 +1309,50 @@ export const ProductCard = ({
             }}
           />
 
-          {/* Currently Unavailable Badge */}
           {isUnavailable && (
-            <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 uppercase">
-              Currently Unavailable
+            <span className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 uppercase">
+              Unavailable
             </span>
           )}
 
-          {/* SALE Badge */}
           {Number(product.originalPrice) > 0 && (
-            <span className={`absolute bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 ${isUnavailable ? 'top-8' : 'top-2'
-              } left-2`}>
+            <span className="absolute bg-primary text-white text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full z-10 top-2 left-2">
               SALE
             </span>
           )}
 
+          {/* Couple Ring Badge */}
+          {isCoupleRing && (
+            <span className="absolute bottom-2 left-2 bg-primary/90 text-white text-[8px] sm:text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full z-10">
+              COUPLE RING
+            </span>
+          )}
+
+          {/* ADDED TO CART / WISHLIST OVERLAY - SAME ANIMATION FOR BOTH */}
+          <AnimatePresence>
+            {showAddedAnimation && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20"
+              >
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", duration: 0.6 }}
+                  className="bg-primary rounded-full p-4 shadow-2xl"
+                >
+                  <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Wishlist Button */}
           <motion.button
             onClick={handleWishlistToggle}
-            className={`absolute right-3 p-2.5 rounded-full transition-all z-10 shadow-md ${inWishlist
+            className={`absolute right-2 sm:right-3 p-2 rounded-full transition-all z-10 shadow-md ${inWishlist
               ? 'bg-red-500 text-white shadow-red-500/30'
               : 'bg-white text-gray-600 hover:bg-red-50 hover:text-red-500'
               }`}
@@ -753,14 +1365,14 @@ export const ProductCard = ({
             transition={{ duration: 0.2, ease: "easeOut" }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            style={{ top: '12px' }}
+            style={{ top: '8px' }}
           >
-            <Heart className={`w-4 h-4 ${inWishlist ? 'fill-current' : ''}`} />
+            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${inWishlist ? 'fill-current' : ''}`} />
           </motion.button>
 
           {/* Add to Cart Button */}
           <motion.button
-            className="absolute bottom-0 left-0 right-0 py-2.5 bg-black/80 backdrop-blur-sm text-white text-sm font-medium transition-colors z-10 flex items-center justify-center gap-2 hover:bg-black"
+            className="absolute bottom-0 left-0 right-0 py-2 sm:py-2.5 bg-black/80 backdrop-blur-sm text-white text-[11px] sm:text-sm font-medium transition-colors z-10 flex items-center justify-center gap-1.5 sm:gap-2 hover:bg-black"
             initial={{ y: '100%', opacity: 0 }}
             animate={{
               y: isHovered && !isUnavailable ? '0%' : '100%',
@@ -773,136 +1385,95 @@ export const ProductCard = ({
             }}
             disabled={isUnavailable}
           >
-            <ShoppingBag className="w-4 h-4" />
-            {isUnavailable ? 'Currently Unavailable' : 'Add to Cart'}
+            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            {isUnavailable ? 'Unavailable' : 'Add to Cart'}
           </motion.button>
         </div>
 
         {/* ========== CONTENT SECTION ========== */}
-        <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2">
+        <div className="p-2 sm:p-3 lg:p-4 space-y-0.5 sm:space-y-1 flex flex-col flex-grow">
+          {/* Category Badge */}
+          <span className="text-[8px] sm:text-[10px] font-medium text-primary uppercase tracking-wider">
+            {product.category || 'Product'}
+          </span>
+
           {/* Product Name */}
-          <h3 className="font-medium text-gray-800 text-sm sm:text-base line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 className="font-medium text-gray-800 text-xs sm:text-sm lg:text-base line-clamp-2 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
 
-          {/* Price */}
+          {/* ============================================================
+              COUPLE RING - Women/Men prices UPAR, GST on RIGHT SIDE
+              ============================================================ */}
           {isCoupleRing ? (
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-base sm:text-lg font-bold text-primary">
-                  {formatPrice(couplePrices.bothPrice)}
+            <>
+              {productMeta.metaString && (
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 tracking-wide">
+                  {productMeta.metaString}
                 </span>
-                <span className="text-[10px] sm:text-xs text-primary font-semibold px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">
-                  Couple Set
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-gray-600 font-medium">
+              )}
+
+              <div className="flex flex-wrap items-center gap-1 text-[9px] sm:text-[10px] lg:text-[11px] text-gray-600 font-medium">
                 <span>Women: <strong className="text-gray-900">{formatPrice(couplePrices.womenPrice)}</strong></span>
-                <span>•</span>
+                <span className="text-gray-300">•</span>
                 <span>Men: <strong className="text-gray-900">{formatPrice(couplePrices.menPrice)}</strong></span>
               </div>
-            </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                <span className="text-sm sm:text-base lg:text-lg font-bold text-primary">
+                  {formatPrice(couplePrices.bothPrice)}
+                </span>
+                <span className="text-[10px] sm:text-[11px] text-black/60">
+                  + {product.gst ?? 3}% GST extra
+                </span>
+              </div>
+            </>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-bold text-primary">
-                {formatPrice(product.price)}
-              </span>
-              {Number(product.originalPrice) > 0 && (
-                <span className="text-xs text-gray-400 line-through">
-                  {formatPrice(product.originalPrice)}
+            // ============================================================
+            // REGULAR PRODUCTS - GST on NEXT LINE
+            // ============================================================
+            <>
+              {productMeta.metaString && (
+                <span className="text-[10px] sm:text-xs font-medium text-gray-500 tracking-wide">
+                  {productMeta.metaString}
                 </span>
               )}
-            </div>
-          )}
-          <p className="text-xs text-black/70 -mt-1">
-            + {product.gst ?? 3}% GST extra
-          </p>
 
-          {/* Rating */}
-          {product.rating && (
-            <div className="flex items-center gap-1">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-xs text-gray-600">{product.rating}</span>
-            </div>
-          )}
-
-          {/* ==========================================================
-              REGULAR MODE - SIZE SELECTOR (Hidden for Couple Rings)
-              ========================================================== */}
-          {!isCoupleRing && hasMultipleSizes && !isOutOfStock && (
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSizeDropdown(!showSizeDropdown);
-                }}
-                className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 hover:border-primary transition-colors flex items-center justify-between"
-              >
-                <span className={selectedSize ? 'text-gray-800' : 'text-gray-400'}>
-                  {selectedSize ? `Size: ${selectedSize}` : 'Select Ring Size'}
-                </span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${showSizeDropdown ? 'rotate-180' : ''}`} />
-              </button>
-              {/* ===== REGULAR MODE - DROPDOWN ===== */}
-              {showSizeDropdown && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                  <div className="grid grid-cols-4 gap-1 p-2">
-                    {availableSizes.map((size) => (
-                      <button
-                        key={size}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSizeSelect(size);
-                        }}
-                        className={`px-2 py-1.5 text-xs text-center rounded-md transition-colors ${selectedSize === size
-                          ? 'bg-primary text-white'
-                          : 'hover:bg-primary/10 text-gray-700'
-                          }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex flex-col gap-0 mt-0.5 sm:mt-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm sm:text-base lg:text-lg font-bold text-primary">
+                    {formatPrice(product.price)}
+                  </span>
+                  {Number(product.originalPrice) > 0 && (
+                    <span className="text-[9px] sm:text-xs text-gray-400 line-through">
+                      {formatPrice(product.originalPrice)}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
-
-          {!isCoupleRing && hasOnlyFreeSize && !isOutOfStock && (
-            <div className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
-              Free Size
-            </div>
-          )}
-
-          {!isCoupleRing && !isRingProduct && !isOutOfStock && (
-            <div className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600">
-              Free Size
-            </div>
+                <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
+                  + {product.gst ?? 3}% GST extra
+                </p>
+              </div>
+            </>
           )}
 
           {/* Buy Now Button */}
           <button
             onClick={handleBuyNow}
             disabled={isUnavailable}
-            className={`w-full py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-lg transition-all ${isUnavailable
+            className={`w-full py-1.5 sm:py-2 lg:py-2.5 text-[11px] sm:text-xs lg:text-sm font-medium rounded-lg transition-all mt-1 sm:mt-1.5 ${isUnavailable
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : !isCoupleRing && isRingProduct && !selectedSize
-                ? 'bg-[#612030] text-white hover:bg-[#4a1824]'
-                : 'bg-primary text-white hover:bg-primary/90'
+              : 'bg-primary text-white hover:bg-primary/90'
               }`}
           >
-            {isUnavailable
-              ? 'Currently Unavailable'
-              : !isCoupleRing && isRingProduct && !selectedSize
-                ? 'SELECT SIZE FIRST'
-                : 'Buy Now'}
+            {isUnavailable ? 'Currently Unavailable' : 'Buy Now'}
           </button>
         </div>
       </motion.div>
 
-      {/* ========== SELECTION MODAL (COUPLE RING OR METAL) ========== */}
+      {/* ========== SELECTION MODAL ========== */}
       <AnimatePresence>
-        {showMetalModal && (
+        {showMetalModal && pendingAction !== 'exchange' && (
           <div
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={(e) => {
@@ -922,7 +1493,7 @@ export const ProductCard = ({
               <div className="flex items-center justify-between pb-3 border-b border-gray-100">
                 <div>
                   <h4 className="text-base sm:text-lg font-bold text-gray-900">
-                    {isCoupleRing ? 'Choose Your Ring & Sizes' : 'Select Metal'}
+                    {isCoupleRing ? 'Choose Your Ring & Sizes' : 'Select Size & Metal'}
                   </h4>
                   <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{product.name}</p>
                 </div>
@@ -941,7 +1512,6 @@ export const ProductCard = ({
 
               {isCoupleRing ? (
                 <div className="space-y-4 mt-3">
-                  {/* 1. Metal choice for Couple Ring if multiple metals available */}
                   {hasMultipleMaterials && (
                     <div className="pb-3 border-b border-gray-100">
                       <p className="text-xs text-gray-700 font-bold mb-2">1. Select Metal:</p>
@@ -958,10 +1528,10 @@ export const ProductCard = ({
                                 setSelectedMetal(mat);
                               }}
                               className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isSelected
-                                  ? isGold
-                                    ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/30'
-                                    : 'border-rose-500 bg-rose-50 text-rose-950 ring-2 ring-rose-500/30'
-                                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                ? isGold
+                                  ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/30'
+                                  : 'border-rose-500 bg-rose-50 text-rose-950 ring-2 ring-rose-500/30'
+                                : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
                                 }`}
                             >
                               <span
@@ -977,13 +1547,11 @@ export const ProductCard = ({
                     </div>
                   )}
 
-                  {/* 2. Choose Ring Option */}
                   <div>
                     <p className="text-xs text-gray-700 font-bold mb-2">
                       {hasMultipleMaterials ? '2. ' : '1. '}Choose Your Ring Option:
                     </p>
                     <div className="grid grid-cols-1 gap-2">
-                      {/* Women's Ring Option */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -991,8 +1559,8 @@ export const ProductCard = ({
                           setSelectedCoupleOption('Women’s Ring');
                         }}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Women’s Ring'
-                            ? 'border-amber-500 bg-amber-50/90 shadow-sm ring-1 ring-amber-500/30'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'border-amber-500 bg-amber-50/90 shadow-sm ring-1 ring-amber-500/30'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -1016,7 +1584,6 @@ export const ProductCard = ({
                         </div>
                       </button>
 
-                      {/* Men's Ring Option */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1024,8 +1591,8 @@ export const ProductCard = ({
                           setSelectedCoupleOption('Men’s Ring');
                         }}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Men’s Ring'
-                            ? 'border-blue-500 bg-blue-50/90 shadow-sm ring-1 ring-blue-500/30'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'border-blue-500 bg-blue-50/90 shadow-sm ring-1 ring-blue-500/30'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -1049,7 +1616,6 @@ export const ProductCard = ({
                         </div>
                       </button>
 
-                      {/* Both Rings (Couple Set) Option */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1057,8 +1623,8 @@ export const ProductCard = ({
                           setSelectedCoupleOption('Both Rings (Couple Set)');
                         }}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left cursor-pointer ${selectedCoupleOption === 'Both Rings (Couple Set)'
-                            ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary/30'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -1084,22 +1650,21 @@ export const ProductCard = ({
                     </div>
                   </div>
 
-                  {/* 3. Size Selection inside Popup */}
                   {hasMultipleSizes && (
                     <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-200/80 space-y-3">
                       {selectedCoupleOption === 'Women’s Ring' && (
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                              <span>Women’s Ring Size (♀)</span>
+                              <span>Women’s Size (♀)</span>
                               <span className="text-red-600">*</span>
                             </label>
                             {selectedWomenSize ? (
                               <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
-                                Size {selectedWomenSize}
+                                {selectedWomenSize}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-amber-700 font-bold">Select Size</span>
+                              <span className="text-[10px] text-amber-700 font-bold">Select</span>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
@@ -1112,8 +1677,8 @@ export const ProductCard = ({
                                   setSelectedWomenSize(size);
                                 }}
                                 className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedWomenSize === size
-                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
-                                    : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
+                                  ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
+                                  : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
                                   }`}
                               >
                                 {size}
@@ -1127,15 +1692,15 @@ export const ProductCard = ({
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
                             <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                              <span>Men’s Ring Size (♂)</span>
+                              <span>Men’s Size (♂)</span>
                               <span className="text-red-600">*</span>
                             </label>
                             {selectedMenSize ? (
                               <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
-                                Size {selectedMenSize}
+                                {selectedMenSize}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-blue-700 font-bold">Select Size</span>
+                              <span className="text-[10px] text-blue-700 font-bold">Select</span>
                             )}
                           </div>
                           <div className="flex flex-wrap gap-1.5">
@@ -1148,8 +1713,8 @@ export const ProductCard = ({
                                   setSelectedMenSize(size);
                                 }}
                                 className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedMenSize === size
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
-                                    : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
+                                  : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
                                   }`}
                               >
                                 {size}
@@ -1161,19 +1726,18 @@ export const ProductCard = ({
 
                       {selectedCoupleOption === 'Both Rings (Couple Set)' && (
                         <div className="space-y-3">
-                          {/* Women Size Row */}
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-xs font-bold text-amber-900 flex items-center gap-1">
-                                <span>1. Women’s Ring Size (♀)</span>
+                                <span>1. Women’s Size (♀)</span>
                                 <span className="text-red-600">*</span>
                               </label>
                               {selectedWomenSize ? (
                                 <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
-                                  Size {selectedWomenSize}
+                                  {selectedWomenSize}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-amber-700 font-bold">Select Size</span>
+                                <span className="text-[10px] text-amber-700 font-bold">Select</span>
                               )}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -1186,8 +1750,8 @@ export const ProductCard = ({
                                     setSelectedWomenSize(size);
                                   }}
                                   className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedWomenSize === size
-                                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
-                                      : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
+                                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs scale-105'
+                                    : 'bg-white text-gray-800 border-gray-300 hover:border-amber-500'
                                     }`}
                                 >
                                   {size}
@@ -1196,19 +1760,18 @@ export const ProductCard = ({
                             </div>
                           </div>
 
-                          {/* Men Size Row */}
                           <div className="pt-2 border-t border-gray-200/80">
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="text-xs font-bold text-blue-900 flex items-center gap-1">
-                                <span>2. Men’s Ring Size (♂)</span>
+                                <span>2. Men’s Size (♂)</span>
                                 <span className="text-red-600">*</span>
                               </label>
                               {selectedMenSize ? (
                                 <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
-                                  Size {selectedMenSize}
+                                  {selectedMenSize}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-blue-700 font-bold">Select Size</span>
+                                <span className="text-[10px] text-blue-700 font-bold">Select</span>
                               )}
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -1221,8 +1784,8 @@ export const ProductCard = ({
                                     setSelectedMenSize(size);
                                   }}
                                   className={`w-8 h-8 text-xs font-semibold rounded-lg border transition-all ${selectedMenSize === size
-                                      ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
-                                      : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs scale-105'
+                                    : 'bg-white text-gray-800 border-gray-300 hover:border-blue-500'
                                     }`}
                                 >
                                   {size}
@@ -1235,7 +1798,6 @@ export const ProductCard = ({
                     </div>
                   )}
 
-                  {/* 4. Action Button */}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1264,50 +1826,107 @@ export const ProductCard = ({
                   </button>
                 </div>
               ) : (
-                <>
-                  <p className="text-xs text-gray-600 mt-3 mb-3 font-medium">
-                    Choose your preferred metal to immediately {pendingAction === 'wishlist' ? 'save to wishlist' : pendingAction === 'buynow' ? 'proceed to checkout' : 'add to cart'}:
-                  </p>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Gold Option */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMetalSelect('Gold');
-                      }}
-                      className="group/btn relative flex flex-col items-center justify-center p-4 rounded-xl border-2 border-amber-300 bg-gradient-to-b from-amber-50/80 to-amber-100/40 hover:border-amber-500 hover:bg-amber-100/70 hover:shadow-md transition-all text-center active:scale-95 cursor-pointer"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 border border-amber-500 shadow-sm flex items-center justify-center mb-2 group-hover/btn:scale-110 transition-transform">
-                        <span className="w-3.5 h-3.5 rounded-full bg-amber-100/60" />
+                // ========== REGULAR RING MODAL ==========
+                <div className="space-y-4 mt-3">
+                  {hasMultipleSizes && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-xs font-bold text-gray-800 flex items-center gap-1">
+                          <span>Select Ring Size</span>
+                          <span className="text-red-600">*</span>
+                        </label>
+                        {ringSelectedSize ? (
+                          <span className="text-[11px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                            {ringSelectedSize}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-700 font-bold">Select</span>
+                        )}
                       </div>
-                      <span className="text-sm font-bold text-amber-950">Gold</span>
-                      <span className="text-[10px] text-amber-700 font-medium mt-0.5">Classic Gold</span>
-                    </button>
-
-                    {/* Rose Gold Option */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMetalSelect('Rose Gold');
-                      }}
-                      className="group/btn relative flex flex-col items-center justify-center p-4 rounded-xl border-2 border-rose-300 bg-gradient-to-b from-rose-50/80 to-rose-100/40 hover:border-rose-500 hover:bg-rose-100/70 hover:shadow-md transition-all text-center active:scale-95 cursor-pointer"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-300 via-rose-400 to-pink-500 border border-rose-400 shadow-sm flex items-center justify-center mb-2 group-hover/btn:scale-110 transition-transform">
-                        <span className="w-3.5 h-3.5 rounded-full bg-rose-100/60" />
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableSizes.map((size) => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRingSelectedSize(size);
+                            }}
+                            className={`w-10 h-10 text-xs font-semibold rounded-lg border transition-all ${ringSelectedSize === size
+                              ? 'bg-primary text-white border-primary shadow-xs scale-105'
+                              : 'bg-white text-gray-800 border-gray-300 hover:border-primary'
+                              }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
                       </div>
-                      <span className="text-sm font-bold text-rose-950">Rose Gold</span>
-                      <span className="text-[10px] text-rose-700 font-medium mt-0.5">Pink Gold</span>
-                    </button>
-                  </div>
-                </>
+                    </div>
+                  )}
+
+                  {hasMultipleMaterials && (
+                    <div className={hasMultipleSizes ? 'pt-3 border-t border-gray-100' : ''}>
+                      <p className="text-xs text-gray-700 font-bold mb-2">Select Metal:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {availableMaterials.map((mat) => {
+                          const isSelected = ringSelectedMetal === mat;
+                          const isGold = !mat.toLowerCase().includes('rose');
+                          return (
+                            <button
+                              key={mat}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRingSelectedMetal(mat);
+                              }}
+                              className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${isSelected
+                                ? isGold
+                                  ? 'border-amber-600 bg-amber-50 text-amber-950 ring-2 ring-amber-600/30'
+                                  : 'border-rose-500 bg-rose-50 text-rose-950 ring-2 ring-rose-500/30'
+                                : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                }`}
+                            >
+                              <span
+                                className={`w-3 h-3 rounded-full ${isGold ? 'bg-amber-400 border border-amber-600' : 'bg-rose-400 border border-rose-500'
+                                  }`}
+                              />
+                              <span>{mat}</span>
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (hasMultipleSizes && !ringSelectedSize) {
+                        setNotification({ message: 'Please select a ring size', type: 'error' });
+                        return;
+                      }
+                      handleRingModalConfirm();
+                    }}
+                    className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <span>
+                      {pendingAction === 'buynow'
+                        ? 'Proceed to Checkout'
+                        : pendingAction === 'wishlist'
+                          ? 'Save to Wishlist'
+                          : 'Add to Cart'}
+                    </span>
+                  </button>
+                </div>
               )}
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
+      <AnimatePresence>
         {notification && (
           <Notification
             message={notification.message}
