@@ -320,7 +320,7 @@ const Checkout = () => {
         const gst = item.product.gst ?? 3;
         return sum + (item.product.price * item.quantity * gst / 100);
       }, 0);
-      const shippingCharge = 1200;
+      const shippingCharge = 0;
       const total = subtotal + gstAmount + shippingCharge;
 
       const orderData = {
@@ -423,7 +423,7 @@ const Checkout = () => {
         const gst = item.product.gst ?? 3;
         return sum + (item.product.price * item.quantity * gst / 100);
       }, 0);
-      const shippingCost = 1200;
+      const shippingCost = 0;
       const total = subtotal + gstAmount + shippingCost;
 
       console.log('💰 [Step 2] Totals — subtotal:', subtotal, '| gst:', gstAmount, '| shipping:', shippingCost, '| total:', total);
@@ -649,7 +649,7 @@ const Checkout = () => {
     0
   );
   // Fixed shipping
-  const shipping = 1200;
+  const shipping = 0;
   // GST exclusive: add on top
   const gstTotal = checkoutItems.reduce((sum, item) => {
     const gst = item.product.gst ?? 3;

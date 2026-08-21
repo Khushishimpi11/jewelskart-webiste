@@ -861,13 +861,13 @@ const TrackOrder = () => {
                 <div className="bg-muted/20 border border-border/30 rounded-lg p-4 sm:p-6">
                   <h3 className="font-semibold text-foreground mb-3 text-sm sm:text-base">Need Help?</h3>
                   <div className="flex flex-wrap gap-3 sm:gap-4">
-                    <a href="mailto:support@jewelskart.com" className="flex items-center gap-2 text-xs sm:text-sm text-primary hover:underline">
+                    <a href="mailto:info@jewelskartindia.com" className="flex items-center gap-2 text-xs sm:text-sm text-primary hover:underline">
                       <Mail className="w-4 h-4 flex-shrink-0" />
-                      support@jewelskart.com
+                      info@jewelskartindia.com
                     </a>
-                    <a href="tel:+919876543210" className="flex items-center gap-2 text-xs sm:text-sm text-primary hover:underline">
+                    <a href="tel:+917558572001" className="flex items-center gap-2 text-xs sm:text-sm text-primary hover:underline">
                       <Phone className="w-4 h-4 flex-shrink-0" />
-                      +91 98765 43210
+                      +91 75585 72001
                     </a>
                   </div>
                 </div>

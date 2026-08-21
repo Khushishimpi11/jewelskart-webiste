@@ -218,6 +218,12 @@ export const Footer = () => {
                 </div>
                 <div className="flex flex-col gap-1">
                   <a
+                    href="mailto:business@jewelskartindia.com"
+                    className="hover:text-white transition-colors"
+                  >
+                    business@jewelskartindia.com
+                  </a>
+                  <a
                     href="mailto:aanchal@jewelskartindia.com"
                     className="hover:text-white transition-colors"
                   >

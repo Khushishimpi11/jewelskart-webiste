@@ -304,7 +304,7 @@ const Contact = () => {
                     <MapPin className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-xl text-foreground mb-1">Our Store</h3>
+                    <h3 className="font-semibold text-xl text-foreground mb-1">Our Office</h3>
                     <a
                       href="https://www.google.com/maps/place/Boulevard+Towers+by+BramhaCorp/@18.5266499,73.8737853,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1f55b86563b:0xe76bf0285653ddd5!8m2!3d18.5266499!4d73.8763602!16s%2Fg%2F11l5j960xy?entry=ttu&g_ep=EgoyMDI2MDgwNS4xIKXMDSoASAFQAw%3D%3D"
                       target="_blank"
@@ -320,7 +320,7 @@ const Contact = () => {
                   </div>
                 </div>
 
-                {/* Emails - info@ and aanchal@ */}
+                {/* Emails */}
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-primary/10 flex items-center justify-center flex-shrink-0 rounded-lg">
                     <Mail className="w-5 h-5 text-primary" />
@@ -328,6 +328,12 @@ const Contact = () => {
                   <div>
                     <h3 className="font-semibold text-xl text-foreground mb-1">Email Us</h3>
                     <div className="space-y-1">
+                      <a
+                        href="mailto:business@jewelskartindia.com"
+                        className="text-muted-foreground hover:text-primary transition-colors block"
+                      >
+                        business@jewelskartindia.com
+                      </a>
                       <a
                         href="mailto:info@jewelskartindia.com"
                         className="text-muted-foreground hover:text-primary transition-colors block"

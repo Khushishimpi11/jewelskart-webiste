@@ -206,18 +206,18 @@ const getProductMeta = (product: Product) => {
       stoneLabel = '';
     } else {
       const hasWD = (!isExplicitNoStone(cr.womenDiamond) && String(cr.womenDiamond || '').trim().toLowerCase() === 'diamond') ||
-                    (!isExplicitNoStone(spec.womenDiamond) && String(spec.womenDiamond || '').trim().toLowerCase() === 'diamond');
+        (!isExplicitNoStone(spec.womenDiamond) && String(spec.womenDiamond || '').trim().toLowerCase() === 'diamond');
       const hasMD = (!isExplicitNoStone(cr.menDiamond) && String(cr.menDiamond || '').trim().toLowerCase() === 'diamond') ||
-                    (!isExplicitNoStone(spec.menDiamond) && String(spec.menDiamond || '').trim().toLowerCase() === 'diamond');
+        (!isExplicitNoStone(spec.menDiamond) && String(spec.menDiamond || '').trim().toLowerCase() === 'diamond');
       const hasWDWeight = Number(cr.womenDiamondWeight) > 0 || Number(spec.womenDiamondWeight) > 0;
       const hasMDWeight = Number(cr.menDiamondWeight) > 0 || Number(spec.menDiamondWeight) > 0;
       const hasSpecDia = specStoneType === 'diamond' || specStoneType === 'both';
       const hasDia = hasWD || hasMD || hasWDWeight || hasMDWeight || hasSpecDia;
 
       const hasWSP = (!isExplicitNoStone(cr.womenSemiPreciousStone) && String(cr.womenSemiPreciousStone || '').trim() !== '') ||
-                     (!isExplicitNoStone(spec.womenSemiPreciousStone) && String(spec.womenSemiPreciousStone || '').trim() !== '');
+        (!isExplicitNoStone(spec.womenSemiPreciousStone) && String(spec.womenSemiPreciousStone || '').trim() !== '');
       const hasMSP = (!isExplicitNoStone(cr.menSemiPreciousStone) && String(cr.menSemiPreciousStone || '').trim() !== '') ||
-                     (!isExplicitNoStone(spec.menSemiPreciousStone) && String(spec.menSemiPreciousStone || '').trim() !== '');
+        (!isExplicitNoStone(spec.menSemiPreciousStone) && String(spec.menSemiPreciousStone || '').trim() !== '');
       const hasWSPWeight = Number(cr.womenSemiPreciousWeight) > 0 || Number(spec.womenSemiPreciousWeight) > 0;
       const hasMSPWeight = Number(cr.menSemiPreciousWeight) > 0 || Number(spec.menSemiPreciousWeight) > 0;
       const hasSpecSP = specStoneType === 'semi_precious' || specStoneType === 'both';
@@ -798,7 +798,7 @@ export const ProductCard = ({
                     {formatPrice(couplePrices.bothPrice)}
                   </span>
                   <span className="text-[10px] sm:text-[11px] text-black/60">
-                    + {product.gst ?? 3}% GST extra
+                    {product.gst ?? 3}% GST extra
                   </span>
                 </div>
               </>
@@ -815,7 +815,7 @@ export const ProductCard = ({
                   )}
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
-                  + {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST extra
                 </p>
               </div>
             )}
@@ -1424,7 +1424,7 @@ export const ProductCard = ({
                   {formatPrice(couplePrices.bothPrice)}
                 </span>
                 <span className="text-[10px] sm:text-[11px] text-black/60">
-                  + {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST extra
                 </span>
               </div>
             </>
@@ -1451,7 +1451,7 @@ export const ProductCard = ({
                   )}
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
-                  + {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST extra
                 </p>
               </div>
             </>

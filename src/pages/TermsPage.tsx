@@ -100,8 +100,8 @@ const TermsPage = () => {
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">16. Contact Information</h2>
               <p className="text-gray-600">
-                Email: support@jewelskartindia.com<br />
-                Phone: +91 98765 43210<br />
+                Email: info@jewelskartindia.com<br />
+                Phone: +91 75585 72001<br />
                 Hours: Monday – Saturday (10:00 AM – 6:00 PM)
               </p>
             </div>
