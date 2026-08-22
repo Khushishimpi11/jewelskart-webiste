@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useOrderStore } from '@/store/orderStore';
 import { formatCoupleOrRingSize } from '@/utils/coupleRing';
+import { calculateEstimatedDelivery } from '@/utils/deliveryCalculator';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -320,7 +321,7 @@ const Checkout = () => {
         const gst = item.product.gst ?? 3;
         return sum + (item.product.price * item.quantity * gst / 100);
       }, 0);
-      const shippingCharge = 0;
+      const shippingCharge = 1200;
       const total = subtotal + gstAmount + shippingCharge;
 
       const orderData = {
@@ -423,7 +424,7 @@ const Checkout = () => {
         const gst = item.product.gst ?? 3;
         return sum + (item.product.price * item.quantity * gst / 100);
       }, 0);
-      const shippingCost = 0;
+      const shippingCost = 1200;
       const total = subtotal + gstAmount + shippingCost;
 
       console.log('💰 [Step 2] Totals — subtotal:', subtotal, '| gst:', gstAmount, '| shipping:', shippingCost, '| total:', total);
@@ -575,10 +576,13 @@ const Checkout = () => {
       }
 
       // ── STEP 8: Payment completion handler ────────────────────
+      let isVerified = false;
       const handlePaymentCompletion = async (paymentResult: any) => {
+        if (isVerified) return;
         try {
+          console.log('🔄 Verifying payment with backend...', paymentResult);
           const verifyPayload = {
-            payment_id: paymentResult?.payment_id || paymentResult?.id || `ZPAY_${Date.now()}`,
+            payment_id: paymentResult?.payment_id || paymentResult?.id || '',
             payments_session_id: sessionId,
             signature: paymentResult?.signature || '',
             orderId: newOrderId
@@ -590,26 +594,33 @@ const Checkout = () => {
           });
           const verifyData = await verifyResponse.json();
           if (verifyData.success) {
-            toast.success('Payment successful!');
+            isVerified = true;
+            toast.success('Payment successful & Order Confirmed!');
             setIsOrderCompleted(true);
             setCurrentStep('confirmation');
             if (!isBuyNow) clearCart();
             setIsProcessingPayment(false);
           } else {
-            throw new Error(verifyData.message || 'Verification failed');
+            console.warn('⚠️ Verification response not success:', verifyData);
+            if (paymentResult?.payment_id || paymentResult?.id) {
+              toast.error(verifyData.message || 'Verification failed');
+            }
+            setIsProcessingPayment(false);
           }
         } catch (verifyErr: any) {
+          console.error('Verification error:', verifyErr);
           toast.error('Payment verification failed');
           setIsProcessingPayment(false);
         }
       };
 
-      // ── STEP 9: Open the payment widget ───────────────────────
+      // ── STEP 9: Open the payment widget with all callbacks ────
       try {
         const widgetParams = {
+          payments_session_id: sessionId,
+          session_id: sessionId,
           amount: String(Number(backendTotal).toFixed(2)),
           currency_code: 'INR',
-          payments_session_id: sessionId,
           currency_symbol: '₹',
           business: 'JewelsKart',
           description: sessionDescription,
@@ -619,12 +630,45 @@ const Checkout = () => {
             name: authUser?.name || `${shippingData.firstName} ${shippingData.lastName}`.trim(),
             email: authUser?.email || shippingData.email,
             phone: shippingData.phone
+          },
+          onSuccess: async (paymentResult: any) => {
+            console.log('✅ Zoho onSuccess fired:', paymentResult);
+            await handlePaymentCompletion(paymentResult);
+          },
+          handler: async (paymentResult: any) => {
+            console.log('✅ Zoho handler fired:', paymentResult);
+            await handlePaymentCompletion(paymentResult);
+          },
+          onFailure: (err: any) => {
+            console.error('❌ Zoho onFailure:', err);
+            toast.error(err?.message || 'Payment failed');
+            setIsProcessingPayment(false);
+          },
+          onClose: async () => {
+            console.log('ℹ️ Zoho widget closed. Checking server verification...');
+            if (!isVerified) {
+              await handlePaymentCompletion({});
+            }
           }
         };
-        const paymentResult = await zpayments.requestPaymentMethod(widgetParams);
-        await handlePaymentCompletion(paymentResult);
+
+        if (typeof zpayments.requestPaymentMethod === 'function') {
+          const res = await zpayments.requestPaymentMethod(widgetParams);
+          if (res) {
+            await handlePaymentCompletion(res);
+          }
+        } else if (typeof zpayments.open === 'function') {
+          zpayments.open(widgetParams);
+        }
       } catch (err: any) {
-        if (err?.code !== 'widget_closed') toast.error(err?.message || 'Payment failed');
+        if (err?.code !== 'widget_closed') {
+          console.error('Payment widget error:', err);
+          toast.error(err?.message || 'Payment failed');
+        }
+        // Even if caught, try checking status once in case payment finished
+        if (!isVerified) {
+          await handlePaymentCompletion({});
+        }
         setIsProcessingPayment(false);
       }
     } catch (error: any) {
@@ -649,7 +693,7 @@ const Checkout = () => {
     0
   );
   // Fixed shipping
-  const shipping = 0;
+  const shipping = 1200;
   // GST exclusive: add on top
   const gstTotal = checkoutItems.reduce((sum, item) => {
     const gst = item.product.gst ?? 3;
@@ -660,7 +704,7 @@ const Checkout = () => {
 
   // Unique GST rate label for display
   const uniqueGstRates = [...new Set(checkoutItems.map(i => i.product.gst ?? 3))];
-  const gstLabel = uniqueGstRates.length === 1 ? `GST (${uniqueGstRates[0]}%)` : 'GST';
+  const gstLabel = uniqueGstRates.length === 1 ? `GST (${uniqueGstRates[0]}% Extra)` : 'GST (3% Extra)';
 
   if (authLoading) {
     return (
@@ -1014,7 +1058,7 @@ const Checkout = () => {
                               {itemMaterial && ` • Metal: ${itemMaterial}`}
                               {displaySize && ` • Size: ${displaySize}`}
                             </p>
-                            <p className="text-xs text-muted-foreground">+ {item.product.gst ?? 3}% GST applicable</p>
+                            <p className="text-xs text-muted-foreground">{item.product.gst ?? 3}% GST Extra</p>
                           </div>
                           <span className="text-primary">{formatPrice(item.product.price * item.quantity)}</span>
                         </div>
@@ -1037,7 +1081,7 @@ const Checkout = () => {
                     <span className="text-foreground">{formatPrice(Math.round(subtotal))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{gstLabel} (extra)</span>
+                    <span className="text-muted-foreground">{gstLabel}</span>
                     <span className="text-foreground">{formatPrice(Math.round(gstTotal))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -1050,7 +1094,7 @@ const Checkout = () => {
                   </div>
                 </div>
                 <div className="bg-primary/5 p-3 rounded-sm border border-primary/20 flex items-center gap-2 text-xs sm:text-sm text-foreground">
-                  <span className="font-medium">Estimated Delivery:</span> 12–15 days from the date of order. (Products are made/prepared after receiving the order)
+                  <span className="font-medium">Estimated Delivery:</span> <strong className="text-foreground font-semibold">{calculateEstimatedDelivery()}</strong> (12–15 working days from order date)
                 </div>
                 <div className="flex gap-4">
                   <button onClick={() => setCurrentStep('shipping')} className="flex-1 border border-primary text-primary py-3 rounded-md flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors">
@@ -1160,8 +1204,8 @@ const Checkout = () => {
                 </div>
                 <p className="text-muted-foreground mb-4">A confirmation has been sent to {shippingData.email}</p>
                 <div className="bg-primary/5 p-4 rounded-md border border-primary/20 max-w-md mx-auto mb-8 text-sm">
-                  <p className="font-medium text-foreground">Estimated Delivery: 12–15 days from the date of order.</p>
-                  <p className="text-xs text-muted-foreground mt-1">Products are prepared after receiving the order.</p>
+                  <p className="font-medium text-foreground">Estimated Delivery: {calculateEstimatedDelivery(new Date())} (12–15 working days)</p>
+                  <p className="text-xs text-muted-foreground mt-1">Products are prepared after receiving the order (Mon–Fri).</p>
                 </div>
                 <div className="flex gap-4 justify-center flex-wrap">
                   <Link to="/order-summary" className="border border-primary text-primary px-6 py-3 rounded-md hover:bg-primary/5 transition-colors">

@@ -11,48 +11,61 @@ import necklaceBg from "../../assets/necklace.png";
 import coupleRingBg from "../../assets/couple-ring.png";
 import exploreIcon from "../../assets/logoicon.png";
 
-const categories = [
+const defaultCategories = [
   {
     id: "pendants",
     title: "PENDANTS",
     image: pendantBg,
     category: "pendants",
+    buttonText: "Shop pendants",
+    buttonLink: "/shop?category=pendants",
   },
   {
     id: "rings",
     title: "RINGS",
     image: ringBg,
     category: "rings",
+    buttonText: "Shop rings",
+    buttonLink: "/shop?category=rings",
   },
   {
     id: "earrings",
     title: "EARRINGS",
     image: earringBg,
     category: "earrings",
+    buttonText: "Shop earrings",
+    buttonLink: "/shop?category=earrings",
   },
   {
     id: "bracelets",
     title: "BRACELETS",
     image: braceletBg,
     category: "bracelets",
+    buttonText: "Shop bracelets",
+    buttonLink: "/shop?category=bracelets",
   },
   {
     id: "necklaces",
     title: "NECKLACES",
     image: necklaceBg,
     category: "necklace",
+    buttonText: "Shop necklace",
+    buttonLink: "/shop?category=necklace",
   },
   {
     id: "couple-rings",
     title: "COUPLE RINGS",
     image: coupleRingBg,
     category: "couple-ring",
+    buttonText: "Shop couple-ring",
+    buttonLink: "/shop?category=couple-ring",
   },
 ];
 
 const Banner: React.FC = () => {
   const navigate = useNavigate();
 
+  const [categoriesList, setCategoriesList] = useState(defaultCategories);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [enableTransition, setEnableTransition] = useState(true);
@@ -62,6 +75,46 @@ const Banner: React.FC = () => {
   >("desktop");
 
   const isSnapping = useRef(false);
+
+  // ----------------------------------------
+  // Fetch Dynamic Categories from CMS
+  // ----------------------------------------
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const res = await fetch(`${API_BASE_URL}/categories`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+          const mapped = data.categories
+            .filter((c: any) => c.isActive !== false && c.showInBanner !== false)
+            .map((c: any) => {
+              const staticMatch = defaultCategories.find(
+                dc => dc.category.toLowerCase() === (c.slug || '').toLowerCase() || dc.category.toLowerCase() === (c.name || '').toLowerCase()
+              );
+              return {
+                id: c._id || c.slug || c.name,
+                title: (c.bannerTitle || c.name || '').toUpperCase(),
+                // Dedicated wide banner image takes top priority so it is distinct from header thumbnail
+                image: (c.bannerImage && c.bannerImage.trim() !== '') ? c.bannerImage : (staticMatch?.image || c.image || pendantBg),
+                category: c.slug || c.name,
+                buttonText: c.bannerButtonText || `Shop ${c.name}`,
+                buttonLink: c.bannerButtonLink || `/shop?category=${encodeURIComponent(c.slug || c.name)}`
+              };
+            });
+
+          if (mapped.length > 0) {
+            setCategoriesList(mapped);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching categories for banner:', err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // ----------------------------------------
   // Detect Screen Size
@@ -99,8 +152,8 @@ const Banner: React.FC = () => {
         : 4;
 
   const displayItems = [
-    ...categories,
-    ...categories.slice(0, visibleCards),
+    ...categoriesList,
+    ...categoriesList.slice(0, visibleCards),
   ];
 
   // ----------------------------------------
@@ -137,7 +190,7 @@ const Banner: React.FC = () => {
   // Infinite Loop Snap
   // ----------------------------------------
   useEffect(() => {
-    if (currentIndex < categories.length) return;
+    if (currentIndex < categoriesList.length) return;
 
     isSnapping.current = true;
 
@@ -154,7 +207,7 @@ const Banner: React.FC = () => {
     }, 620);
 
     return () => clearTimeout(timer);
-  }, [currentIndex]);
+  }, [currentIndex, categoriesList.length]);
 
   // ----------------------------------------
   // Next Slide
@@ -174,12 +227,12 @@ const Banner: React.FC = () => {
 
     if (currentIndex === 0) {
       setEnableTransition(false);
-      setCurrentIndex(categories.length);
+      setCurrentIndex(categoriesList.length);
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setEnableTransition(true);
-          setCurrentIndex(categories.length - 1);
+          setCurrentIndex(categoriesList.length - 1);
         });
       });
 
@@ -209,11 +262,14 @@ const Banner: React.FC = () => {
   };
 
   // ----------------------------------------
-  // Shop Navigation - Sirf category bhejo
+  // Shop Navigation
   // ----------------------------------------
-  const handleShopNavigation = (category: string) => {
-    // Sirf category parameter bhejo (brand nahi)
-    navigate(`/shop?category=${category.toLowerCase()}`);
+  const handleShopNavigation = (categoryItem: any) => {
+    if (categoryItem.buttonLink) {
+      navigate(categoryItem.buttonLink);
+    } else {
+      navigate(`/shop?category=${encodeURIComponent(categoryItem.category.toLowerCase())}`);
+    }
 
     window.scrollTo({
       top: 0,
@@ -294,7 +350,7 @@ const Banner: React.FC = () => {
               <div
                 key={`${category.id}-${index}`}
                 className="relative aspect-[4/3] w-full min-w-full flex-shrink-0 cursor-pointer overflow-hidden rounded-2xl shadow-xl"
-                onClick={() => handleShopNavigation(category.category)}
+                onClick={() => handleShopNavigation(category)}
               >
                 <div
                   className="absolute inset-0 bg-cover bg-center"
@@ -310,10 +366,10 @@ const Banner: React.FC = () => {
                     className="border-b border-white pb-0.5 text-[11px] font-medium uppercase tracking-widest drop-shadow-lg transition-opacity hover:opacity-80"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShopNavigation(category.category);
+                      handleShopNavigation(category);
                     }}
                   >
-                    Shop {category.category}
+                    {category.buttonText || `Shop ${category.category}`}
                   </button>
                 </div>
               </div>
@@ -346,7 +402,7 @@ const Banner: React.FC = () => {
                       ? "calc((100% - 16px) / 2)"
                       : "calc((100% - 72px) / 4)",
                 }}
-                onClick={() => handleShopNavigation(category.category)}
+                onClick={() => handleShopNavigation(category)}
               >
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-110"
@@ -362,10 +418,10 @@ const Banner: React.FC = () => {
                     className="border-b border-white pb-0.5 text-xs font-medium uppercase tracking-widest drop-shadow-lg transition-opacity hover:opacity-80"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleShopNavigation(category.category);
+                      handleShopNavigation(category);
                     }}
                   >
-                    Shop {category.category}
+                    {category.buttonText || `Shop ${category.category}`}
                   </button>
                 </div>
               </div>
@@ -375,8 +431,8 @@ const Banner: React.FC = () => {
 
         {/* MOBILE DOTS */}
         <div className="mt-5 flex items-center justify-center gap-1.5 sm:hidden">
-          {categories.map((_, index) => {
-            const activeIndex = currentIndex >= categories.length ? 0 : currentIndex;
+          {categoriesList.map((_, index) => {
+            const activeIndex = currentIndex >= categoriesList.length ? 0 : currentIndex;
             return (
               <button
                 key={index}

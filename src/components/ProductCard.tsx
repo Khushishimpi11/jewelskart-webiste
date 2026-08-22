@@ -502,13 +502,31 @@ export const ProductCard = ({
       timestamp: Date.now()
     };
 
-    navigate('/checkout', {
-      state: {
-        buyNowProduct: buyNowProduct,
-        isBuyNow: true,
-        fromBuyNow: true
-      }
-    });
+    const details = [
+      ringOption,
+      metal,
+      sizeToPass && sizeToPass !== 'Free Size'
+        ? (sizeToPass.includes('Women:') || sizeToPass.includes('Men:') || sizeToPass.startsWith('Size ') ? sizeToPass : `Size ${sizeToPass}`)
+        : null
+    ].filter(Boolean).join(' • ');
+
+    if (details) {
+      setNotification({ message: `${product.name} (${details}) — Proceeding to checkout...`, type: 'success' });
+    } else {
+      setNotification({ message: `${product.name} — Proceeding to checkout...`, type: 'success' });
+    }
+
+    triggerAddAnimation();
+
+    setTimeout(() => {
+      navigate('/checkout', {
+        state: {
+          buyNowProduct: buyNowProduct,
+          isBuyNow: true,
+          fromBuyNow: true
+        }
+      });
+    }, 1000);
   };
 
   // ============================================================
@@ -798,7 +816,7 @@ export const ProductCard = ({
                     {formatPrice(couplePrices.bothPrice)}
                   </span>
                   <span className="text-[10px] sm:text-[11px] text-black/60">
-                    {product.gst ?? 3}% GST extra
+                    {product.gst ?? 3}% GST Extra
                   </span>
                 </div>
               </>
@@ -815,7 +833,7 @@ export const ProductCard = ({
                   )}
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
-                  {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST Extra
                 </p>
               </div>
             )}
@@ -1424,7 +1442,7 @@ export const ProductCard = ({
                   {formatPrice(couplePrices.bothPrice)}
                 </span>
                 <span className="text-[10px] sm:text-[11px] text-black/60">
-                  {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST Extra
                 </span>
               </div>
             </>
@@ -1451,7 +1469,7 @@ export const ProductCard = ({
                   )}
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-black/60 mt-1">
-                  {product.gst ?? 3}% GST extra
+                  {product.gst ?? 3}% GST Extra
                 </p>
               </div>
             </>

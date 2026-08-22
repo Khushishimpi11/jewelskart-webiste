@@ -12,14 +12,15 @@ interface InnerPageBannerProps {
   title: string;
   subtitle?: string;
   breadcrumbs: BreadcrumbItem[];
+  backgroundImage?: string;
 }
 
-export const InnerPageBanner = ({ title, subtitle, breadcrumbs }: InnerPageBannerProps) => {
+export const InnerPageBanner = ({ title, subtitle, breadcrumbs, backgroundImage }: InnerPageBannerProps) => {
   return (
     <section className="relative py-16 sm:py-20 lg:py-36 overflow-hidden">
       {/* Background Image with Dark Overlay */}
       <div className="absolute inset-0">
-        <img src={bannerImg} alt="" className="w-full h-full object-cover" loading="lazy" />
+        <img src={backgroundImage || bannerImg} alt="" className="w-full h-full object-cover" loading="lazy" />
         <div className="absolute inset-0 bg-black/50" />
       </div>
 

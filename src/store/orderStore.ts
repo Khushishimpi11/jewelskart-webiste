@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
+import { calculateEstimatedDelivery } from '@/utils/deliveryCalculator';
 
 const getApiBaseUrl = () => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
@@ -419,14 +420,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
         throw new Error(data.message || 'Order failed');
       }
 
-      const deliveryDate = new Date();
-      deliveryDate.setDate(deliveryDate.getDate() + 5);
-
-      const formattedDeliveryDate = deliveryDate.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
+      const formattedDeliveryDate = calculateEstimatedDelivery(new Date());
 
       const trackingId = data.tracking?.trackingId || data.order?.trackingNumber || '';
 
@@ -574,7 +568,7 @@ export const useOrderStore = create<OrderStore>()((set, get) => ({
             pincode: order.shippingAddress?.pincode,
           },
           paymentMethod: order.paymentMethod || 'COD',
-          estimatedDelivery: order.estimatedDelivery || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
+          estimatedDelivery: calculateEstimatedDelivery(order.createdAt || order.date),
         }));
 
         set({ orders: formattedOrders, isLoading: false });

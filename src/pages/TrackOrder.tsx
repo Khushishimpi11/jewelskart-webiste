@@ -7,6 +7,7 @@ import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useOrderStore } from '@/store/orderStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatCoupleOrRingSize } from '@/utils/coupleRing';
+import { calculateEstimatedDelivery } from '@/utils/deliveryCalculator';
 import {
   Package, CheckCircle, Truck, Home, Clock, Loader2,
   Search, Copy, Check, Calendar, ArrowLeft, RefreshCw,
@@ -169,16 +170,7 @@ const TrackOrder = () => {
       }
     }
 
-    let estimatedDelivery = order.estimatedDelivery;
-    if (!estimatedDelivery && order.date) {
-      const deliveryDate = new Date(order.date);
-      deliveryDate.setDate(deliveryDate.getDate() + 7);
-      estimatedDelivery = deliveryDate.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    }
+    const estimatedDelivery = calculateEstimatedDelivery(order.createdAt || order.date);
 
     setOrderStatus({
       id: order.id,
@@ -803,7 +795,7 @@ const TrackOrder = () => {
                     <div className="bg-primary/5 px-4 sm:px-6 py-3 flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
                       <p className="text-xs sm:text-sm text-muted-foreground">
-                        Estimated Delivery: <span className="text-foreground font-medium">{orderStatus.estimatedDelivery}</span>
+                        Estimated Delivery: <span className="text-foreground font-medium">{orderStatus.estimatedDelivery} (12–15 working days)</span>
                       </p>
                     </div>
                   )}

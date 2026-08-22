@@ -1059,13 +1059,31 @@ const ProductDetail = () => {
       timestamp: Date.now()
     };
 
-    navigate('/checkout', {
-      state: {
-        buyNowProduct: buyNowProduct,
-        isBuyNow: true,
-        fromBuyNow: true
-      }
-    });
+    const effectiveSize = getEffectiveSize();
+    const formattedSizeToast = effectiveSize && effectiveSize !== 'Free Size'
+      ? (effectiveSize.includes('Women:') || effectiveSize.includes('Men:') || effectiveSize.startsWith('Size ') ? effectiveSize : `Size ${effectiveSize}`)
+      : null;
+    const itemDetails = [
+      ringOpt,
+      effectiveMat,
+      formattedSizeToast
+    ].filter(Boolean).join(', ');
+
+    if (itemDetails) {
+      toast.success(`${product.name} (${itemDetails}) — Proceeding to checkout...`);
+    } else {
+      toast.success(`${product.name} — Proceeding to checkout...`);
+    }
+
+    setTimeout(() => {
+      navigate('/checkout', {
+        state: {
+          buyNowProduct: buyNowProduct,
+          isBuyNow: true,
+          fromBuyNow: true
+        }
+      });
+    }, 1000);
   };
 
   const formatPrice = (price: number) => {
@@ -1990,7 +2008,7 @@ const ProductDetail = () => {
                       </span>
                     </div>
                     <p className="text-[10px] sm:text-xs text-muted-foreground">
-                      + {product.gst ?? 3}% GST extra applicable
+                      {product.gst ?? 3}% GST Extra
                     </p>
                   </div>
                 </div>
@@ -2002,7 +2020,7 @@ const ProductDetail = () => {
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    + {product.gst ?? 3}% GST extra applicable
+                    {product.gst ?? 3}% GST Extra
                   </p>
                 </div>
               )}

@@ -636,6 +636,21 @@ const Shop = () => {
     );
   }
 
+  const getActiveCategoryBannerImage = () => {
+    if (selectedCategories.length === 1) {
+      const selectedSlugOrName = selectedCategories[0].toLowerCase();
+      const matchedCat = categories.find(
+        (c: any) =>
+          (c.slug && c.slug.toLowerCase() === selectedSlugOrName) ||
+          (c.name && c.name.toLowerCase() === selectedSlugOrName)
+      );
+      if (matchedCat && (matchedCat as any).bannerImage) {
+        return (matchedCat as any).bannerImage;
+      }
+    }
+    return undefined;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -644,6 +659,7 @@ const Shop = () => {
           title={getPageTitle()}
           subtitle={isExchangeMode ? `Exchange for ${exchangeReturnProductName || 'your item'}` : "Our Collection"}
           breadcrumbs={getBreadcrumbs()}
+          backgroundImage={getActiveCategoryBannerImage()}
         />
 
         {/* Exchange Mode Banner */}

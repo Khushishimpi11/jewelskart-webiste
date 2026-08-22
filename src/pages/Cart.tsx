@@ -8,6 +8,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { useCartStore } from '@/store/cartStore';
+import { calculateEstimatedDelivery } from '@/utils/deliveryCalculator';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -271,7 +272,7 @@ const Cart = () => {
                               {formatPrice(item.product.price * item.quantity)}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              + {item.product.gst ?? 3}% GST applicable
+                              {item.product.gst ?? 3}% GST Extra
                             </p>
                           </div>
                         </div>
@@ -391,7 +392,7 @@ const Cart = () => {
                     <span className="text-foreground font-medium">{formatPrice(Math.round(totalExclGst))}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">GST (+ as applicable)</span>
+                    <span className="text-muted-foreground">GST (3% Extra)</span>
                     <span className="text-foreground font-medium">{selectedCount > 0 ? formatPrice(Math.round(gstTotal)) : '₹0'}</span>
                   </div>
                   {selectedCount > 0 && (
@@ -435,7 +436,7 @@ const Cart = () => {
                 <div className="mt-6 space-y-2">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Truck className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>Estimated Delivery: 12–15 days from order date</span>
+                    <span>Estimated Delivery: <strong className="text-foreground font-medium">{calculateEstimatedDelivery()}</strong> (12–15 working days)</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Shield className="w-4 h-4 text-green-600 flex-shrink-0" />

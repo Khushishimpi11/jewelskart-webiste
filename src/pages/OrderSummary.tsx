@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useOrderStore, SimpleOrder } from '@/store/orderStore';
 import { useExchange } from '@/context/ExchangeContext';
 import { formatCoupleOrRingSize } from '@/utils/coupleRing';
+import { calculateEstimatedDelivery } from '@/utils/deliveryCalculator';
 import {
   Package, Eye, Loader2, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle,
   Copy, Check, User, RefreshCw, XCircle, Upload, X, CreditCard, Banknote, Plus, Search, MinusCircle,
@@ -1573,10 +1574,10 @@ const OrderSummary = () => {
                           <div className="flex items-center gap-2">
                             <Truck className="w-4 h-4 text-primary flex-shrink-0" />
                             <p className="text-sm text-muted-foreground">
-                              Estimated Delivery: <span className="text-foreground font-medium">{order.estimatedDelivery || "12–15 days from the date of order."}</span>
+                              Estimated Delivery: <span className="text-foreground font-medium">{calculateEstimatedDelivery(order.createdAt || order.date)} (12–15 working days)</span>
                             </p>
                           </div>
-                          <span className="text-xs text-muted-foreground font-medium">(Products are prepared after receiving the order)</span>
+                          <span className="text-xs text-muted-foreground font-medium">(Products are prepared after receiving the order · Mon–Fri)</span>
                         </div>
                       )}
 

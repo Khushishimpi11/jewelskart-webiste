@@ -133,7 +133,7 @@ const Wishlist = () => {
                               {formatPrice(product.price)}
                             </span>
                             <p className="text-xs text-muted-foreground">
-                              + {product.gst ?? 3}% GST applicable
+                              {product.gst ?? 3}% GST Extra
                             </p>
                           </div>
                         </div>
