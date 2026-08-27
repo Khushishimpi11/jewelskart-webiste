@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { InnerPageBanner } from '@/components/InnerPageBanner';
 import { ProductCard } from '@/components/ProductCard';
+import { ComingSoonCard } from '@/components/ComingSoonCard';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,7 @@ interface Product {
     count: number;
   };
   ringSizes?: string[];
+  sortOrder?: number;
 }
 
 interface Category {
@@ -351,6 +353,7 @@ const Shop = () => {
             },
             // ✅ FIX: Ensure tags is always an array
             tags: Array.isArray(p.tags) ? p.tags : [],
+            sortOrder: typeof p.sortOrder === 'number' ? p.sortOrder : 999999,
           };
         });
 
@@ -477,7 +480,12 @@ const Shop = () => {
       case 'price-high-low': return p.sort((a, b) => b.price - a.price);
       case 'name-a-z': return p.sort((a, b) => a.name.localeCompare(b.name));
       case 'name-z-a': return p.sort((a, b) => b.name.localeCompare(a.name));
-      default: return p;
+      default: return p.sort((a, b) => {
+        const orderA = typeof a.sortOrder === 'number' ? a.sortOrder : 999999;
+        const orderB = typeof b.sortOrder === 'number' ? b.sortOrder : 999999;
+        if (orderA !== orderB) return orderA - orderB;
+        return 0;
+      });
     }
   }, [filteredProducts, sortBy]);
 
@@ -523,11 +531,24 @@ const Shop = () => {
       if (foundCat) return foundCat.name.charAt(0).toUpperCase() + foundCat.name.slice(1);
       return categoryFromUrl.charAt(0).toUpperCase() + categoryFromUrl.slice(1);
     }
-    if (brandFromUrl) {
-      return brandFromUrl.charAt(0).toUpperCase() + brandFromUrl.slice(1);
+    if (selectedCategories.length > 0) {
+      return selectedCategories[0].charAt(0).toUpperCase() + selectedCategories[0].slice(1);
     }
     return 'Shop All';
   };
+
+  const isEarringsOrBraceletsCategory = useMemo(() => {
+    const pageTitle = getPageTitle().toLowerCase();
+    const catUrl = (categoryFromUrl || '').toLowerCase();
+    const selCats = selectedCategories.map(c => c.toLowerCase()).join(' ');
+
+    const combined = `${pageTitle} ${catUrl} ${selCats}`;
+    return (
+      combined.includes('earring') ||
+      combined.includes('earing') ||
+      combined.includes('bracelet')
+    );
+  }, [categoryFromUrl, selectedCategories, categories, categoryMapping, isExchangeMode, brandFromUrl]);
 
   const getBreadcrumbs = () => {
     const breadcrumbs = [{ label: 'Home', path: '/' }];
@@ -843,16 +864,25 @@ const Shop = () => {
                       <ShoppingBag className="w-10 h-10 text-muted-foreground" />
                     </div>
                     <h3 className="font-display text-xl text-foreground mb-2">
-                      {isExchangeMode ? "No products available for exchange" : "No products found"}
+                      {isExchangeMode ? "No products available for exchange" : "Exclusive Collection In Crafting"}
                     </h3>
-                    <p className="text-muted-foreground text-sm max-w-md">
+                    <p className="text-muted-foreground text-sm max-w-md mb-6">
                       {isExchangeMode
                         ? "All products are currently out of stock. Please check back later."
-                        : "No products found matching your criteria."}
+                        : "Our master artisans are currently crafting new designs for this collection. Stay tuned for upcoming drops!"}
                     </p>
+                    {!isExchangeMode && isEarringsOrBraceletsCategory && (
+                      <div className="w-full max-w-sm mx-auto mb-6 text-left">
+                        <ComingSoonCard
+                          categoryName={getPageTitle()}
+                          categorySlug={categoryFromUrl || (selectedCategories.length > 0 ? selectedCategories[0] : '')}
+                          index={0}
+                        />
+                      </div>
+                    )}
                     <button
                       onClick={clearFilters}
-                      className="mt-6 px-6 py-3 bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center rounded-sm"
+                      className="px-6 py-3 bg-primary text-primary-foreground text-sm hover:opacity-90 transition-opacity min-h-[44px] inline-flex items-center rounded-sm"
                     >
                       Clear all filters
                     </button>
@@ -901,6 +931,15 @@ const Shop = () => {
                           />
                         </motion.div>
                       ))}
+
+                      {/* Coming Soon Card: Rendered ONLY in Earrings and Bracelets categories */}
+                      {!isExchangeMode && isEarringsOrBraceletsCategory && (currentPage === totalPages || totalPages <= 1 || paginatedProducts.length < productsPerPage) && (
+                        <ComingSoonCard
+                          categoryName={getPageTitle()}
+                          categorySlug={categoryFromUrl || (selectedCategories.length > 0 ? selectedCategories[0] : '')}
+                          index={paginatedProducts.length}
+                        />
+                      )}
                     </div>
 
                     {/* Pagination */}
